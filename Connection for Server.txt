@@ -1,0 +1,35 @@
+{
+  "ConnectionStrings": {
+    "ANPRConnection": "Server=DESKTOP-0P828TO\\SQLEXPRESS;Database=ANPR;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true;Connection Timeout=300;",
+    "AmaanConnection": "Server=DESKTOP-0P828TO\\SQLEXPRESS;Database=AMAAN_PMS;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true;Connection Timeout=300;",
+    "DefaultConnection": "Server=DESKTOP-0P828TO\\SQLEXPRESS;Database=AMAAN_PMS;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true;Connection Timeout=300;"
+  },
+  "BackupSettings": {
+    "BackupFolder": "C:\\Payment Website\\Database Bak",
+    "BackupTime": "01:00:00",
+    "RetentionDays": 30
+  },
+  "AppSettings": {
+    "BaseUrl": "https://amaan-pms.com/nextgenmall"
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "Kestrel": {
+    "Endpoints": {
+      "Http": {
+        "Url": "http://0.0.0.0:8000"
+      }
+    },
+    "Limits": {
+      "MaxRequestBodySize": 104857600,
+      "MaxResponseBufferSize": 104857600,
+      "RequestHeadersTimeout": "00:05:00",
+      "KeepAliveTimeout": "00:05:00"
+    }
+  },
+  "AllowedHosts": "*"
+}

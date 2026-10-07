@@ -1,0 +1,1481 @@
+﻿@{
+    ViewData["Title"] = "Parking Management Dashboard";
+}
+<style>
+    :root {
+        --primary: #667eea;
+        --secondary: #764ba2;
+        --success: #1ab677;
+        --warning: #ffc107;
+        --danger: #ff6b6b;
+        --info: #1784fa;
+        --dark: #2c3e50;
+        --light: #f8f9fa;
+        --cv-panel-width: 440px;
+    }
+
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    /* Fill the whole area next to the sidebar - no blank strip on the right */
+    html, body {
+        width: 100%;
+    }
+
+    body {
+        background: #f0f3f9;
+        min-height: 100vh;
+    }
+
+    .main-content {
+        flex: 1 1 auto;
+        min-width: 0;
+        width: 100%;
+    }
+
+    .content-area {
+        background: #f0f3f9 !important;
+        padding: 18px 20px !important;
+    }
+
+    /* ================= LAYOUT ================= */
+    .dashboard-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) var(--cv-panel-width);
+        gap: 18px;
+        align-items: start;
+        width: 100%;
+        max-width: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    .dashboard-main {
+        min-width: 0;
+    }
+
+    /* ================= HEADER ================= */
+    .dashboard-header {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        color: #fff;
+        padding: 22px 28px;
+        border-radius: 14px;
+        margin-bottom: 16px;
+        box-shadow: 0 8px 28px rgba(102, 126, 234, .28);
+        position: relative;
+        overflow: hidden;
+    }
+
+        .dashboard-header::before {
+            content: '';
+            position: absolute;
+            top: -60%;
+            right: -6%;
+            width: 260px;
+            height: 260px;
+            background: rgba(255, 255, 255, .1);
+            border-radius: 50%;
+        }
+
+        .dashboard-header h1 {
+            font-size: 26px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .dashboard-header p {
+            font-size: 14px;
+            opacity: .95;
+            position: relative;
+            z-index: 1;
+        }
+
+    /* ================= FILTERS ================= */
+    .quick-filters {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        background: #fff;
+        padding: 14px 16px;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, .06);
+    }
+
+    .date-input-group {
+        flex: 1 1 150px;
+        min-width: 150px;
+    }
+
+        .date-input-group label {
+            display: block;
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 6px;
+            font-size: 12px;
+        }
+
+        .date-input-group input {
+            width: 100%;
+            height: 40px;
+            padding: 8px 12px;
+            border: 2px solid #e3e7ef;
+            border-radius: 8px;
+            font-size: 13px;
+            transition: all .25s;
+        }
+
+            .date-input-group input:focus {
+                border-color: var(--primary);
+                box-shadow: 0 0 0 3px rgba(102, 126, 234, .12);
+                outline: none;
+            }
+
+    .filter-button {
+        height: 40px;
+        padding: 0 16px;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 13px;
+        cursor: pointer;
+        transition: all .25s;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        white-space: nowrap;
+    }
+
+    .btn-primary-gradient {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        color: #fff;
+        box-shadow: 0 4px 14px rgba(102, 126, 234, .3);
+    }
+
+        .btn-primary-gradient:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(102, 126, 234, .4);
+        }
+
+    .btn-outline {
+        background: #fff;
+        border: 2px solid var(--primary);
+        color: var(--primary);
+    }
+
+        .btn-outline:hover {
+            background: var(--primary);
+            color: #fff;
+        }
+
+    /* ================= METRICS ================= */
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
+        gap: 14px;
+        margin-bottom: 16px;
+    }
+
+    .metric-card {
+        background: #fff;
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, .06);
+        border-left: 5px solid var(--primary);
+        transition: all .25s;
+        position: relative;
+        overflow: hidden;
+    }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 90px;
+            height: 90px;
+            background: rgba(102, 126, 234, .05);
+            border-radius: 50%;
+            transform: translate(30%, -30%);
+        }
+
+        .metric-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 22px rgba(0, 0, 0, .12);
+        }
+
+        .metric-card.success {
+            border-left-color: var(--success);
+        }
+
+        .metric-card.warning {
+            border-left-color: var(--warning);
+        }
+
+        .metric-card.danger {
+            border-left-color: var(--danger);
+        }
+
+        .metric-card.info {
+            border-left-color: var(--info);
+        }
+
+    .metric-icon {
+        font-size: 24px;
+        margin-bottom: 10px;
+        display: inline-block;
+        padding: 9px 13px;
+        border-radius: 8px;
+        background: rgba(102, 126, 234, .1);
+        position: relative;
+        z-index: 1;
+    }
+
+    .metric-label {
+        font-size: 11px;
+        color: #7b8494;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .5px;
+        margin-bottom: 6px;
+    }
+
+    .metric-value {
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--dark);
+        position: relative;
+        z-index: 1;
+        white-space: nowrap;
+    }
+
+    /* ================= CHARTS ================= */
+    .charts-section {
+        display: grid;
+        grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+        gap: 14px;
+        margin-bottom: 16px;
+    }
+
+    .chart-card {
+        background: #fff;
+        border-radius: 12px;
+        padding: 18px 20px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, .06);
+        min-width: 0;
+    }
+
+    .chart-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--dark);
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+    }
+
+        .chart-title i {
+            color: var(--primary);
+        }
+
+    .chart-container {
+        position: relative;
+        height: 290px;
+    }
+
+    /* ================= TABLE ================= */
+    .table-responsive-card {
+        background: #fff;
+        border-radius: 12px;
+        padding: 18px 20px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, .06);
+        overflow-x: auto;
+    }
+
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+        .data-table thead {
+            background: #f0f2f5;
+        }
+
+        .data-table th {
+            padding: 11px 14px;
+            text-align: left;
+            font-weight: 700;
+            color: var(--dark);
+            font-size: 12px;
+            text-transform: uppercase;
+            border-bottom: 2px solid #e3e7ef;
+        }
+
+        .data-table td {
+            padding: 11px 14px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 13px;
+        }
+
+        .data-table tbody tr:hover {
+            background: #f9fafb;
+        }
+
+    .badge {
+        display: inline-block;
+        padding: 5px 11px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .badge-success {
+        background: rgba(26, 182, 119, .1);
+        color: var(--success);
+    }
+
+    .badge-warning {
+        background: rgba(255, 193, 7, .12);
+        color: #b58900;
+    }
+
+    .badge-danger {
+        background: rgba(255, 107, 107, .1);
+        color: var(--danger);
+    }
+
+    .loading {
+        text-align: center;
+        padding: 30px;
+        color: #666;
+    }
+
+    .spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid var(--primary);
+        border-radius: 50%;
+        width: 36px;
+        height: 36px;
+        animation: spin 1s linear infinite;
+        margin: 16px auto;
+    }
+
+    @@keyframes spin {
+        0% {
+            transform: rotate(0deg);
+        }
+
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+
+    .error-banner {
+        background: #ffebee;
+        border: 1px solid #ff5252;
+        color: #c62828;
+        padding: 12px 15px;
+        border-radius: 8px;
+        margin-bottom: 14px;
+        display: none;
+    }
+
+        .error-banner.show {
+            display: block;
+        }
+
+    /* ================= CARD VALIDATION PANEL ================= */
+    .card-validation-panel {
+        position: sticky;
+        top: 60px;
+        width: 100%;
+        max-height: calc(100vh - 76px);
+        overflow-y: auto;
+        align-self: start;
+        background: #fff;
+        border: 1px solid #d7e1ef;
+        border-radius: 12px;
+        box-shadow: 0 8px 28px rgba(29, 55, 92, .14);
+        z-index: 20;
+    }
+
+    .cv-header {
+        height: 50px;
+        padding: 0 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: linear-gradient(135deg, #0878df 0%, #1976d2 100%);
+        color: #fff;
+        font-weight: 700;
+        font-size: 17px;
+        position: sticky;
+        top: 0;
+        z-index: 2;
+    }
+
+    .cv-header-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .cv-collapse {
+        border: 0;
+        background: transparent;
+        color: #fff;
+        font-size: 24px;
+        cursor: pointer;
+        line-height: 1;
+    }
+
+    .cv-body {
+        padding: 14px 16px 16px;
+        background: #fff;
+    }
+
+    .cv-status {
+        height: 44px;
+        background: linear-gradient(135deg, #eef3ff, #e2ebff);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        font-weight: 800;
+        color: #101010;
+        margin-bottom: 10px;
+    }
+
+        .cv-status.success {
+            background: #dff7e9;
+            color: #157a45;
+        }
+
+        .cv-status.warning {
+            background: #fff3cd;
+            color: #8a5a00;
+        }
+
+        .cv-status.danger {
+            background: #ffe1e1;
+            color: #a21c1c;
+        }
+
+    .cv-field-row {
+        display: grid;
+        grid-template-columns: 138px minmax(0, 1fr);
+        gap: 10px;
+        align-items: center;
+        margin: 7px 0;
+    }
+
+        .cv-field-row label {
+            color: #10213f;
+            font-size: 13px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+    .cv-readonly, .cv-card-input {
+        width: 100%;
+        height: 38px;
+        border: 1px solid #cbd6e6;
+        border-radius: 8px;
+        background: #f2f5fa;
+        color: #24324a;
+        padding: 6px 11px;
+        font-size: 13px;
+        outline: none;
+    }
+
+    .cv-card-input {
+        background: #fff;
+        border: 2px solid #1679df;
+        font-weight: 600;
+    }
+
+        .cv-card-input:focus {
+            box-shadow: 0 0 0 3px rgba(23, 132, 250, .15);
+        }
+
+    .cv-payment-label {
+        margin: 14px 0 10px;
+        padding: 9px 12px;
+        background: linear-gradient(135deg, #eef3ff, #e2ebff);
+        border-radius: 8px;
+        color: #111b2d;
+        font-weight: 800;
+        font-size: 14px;
+    }
+
+    .cv-payment-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    .cv-pay-btn {
+        height: 72px;
+        border: 0;
+        border-radius: 10px;
+        color: #fff;
+        font-weight: 800;
+        font-size: 14px;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        transition: .15s ease;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, .12);
+    }
+
+        .cv-pay-btn i {
+            font-size: 20px;
+        }
+
+        .cv-pay-btn:hover {
+            transform: translateY(-2px);
+            filter: brightness(.96);
+        }
+
+    .cv-cash {
+        background: #ff8500;
+    }
+
+    .cv-manual {
+        background: #1679df;
+    }
+
+    .cv-prompt {
+        background: #139fe9;
+    }
+
+    .cv-foc {
+        background: #14963a;
+    }
+
+    .cv-clear {
+        width: 100%;
+        height: 46px;
+        margin-top: 12px;
+        border: 0;
+        border-radius: 10px;
+        background: #f32231;
+        color: #fff;
+        font-size: 15px;
+        font-weight: 800;
+        cursor: pointer;
+    }
+
+    .cv-help {
+        text-align: center;
+        color: #667085;
+        font-size: 11px;
+        margin: 8px 0 0;
+    }
+
+    /* ================= MODALS ================= */
+    .cv-modal-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        display: none;
+        align-items: flex-start;
+        justify-content: flex-end;
+        padding: 70px 22px 18px;
+        background: rgba(15, 23, 42, .25);
+    }
+
+        .cv-modal-overlay.open {
+            display: flex;
+        }
+
+    .cv-modal {
+        width: 440px;
+        max-width: calc(100vw - 36px);
+        background: #2d2d2d;
+        color: #fff;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 16px 40px rgba(0, 0, 0, .32);
+    }
+
+    .cv-modal-head {
+        height: 52px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        font-weight: 800;
+        font-size: 16px;
+    }
+
+        .cv-modal-head.cash {
+            background: #d96f00;
+        }
+
+        .cv-modal-head.manual, .cv-modal-head.prompt {
+            background: #098bc1;
+        }
+
+        .cv-modal-head.foc {
+            background: #1e821f;
+        }
+
+    .cv-modal-close {
+        position: absolute;
+        right: 12px;
+        top: 8px;
+        border: 0;
+        background: transparent;
+        color: #fff;
+        font-size: 25px;
+        cursor: pointer;
+    }
+
+    .cv-modal-body {
+        padding: 16px 16px 18px;
+    }
+
+    .cv-modal-row {
+        margin-bottom: 12px;
+    }
+
+        .cv-modal-row label {
+            display: block;
+            font-size: 13px;
+            color: #f4f4f4;
+            margin-bottom: 6px;
+        }
+
+    .cv-modal-input, .cv-modal-select, .cv-modal-textarea {
+        width: 100%;
+        border: 1px solid #65656b;
+        background: #45454d;
+        color: #fff;
+        border-radius: 6px;
+        padding: 10px 11px;
+        font-size: 13px;
+        outline: none;
+    }
+
+    .cv-modal-textarea {
+        min-height: 92px;
+        resize: vertical;
+    }
+
+    .cv-charge {
+        color: #8df39c;
+        font-weight: 800;
+        font-size: 14px;
+        margin: 6px 0 13px;
+    }
+
+    .cv-change {
+        color: #8df39c;
+        font-size: 13px;
+        margin-top: 8px;
+        font-weight: 700;
+    }
+
+    .cv-modal-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    .cv-action {
+        height: 46px;
+        border: 0;
+        border-radius: 8px;
+        color: #fff;
+        font-size: 14px;
+        font-weight: 800;
+        cursor: pointer;
+    }
+
+    .cv-confirm {
+        background: #20b548;
+    }
+
+    .cv-cancel {
+        background: #e62e3f;
+    }
+
+    .cv-send {
+        background: #0b91c9;
+    }
+
+    .cv-modal-message {
+        min-height: 20px;
+        color: #ffb4b4;
+        font-size: 12px;
+        margin-top: 8px;
+    }
+
+    /* ================= RESPONSIVE ================= */
+    @@media (max-width: 1500px) {
+        :root {
+            --cv-panel-width: 400px;
+        }
+
+        .charts-section {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @@media (max-width: 1100px) {
+        .dashboard-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .card-validation-panel {
+            position: relative;
+            top: auto;
+            order: -1;
+            max-height: none;
+            overflow-y: visible;
+        }
+
+        .cv-modal-overlay {
+            padding: 70px 10px 10px;
+        }
+    }
+
+    @@media (max-width: 600px) {
+        .cv-field-row {
+            grid-template-columns: 1fr;
+            gap: 4px;
+        }
+
+        .cv-pay-btn {
+            height: 64px;
+            font-size: 13px;
+        }
+
+        .metrics-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<!-- Error Banner -->
+<div class="error-banner" id="errorBanner">
+    <i class="fas fa-exclamation-circle"></i>
+    <span id="errorMessage"></span>
+</div>
+
+<!-- Dashboard Content -->
+<div class="dashboard-layout">
+    <div class="dashboard-main">
+        <!-- Header -->
+        <div class="dashboard-header">
+            <h1><i class="fas fa-chart-line"></i> Parking Management Dashboard</h1>
+            <p>Real-time analytics and insights for your parking operations</p>
+        </div>
+
+        <!-- Quick Filters -->
+        <div class="quick-filters">
+            <div class="date-input-group">
+                <label>From Date</label>
+                <input type="date" id="dateFrom" />
+            </div>
+            <div class="date-input-group">
+                <label>To Date</label>
+                <input type="date" id="dateTo" />
+            </div>
+            <button class="filter-button btn-primary-gradient" onclick="loadDashboard()">
+                <i class="fas fa-search"></i> Generate Report
+            </button>
+            <button class="filter-button btn-outline" onclick="loadLast7Days()">
+                <i class="fas fa-calendar-week"></i> Last 7 Days
+            </button>
+            <button class="filter-button btn-outline" onclick="loadLast30Days()">
+                <i class="fas fa-calendar"></i> Last 30 Days
+            </button>
+            <button class="filter-button btn-outline" onclick="loadThisMonth()">
+                <i class="fas fa-calendar-check"></i> This Month
+            </button>
+        </div>
+
+        <!-- Metrics Cards -->
+        <div class="metrics-grid" id="metricsContainer">
+            <div class="loading"><div class="spinner"></div>Loading metrics...</div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="charts-section">
+            <div class="chart-card">
+                <h3 class="chart-title">
+                    <i class="fas fa-chart-line"></i> Daily Vehicle Exits Trend
+                </h3>
+                <div class="chart-container">
+                    <canvas id="dailyExitsChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <h3 class="chart-title">
+                    <i class="fas fa-chart-pie"></i> Revenue Distribution
+                </h3>
+                <div class="chart-container">
+                    <canvas id="paymentMethodChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Table -->
+        <div class="table-responsive-card">
+            <h3 class="chart-title">
+                <i class="fas fa-table"></i> Payment Method Summary
+            </h3>
+            <table class="data-table" id="summaryTable">
+                <thead>
+                    <tr>
+                        <th>Payment Method</th>
+                        <th>Count</th>
+                        <th>Amount (KES)</th>
+                        <th>Percentage</th>
+                    </tr>
+                </thead>
+                <tbody id="summaryTableBody">
+                    <tr>
+                        <td colspan="4" class="loading">
+                            <div class="spinner"></div>
+                            Loading payment data...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Card Validation -->
+    <aside class="card-validation-panel" id="cardValidationPanel">
+        <div class="cv-header">
+            <div class="cv-header-title"><i class="fas fa-credit-card"></i> Cards Validation</div>
+            <button type="button" class="cv-collapse" onclick="toggleCardValidation()" aria-label="Collapse">−</button>
+        </div>
+        <div class="cv-body" id="cvBody">
+            <div class="cv-status" id="cvStatus">Card Status</div>
+
+            <div class="cv-field-row">
+                <label>Scanned Card No:</label>
+                <input id="cvCardNumber" class="cv-card-input" autocomplete="off" placeholder="Scan card..." />
+            </div>
+            <div class="cv-field-row"><label>Card Name:</label><input id="cvCardName" class="cv-readonly" readonly /></div>
+            <div class="cv-field-row"><label>Entry Time:</label><input id="cvEntryTime" class="cv-readonly" readonly /></div>
+            <div class="cv-field-row"><label>Validation Time:</label><input id="cvValidationTime" class="cv-readonly" readonly /></div>
+            <div class="cv-field-row"><label>Park Time:</label><input id="cvParkTime" class="cv-readonly" readonly /></div>
+            <div class="cv-field-row"><label>Revalidation Time:</label><input id="cvRevalidationTime" class="cv-readonly" readonly /></div>
+            <div class="cv-field-row"><label>Addl. Park Time:</label><input id="cvAdditionalParkTime" class="cv-readonly" readonly /></div>
+            <div class="cv-field-row"><label>Chargeable (KES):</label><input id="cvChargeable" class="cv-readonly" readonly /></div>
+
+            <div class="cv-payment-label">Select Payment Mode:</div>
+            <div class="cv-payment-grid">
+                <button type="button" class="cv-pay-btn cv-cash" onclick="openValidationModal('cash')"><i class="fas fa-money-bill-wave"></i>CASH</button>
+                <button type="button" class="cv-pay-btn cv-manual" onclick="openValidationModal('manual')"><i class="fas fa-credit-card"></i>Manual M-Pesa</button>
+                <button type="button" class="cv-pay-btn cv-prompt" onclick="openValidationModal('prompt')"><i class="fas fa-mobile-alt"></i>Prompt M-Pesa</button>
+                <button type="button" class="cv-pay-btn cv-foc" onclick="openValidationModal('foc')"><i class="fas fa-file-alt"></i>FOC</button>
+            </div>
+            <button type="button" class="cv-clear" onclick="clearCardValidation()"><i class="fas fa-times"></i> Cancel / Clear</button>
+            <div class="cv-help">Scan a parked card to load validation details.</div>
+        </div>
+    </aside>
+</div>
+
+<!-- Card Validation Modals -->
+<div class="cv-modal-overlay" id="cvModalCash">
+    <div class="cv-modal">
+        <div class="cv-modal-head cash">CASH Payment <button class="cv-modal-close" onclick="closeValidationModals()">×</button></div>
+        <div class="cv-modal-body">
+            <div class="cv-charge">Chargeable: KES <span id="cashCharge">0.00</span></div>
+            <div class="cv-modal-row"><label>Collected Amount</label><input id="cashCollected" class="cv-modal-input" inputmode="decimal" oninput="updateCashChange()" /></div>
+            <div class="cv-change">Change to Return: KES <span id="cashChange">0.00</span></div>
+            <div class="cv-modal-message" id="cashMessage"></div>
+            <div class="cv-modal-actions"><button class="cv-action cv-confirm" onclick="submitValidation('Cash')">✔ Confirm</button><button class="cv-action cv-cancel" onclick="closeValidationModals()">✕ Cancel</button></div>
+        </div>
+    </div>
+</div>
+
+<div class="cv-modal-overlay" id="cvModalManual">
+    <div class="cv-modal">
+        <div class="cv-modal-head manual">Manual M-Pesa (Paybill) <button class="cv-modal-close" onclick="closeValidationModals()">×</button></div>
+        <div class="cv-modal-body">
+            <div class="cv-modal-row"><label>Mobile No. *</label><input id="manualMobile" class="cv-modal-input" inputmode="numeric" /></div>
+            <div class="cv-modal-row"><label>Transaction ID *</label><input id="manualTransaction" class="cv-modal-input" /></div>
+            <div class="cv-charge">Chargeable: KES <span id="manualCharge">0.00</span></div>
+            <div class="cv-modal-row"><label>Collected Amount *</label><input id="manualCollected" class="cv-modal-input" inputmode="decimal" /></div>
+            <div class="cv-modal-row"><label>Operator Name *</label><input id="manualOperator" class="cv-modal-input" /></div>
+            <div class="cv-modal-row"><label>Remark (max 500):</label><textarea id="manualRemark" class="cv-modal-textarea" maxlength="500"></textarea></div>
+            <div class="cv-modal-message" id="manualMessage"></div>
+            <div class="cv-modal-actions"><button class="cv-action cv-confirm" onclick="submitValidation('M-Pesa Via Paybill')">✔ Confirm</button><button class="cv-action cv-cancel" onclick="closeValidationModals()">✕ Cancel</button></div>
+        </div>
+    </div>
+</div>
+
+<div class="cv-modal-overlay" id="cvModalPrompt">
+    <div class="cv-modal">
+        <div class="cv-modal-head prompt">Prompt M-Pesa (STK Push) <button class="cv-modal-close" onclick="closeValidationModals()">×</button></div>
+        <div class="cv-modal-body">
+            <div class="cv-modal-row"><label>Mobile No:</label><input id="promptMobile" class="cv-modal-input" inputmode="numeric" /></div>
+            <div class="cv-modal-message" id="promptMessage"></div>
+            <div class="cv-modal-actions"><button class="cv-action cv-send" onclick="sendPromptRequest()">▶ Send Request</button><button class="cv-action cv-cancel" onclick="closeValidationModals()">✕ Cancel</button></div>
+        </div>
+    </div>
+</div>
+
+<div class="cv-modal-overlay" id="cvModalFoc">
+    <div class="cv-modal">
+        <div class="cv-modal-head foc">Free of Charge <button class="cv-modal-close" onclick="closeValidationModals()">×</button></div>
+        <div class="cv-modal-body">
+            <div class="cv-modal-row"><label>Reason:</label><select id="focReason" class="cv-modal-select"><option value="">-- Select Reason --</option></select></div>
+            <div class="cv-modal-row"><label>Remark (min 5 chars):</label><textarea id="focRemark" class="cv-modal-textarea"></textarea></div>
+            <div class="cv-modal-message" id="focMessage"></div>
+            <div class="cv-modal-actions"><button class="cv-action cv-confirm" onclick="submitValidation('FOC')">✔ Confirm</button><button class="cv-action cv-cancel" onclick="closeValidationModals()">✕ Cancel</button></div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script>
+        let dailyExitsChart = null;
+        let paymentMethodChart = null;
+
+        const colors = {
+            primary: '#667eea',
+            secondary: '#764ba2',
+            success: '#1ab677',
+            warning: '#ffc107',
+            danger: '#ff6b6b',
+            info: '#1784fa'
+        };
+
+        function showError(message) {
+            const banner = document.getElementById('errorBanner');
+            const msgEl = document.getElementById('errorMessage');
+            msgEl.textContent = message;
+            banner.classList.add('show');
+            setTimeout(() => banner.classList.remove('show'), 5000);
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            try {
+                const today = new Date();
+                const thirtyDaysAgo = new Date(today);
+                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+                document.getElementById('dateFrom').value = thirtyDaysAgo.toISOString().split('T')[0];
+                document.getElementById('dateTo').value = today.toISOString().split('T')[0];
+
+                loadDashboard();
+            } catch (error) {
+                showError('Failed to initialize: ' + error.message);
+            }
+        });
+
+        function getDateRange(days) {
+            const today = new Date();
+            const startDate = new Date(today);
+            startDate.setDate(startDate.getDate() - (days - 1));
+
+            document.getElementById('dateFrom').value = startDate.toISOString().split('T')[0];
+            document.getElementById('dateTo').value = today.toISOString().split('T')[0];
+            loadDashboard();
+        }
+
+        function loadLast7Days() { getDateRange(7); }
+        function loadLast30Days() { getDateRange(30); }
+        function loadThisMonth() {
+            const today = new Date();
+            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+            document.getElementById('dateFrom').value = firstDay.toISOString().split('T')[0];
+            document.getElementById('dateTo').value = today.toISOString().split('T')[0];
+            loadDashboard();
+        }
+
+        async function loadDashboard() {
+            const dateFrom = document.getElementById('dateFrom').value;
+            const dateTo = document.getElementById('dateTo').value;
+
+            if (!dateFrom || !dateTo) {
+                showError('Please select both dates');
+                return;
+            }
+
+            try {
+                await Promise.all([
+                    loadMetrics(dateFrom, dateTo),
+                    loadDailyExits(dateFrom, dateTo),
+                    loadPaymentDistribution(dateFrom, dateTo)
+                ]);
+            } catch (error) {
+                showError('Error: ' + error.message);
+            }
+        }
+
+        async function loadMetrics(dateFrom, dateTo) {
+            try {
+                const response = await fetch('/Utility/GetDashboardMetrics', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ StartDate: dateFrom, EndDate: dateTo })
+                });
+
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                const result = await response.json();
+                if (result.success) {
+                    renderMetrics(result.data);
+                } else {
+                    showError(result.message);
+                }
+            } catch (error) {
+                showError('Metrics error: ' + error.message);
+            }
+        }
+
+        function renderMetrics(stats) {
+            const html = `
+                <div class="metric-card">
+                    <div class="metric-icon" style="background: rgba(102, 126, 234, 0.1); color: ${colors.primary};">
+                        <i class="fas fa-car"></i>
+                    </div>
+                    <div class="metric-label">Total Vehicles</div>
+                    <div class="metric-value">${(stats.totalVehicles || 0).toLocaleString()}</div>
+                </div>
+
+                <div class="metric-card success">
+                    <div class="metric-icon" style="background: rgba(26, 182, 119, 0.1); color: ${colors.success};">
+                        <i class="fas fa-coins"></i>
+                    </div>
+                    <div class="metric-label">Total Revenue</div>
+                    <div class="metric-value">KES ${(stats.grandTotalAmount || 0).toLocaleString('en-US', {maximumFractionDigits: 0})}</div>
+                </div>
+
+                <div class="metric-card warning">
+                    <div class="metric-icon" style="background: rgba(255, 193, 7, 0.1); color: ${colors.warning};">
+                        <i class="fas fa-money-bill"></i>
+                    </div>
+                    <div class="metric-label">Cash Collected</div>
+                    <div class="metric-value">KES ${(stats.totalCashCollected || 0).toLocaleString('en-US', {maximumFractionDigits: 0})}</div>
+                </div>
+
+                <div class="metric-card success">
+                    <div class="metric-icon" style="background: rgba(26, 182, 119, 0.1); color: ${colors.success};">
+                        <i class="fas fa-mobile-alt"></i>
+                    </div>
+                    <div class="metric-label">M-Pesa Collected</div>
+                    <div class="metric-value">KES ${(stats.totalMPesaCollected || 0).toLocaleString('en-US', {maximumFractionDigits: 0})}</div>
+                </div>
+
+                <div class="metric-card danger">
+                    <div class="metric-icon" style="background: rgba(255, 107, 107, 0.1); color: ${colors.danger};">
+                        <i class="fas fa-gift"></i>
+                    </div>
+                    <div class="metric-label">Free of Charge</div>
+                    <div class="metric-value">${(stats.totalFocCount || 0).toLocaleString()}</div>
+                </div>`;
+            document.getElementById('metricsContainer').innerHTML = html;
+        }
+
+        async function loadDailyExits(dateFrom, dateTo) {
+            try {
+                const response = await fetch('/Utility/GetDayWiseExitData', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ StartDate: dateFrom, EndDate: dateTo })
+                });
+
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                const result = await response.json();
+                if (result.success) renderDailyExitsChart(result.data);
+            } catch (error) {
+                showError('Exits error: ' + error.message);
+            }
+        }
+
+        function renderDailyExitsChart(data) {
+            const ctx = document.getElementById('dailyExitsChart');
+            if (!ctx) return;
+
+            if (dailyExitsChart) dailyExitsChart.destroy();
+
+            dailyExitsChart = new Chart(ctx.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: data.map(d => d.date),
+                    datasets: [{
+                        label: 'Vehicle Exits',
+                        data: data.map(d => d.exitCount),
+                        borderColor: colors.primary,
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 5,
+                        pointBackgroundColor: colors.primary,
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        async function loadPaymentDistribution(dateFrom, dateTo) {
+            try {
+                const response = await fetch('/Utility/GetPaymentMethodDistribution', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ StartDate: dateFrom, EndDate: dateTo })
+                });
+
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                const result = await response.json();
+                if (result.success) {
+                    renderPaymentChart(result.data);
+                    renderPaymentSummaryTable(result.data);
+                }
+            } catch (error) {
+                showError('Payment error: ' + error.message);
+            }
+        }
+
+        function renderPaymentChart(data) {
+            const ctx = document.getElementById('paymentMethodChart');
+            if (!ctx) return;
+
+            if (paymentMethodChart) paymentMethodChart.destroy();
+
+            paymentMethodChart = new Chart(ctx.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: data.map(d => d.label),
+                    datasets: [{
+                        data: data.map(d => parseFloat(d.value) || 0),
+                        backgroundColor: [colors.primary, colors.success, colors.warning, colors.danger],
+                        borderColor: '#fff',
+                        borderWidth: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { padding: 15 } },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const pct = ((context.parsed / total) * 100).toFixed(1);
+                                    return 'KES ' + context.parsed.toLocaleString() + ' (' + pct + '%)';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderPaymentSummaryTable(data) {
+            let html = '';
+            const total = data.reduce((sum, item) => sum + parseFloat(item.value || 0), 0);
+
+            data.forEach((item, i) => {
+                const pct = total > 0 ? ((parseFloat(item.value || 0) / total) * 100).toFixed(1) : 0;
+                const cls = i === 0 ? 'badge-success' : i === 1 ? 'badge-warning' : 'badge-danger';
+                html += `<tr><td><strong>${item.label}</strong></td><td><span class="badge ${cls}">${pct}%</span></td><td>KES ${parseFloat(item.value || 0).toLocaleString()}</td><td>${pct}%</td></tr>`;
+            });
+
+            document.getElementById('summaryTableBody').innerHTML = html || '<tr><td colspan="4" class="loading">No data</td></tr>';
+        }
+
+
+        // ================= CARD VALIDATION DASHBOARD =================
+        let cvCurrent = null;
+        let cvCollapsed = false;
+
+        function toggleCardValidation() {
+            cvCollapsed = !cvCollapsed;
+            document.getElementById('cvBody').style.display = cvCollapsed ? 'none' : 'block';
+            document.querySelector('.cv-collapse').textContent = cvCollapsed ? '+' : '−';
+        }
+
+        function cvValue(id, value) {
+            const el = document.getElementById(id);
+            if (el) el.value = value ?? '';
+        }
+
+        function setCvStatus(text, cls='') {
+            const el = document.getElementById('cvStatus');
+            el.textContent = text || 'Card Status';
+            el.className = 'cv-status ' + cls;
+        }
+
+        function formatMoney(v) {
+            return (Number(v || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        async function lookupCardValidation(cardNumber) {
+            const card = (cardNumber || document.getElementById('cvCardNumber').value || '').trim();
+            if (!card) return;
+            cvValue('cvCardNumber', card);
+            try {
+                const response = await fetch('/CardValidation/Lookup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cardNumber: card })
+                });
+                const result = await response.json();
+                if (!result.success) throw new Error(result.message || 'Card lookup failed.');
+                const d = result.data || {};
+                cvCurrent = d;
+                setCvStatus(d.cardStatus || 'Card Status', d.statusClass || '');
+                cvValue('cvCardName', d.cardName || '');
+                cvValue('cvEntryTime', d.entryTime || '');
+                cvValue('cvValidationTime', d.validationTime || d.scanTime || '');
+                cvValue('cvParkTime', d.parkTime || '00:00:00');
+                cvValue('cvRevalidationTime', d.revalidationTime || '');
+                cvValue('cvAdditionalParkTime', d.additionalParkTime || '');
+                cvValue('cvChargeable', formatMoney(d.currentCharges));
+                if (d.cardStatus === 'VALIDATED' || d.cardStatus === 'REVALIDATED') setCvStatus(d.cardStatus, 'success');
+                if (d.needsRevalidation || d.cardStatus === 'REVALIDATION REQUIRED') setCvStatus('REVALIDATION REQUIRED', 'warning');
+                if (d.cardStatus === 'NOT ENTERED') setCvStatus('NOT ENTERED', 'warning');
+                if (d.cardStatus === 'EXPIRED' || d.cardStatus === 'NOT OUR CARD') setCvStatus(d.cardStatus, 'danger');
+                document.getElementById('cashCharge').textContent = formatMoney(d.currentCharges);
+                document.getElementById('manualCharge').textContent = formatMoney(d.currentCharges);
+                if (d.cardName) document.getElementById('manualOperator').value = document.getElementById('manualOperator').value || '';
+            } catch (e) {
+                cvCurrent = null;
+                setCvStatus('ERROR', 'danger');
+                alert(e.message || 'Unable to load card.');
+            }
+        }
+
+        function clearCardValidation() {
+            cvCurrent = null;
+            ['cvCardNumber','cvCardName','cvEntryTime','cvValidationTime','cvParkTime','cvRevalidationTime','cvAdditionalParkTime','cvChargeable'].forEach(id => cvValue(id, ''));
+            setCvStatus('Card Status');
+            closeValidationModals();
+        }
+
+        function openValidationModal(type) {
+            if (!cvCurrent || !cvCurrent.cardNumber || !cvCurrent.entryTime) {
+                alert('Please scan a parked card first.');
+                return;
+            }
+            if (cvCurrent.cardStatus === 'EXPIRED' || cvCurrent.cardStatus === 'NOT OUR CARD') {
+                alert('This card cannot be validated: ' + cvCurrent.cardStatus + '.');
+                return;
+            }
+            closeValidationModals();
+            const map = { cash:'cvModalCash', manual:'cvModalManual', prompt:'cvModalPrompt', foc:'cvModalFoc' };
+            document.getElementById(map[type]).classList.add('open');
+            if (type === 'cash') {
+                document.getElementById('cashCharge').textContent = formatMoney(cvCurrent.currentCharges);
+                document.getElementById('cashCollected').focus();
+                updateCashChange();
+            } else if (type === 'manual') {
+                document.getElementById('manualCharge').textContent = formatMoney(cvCurrent.currentCharges);
+                document.getElementById('manualCollected').value = formatMoney(cvCurrent.currentCharges);
+                document.getElementById('manualOperator').focus();
+            } else if (type === 'foc') {
+                loadFocReasons();
+            } else if (type === 'prompt') {
+                document.getElementById('promptMobile').focus();
+            }
+        }
+
+        function closeValidationModals() {
+            document.querySelectorAll('.cv-modal-overlay').forEach(x => x.classList.remove('open'));
+        }
+
+        function updateCashChange() {
+            const charge = Number(cvCurrent?.currentCharges || 0);
+            const collected = Number(document.getElementById('cashCollected')?.value || 0);
+            document.getElementById('cashChange').textContent = formatMoney(Math.max(0, collected - charge));
+        }
+
+        async function loadFocReasons() {
+            const select = document.getElementById('focReason');
+            if (select.options.length > 1) return;
+            try {
+                const response = await fetch('/CardValidation/FocReasons');
+                const result = await response.json();
+                if (result.success) {
+                    (result.data || []).forEach(reason => {
+                        const option = document.createElement('option');
+                        option.value = reason; option.textContent = reason; select.appendChild(option);
+                    });
+                }
+            } catch (e) { document.getElementById('focMessage').textContent = e.message; }
+        }
+
+        function showCvMessage(id, message) { document.getElementById(id).textContent = message || ''; }
+
+        async function submitValidation(paymentMode) {
+            if (!cvCurrent?.cardNumber) return;
+            let payload = {
+                cardNumber: cvCurrent.cardNumber,
+                paymentMode,
+                collectedAmount: 0,
+                reason: '',
+                remark: '',
+                mobileNumber: '',
+                transactionId: '',
+                operatorName: ''
+            };
+            let messageId = paymentMode === 'Cash' ? 'cashMessage' : paymentMode === 'M-Pesa Via Paybill' ? 'manualMessage' : 'focMessage';
+
+            if (paymentMode === 'Cash') {
+                payload.collectedAmount = Number(document.getElementById('cashCollected').value || 0);
+            } else if (paymentMode === 'M-Pesa Via Paybill') {
+                payload.mobileNumber = document.getElementById('manualMobile').value.trim();
+                payload.transactionId = document.getElementById('manualTransaction').value.trim();
+                payload.collectedAmount = Number(document.getElementById('manualCollected').value || 0);
+                payload.operatorName = document.getElementById('manualOperator').value.trim();
+                payload.remark = document.getElementById('manualRemark').value.trim();
+            } else if (paymentMode === 'FOC') {
+                payload.reason = document.getElementById('focReason').value;
+                payload.remark = document.getElementById('focRemark').value.trim();
+            }
+
+            showCvMessage(messageId, '');
+            try {
+                const response = await fetch('/CardValidation/ValidateWithPayment', {
+                    method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                if (!result.success) throw new Error(result.message || 'Validation failed.');
+                closeValidationModals();
+                await lookupCardValidation(cvCurrent.cardNumber);
+                alert(result.message || 'Card validated successfully.');
+            } catch (e) {
+                showCvMessage(messageId, e.message || 'Validation failed.');
+            }
+        }
+
+        async function sendPromptRequest() {
+            const mobile = document.getElementById('promptMobile').value.trim();
+            if (mobile.length < 10) {
+                showCvMessage('promptMessage', 'Enter a valid mobile number (minimum 10 digits).');
+                return;
+            }
+            await cvRunMpesaPrompt(mobile);
+        }
+
+        // ===== PROMPT M-PESA (STK PUSH) FLOW =====
+        let cvPromptBusy = false;
+
+        function cvNormalizePhone(phone) {
+            let p = (phone || '').replace(/\D/g, '');
+            if (p.startsWith('0')) p = '254' + p.substring(1);
+            else if (p.length === 9) p = '254' + p;
+            return p;
+        }
+
+        async function cvPost(url, body) {
+            const r = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            return r.json();
+        }
+
+        async function cvRunMpesaPrompt(mobile) {
+            if (cvPromptBusy || !cvCurrent?.cardNumber) return;
+
+            const card = cvCurrent.cardNumber;
+            const phone = cvNormalizePhone(mobile);
+            if (!/^254[0-9]{9}$/.test(phone)) {
+                showCvMessage('promptMessage', 'Enter a valid mobile number (0700123456 or 254700123456).');
+                return;
+            }
+
+            cvPromptBusy = true;
+            try {
+                showCvMessage('promptMessage', 'Sending STK Push...');
+                const stk = await cvPost('/CardValidation/InitiateMpesaPrompt', { cardNumber: card, phoneNumber: phone });
+                if (!stk.success) throw new Error(stk.message || 'Failed to send STK Push.');
+
+                showCvMessage('promptMessage', 'STK Push sent to ' + phone + '. Ask the customer to enter their M-Pesa PIN.');
+
+                const finalFailCodes = ['1', '1032', '1037', '2001', '1001', '1019'];
+                let paid = false, failed = '';
+
+                for (let attempt = 1; attempt <= 8; attempt++) {
+                    await new Promise(r => setTimeout(r, 9000));
+                    showCvMessage('promptMessage', 'Checking payment status... (' + attempt + '/8)');
+
+                    const st = await cvPost('/CardValidation/CheckMpesaPrompt', { checkoutRequestId: stk.checkoutRequestId });
+                    if (st.success && st.resultCode === '0') { paid = true; break; }
+                    if (st.success && finalFailCodes.includes(st.resultCode)) {
+                        failed = st.resultDesc || 'Payment failed';
+                        break;
+                    }
+                }
+
+                if (failed) throw new Error('Payment failed: ' + failed);
+                if (!paid) throw new Error('Payment still processing. Transaction ID: ' + stk.checkoutRequestId + '. Please verify before validating manually.');
+
+                showCvMessage('promptMessage', 'Payment received. Validating card...');
+                const val = await cvPost('/CardValidation/ValidateWithPayment', {
+                    cardNumber: card,
+                    paymentMode: 'Prompt M-Pesa',
+                    collectedAmount: stk.amount,
+                    mobileNumber: phone,
+                    checkoutRequestId: stk.checkoutRequestId,
+                    reason: '',
+                    remark: 'M-Pesa STK ' + stk.checkoutRequestId,
+                    transactionId: '',
+                    operatorName: ''
+                });
+                if (!val.success) throw new Error('Payment received (' + stk.checkoutRequestId + ') but validation failed: ' + (val.message || ''));
+
+                closeValidationModals();
+                if (cvCurrent?.cardNumber === card) await lookupCardValidation(card);
+                alert(val.message || 'Card validated successfully.');
+            } catch (e) {
+                showCvMessage('promptMessage', e.message || 'M-Pesa request failed.');
+                if (!document.getElementById('cvModalPrompt').classList.contains('open'))
+                    alert(e.message || 'M-Pesa request failed.');
+            } finally {
+                cvPromptBusy = false;
+            }
+        }
+
+        document.getElementById('cvCardNumber')?.addEventListener('keydown', function(e) {
+
+            if (e.key === 'Enter') { e.preventDefault(); lookupCardValidation(this.value); }
+        });
+        document.getElementById('cvCardNumber')?.addEventListener('change', function() { lookupCardValidation(this.value); });
+
+        // Auto-focus the card field for RFID/card scanner input.
+        setTimeout(() => document.getElementById('cvCardNumber')?.focus(), 400);
+
+    </script>
+}

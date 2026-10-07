@@ -1,0 +1,499 @@
+﻿@model AmaanParkingSystem.Models.UserManagement.ParkerCompanyMasterModel
+@{
+    ViewData["Title"] = "Parker Company Master";
+    var companyList = ViewBag.CompanyList as List<AmaanParkingSystem.Models.UserManagement.ParkerCompanyMasterModel> ?? new List<AmaanParkingSystem.Models.UserManagement.ParkerCompanyMasterModel>();
+    var isEdit = ViewBag.IsEdit ?? false;
+
+    // Find duplicate Email and Contact Numbers
+    var duplicateEmails = companyList
+        .Where(c => !string.IsNullOrEmpty(c.car_parkers_email))
+        .GroupBy(c => c.car_parkers_email)
+        .Where(g => g.Count() > 1)
+        .Select(g => g.Key)
+        .ToHashSet();
+
+    var duplicateContacts = companyList
+        .Where(c => !string.IsNullOrEmpty(c.car_parkers_contact_number))
+        .GroupBy(c => c.car_parkers_contact_number)
+        .Where(g => g.Count() > 1)
+        .Select(g => g.Key)
+        .ToHashSet();
+}
+
+<div class="container-fluid mt-4">
+    <!-- Success Message -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Add/Edit Company Form -->
+    <div class="card shadow mb-4" id="companyForm">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-@(Model.id > 0 ? "edit" : "plus-circle")"></i>
+                @(Model.id > 0 ? "Edit" : "Add New") Parker Company Master
+            </h5>
+        </div>
+        <div class="card-body">
+            <form asp-action="AddOrEditParkerCompanyMaster" method="post">
+                <input type="hidden" asp-for="id" />
+
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Customer/Site *</label>
+                        <select asp-for="customer_id" asp-items="ViewBag.Sites" class="form-select" required>
+                            <option value="">--Select--</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Company ID <span class="text-success">(Auto-Generated)</span></label>
+                        <input asp-for="car_parkers_company_id" class="form-control bg-light" readonly />
+                        <small class="text-muted">Format: CPC_0001, CPC_0002, etc.</small>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Company Name *</label>
+                        <input asp-for="car_parkers_company_name" class="form-control" required />
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Contact Person</label>
+                        <input asp-for="car_parkers_contact_person" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Email</label>
+                        <input asp-for="car_parkers_email" type="email" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Contact Number</label>
+                        <input asp-for="car_parkers_contact_number" class="form-control" />
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-8">
+                        <label class="form-label">Address</label>
+                        <input asp-for="car_parkers_address" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Status *</label>
+                        <select asp-for="car_parkers_status" class="form-select" required>
+                            <option value="">--Select--</option>
+                            <option value="1">Active</option>
+                            <option value="0">Inactive</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-12">
+                        @if (ViewBag.CanWrite == true)
+                        {
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save"></i> @(Model.id > 0 ? "Update Company" : "Add Company")
+                            </button>
+                        }
+                        @if (Model.id > 0)
+                        {
+                            <a asp-action="ParkerCompanyMaster" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+                        }
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Company List Table - ALL COLUMNS -->
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white d-flex align-items-center justify-content-between">
+            <h5 class="mb-0"><i class="fas fa-list"></i> Parker Companies Master List</h5>
+            <div class="d-flex gap-2 align-items-center">
+                <input id="companySearchInput" type="text" class="form-control form-control-sm" placeholder="Search..." style="max-width: 300px;" />
+
+                <!-- Export Button -->
+                <button type="button"
+                        class="btn btn-success fw-bold px-4"
+                        id="exportExcelBtn">
+                    <i class="fas fa-file-excel me-2"></i>
+                    EXPORT TO EXCEL
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-scroll-wrapper">
+                <table id="companyListTable" class="table table-bordered table-sm table-hover table-sticky-head mb-0">
+                    <thead class="table-primary">
+                        <tr>
+                            <th>ID</th>
+                            <th>Customer ID</th>
+                            <th>Company ID</th>
+                            <th>
+                                Company Name
+                                <a href="@Url.Action("ParkerCompanyMaster", new { sortColumn = "companyname", sortOrder = (ViewBag.SortColumn == "companyname" && ViewBag.SortOrder == "asc" ? "desc" : "asc") })"
+                                   class="text-white ms-1" title="Sort">
+                                    <i class="fas fa-sort@(ViewBag.SortColumn == "companyname" ? (ViewBag.SortOrder == "asc" ? "-up" : "-down") : "")"></i>
+                                </a>
+                            </th>
+                            <th>Contact Person</th>
+                            <th>Email</th>
+                            <th>Contact Number</th>
+                            <th>Address</th>
+                            <th>Status</th>
+                            <th>Created By</th>
+                            <th>Created On</th>
+                            <th>Updated By</th>
+                            <th>Updated On</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var c in companyList)
+                        {
+                            <tr>
+                                <td>@c.id</td>
+                                <td>@c.customer_id</td>
+                                <td><strong class="text-primary">@c.car_parkers_company_id</strong></td>
+                                <td>@c.car_parkers_company_name</td>
+                                <td>@c.car_parkers_contact_person</td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(c.car_parkers_email) && duplicateEmails.Contains(c.car_parkers_email))
+                                    {
+                                        <strong style="color: red; font-weight: bold;">@c.car_parkers_email</strong>
+                                    }
+                                    else
+                                    {
+                                        @c.car_parkers_email
+                                    }
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(c.car_parkers_contact_number) && duplicateContacts.Contains(c.car_parkers_contact_number))
+                                    {
+                                        <strong style="color: red; font-weight: bold;">@c.car_parkers_contact_number</strong>
+                                    }
+                                    else
+                                    {
+                                        @c.car_parkers_contact_number
+                                    }
+                                </td>
+                                <td>@c.car_parkers_address</td>
+                                <td style="text-align: center; vertical-align: middle;">
+                                    @if (c.car_parkers_status == "1")
+                                    {
+                                        <span style="background-color: #28a745; color: white; font-weight: bold; padding: 3px 6px; font-size: 9px; border-radius: 3px; display: inline-block; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.3px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                                            ACTIVE
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span style="background-color: #dc3545; color: white; font-weight: bold; padding: 3px 6px; font-size: 9px; border-radius: 3px; display: inline-block; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.3px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                                            INACTIVE
+                                        </span>
+                                    }
+                                </td>
+                                <td>@c.created_by</td>
+                                <td>@(c.created_on?.ToString("dd-MMM-yyyy HH:mm"))</td>
+                                <td>@c.updated_by</td>
+                                <td>@(c.updated_on?.ToString("dd-MMM-yyyy HH:mm"))</td>
+                                <td>
+                                    <a asp-action="EditParkerCompanyMaster"
+                                       asp-route-id="@c.id"
+                                       asp-route-sortColumn="@ViewBag.SortColumn"
+                                       asp-route-sortOrder="@ViewBag.SortOrder"
+                                       class="btn btn-primary btn-sm @(ViewBag.CanWrite == true ? "" : "d-none")">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 px-3 py-2 border-top bg-light">
+                <div class="text-muted small" id="pageInfo">
+                    Showing 0 records
+                </div>
+
+                <nav>
+                    <ul class="pagination pagination-sm mb-0" id="pagination"></ul>
+                </nav>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<style>
+    .table-scroll-wrapper {
+        overflow-x: auto;
+        overflow-y: auto;
+        max-height: 650px;
+        position: relative;
+    }
+
+    .table-sticky-head thead th {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        background: #cfe2ff !important;
+        font-size: 13px;
+        font-weight: 700;
+        padding: 10px;
+    }
+
+    .pagination {
+        margin-bottom: 0 !important;
+    }
+
+    #exportExcelBtn {
+        min-width: 220px;
+        font-size: 14px;
+    }
+    .bg-light {
+        cursor: not-allowed;
+    }
+
+    .gap-2 {
+        gap: 0.5rem;
+    }
+
+    /* Status column styling - centered with proper width */
+    .table th:nth-child(9),
+    .table td:nth-child(9) {
+        text-align: center !important;
+        vertical-align: middle !important;
+        min-width: 70px !important;
+    }
+</style>
+
+
+<script>
+    // Export to Excel functionality
+    document.getElementById('exportExcelBtn').addEventListener('click', function() {
+        var sortColumn = '@ViewBag.SortColumn';
+        var sortOrder = '@ViewBag.SortOrder';
+
+        var exportUrl = '/ParkerCompanyMaster/ExportParkerCompaniesToExcel?';
+        var params = [];
+
+        if (sortColumn) {
+            params.push('sortColumn=' + encodeURIComponent(sortColumn));
+            params.push('sortOrder=' + encodeURIComponent(sortOrder));
+        }
+
+        exportUrl += params.join('&');
+        window.location.href = exportUrl;
+    });
+
+    // Auto-scroll to form when editing
+    @if (isEdit)
+    {
+                            <text>
+                            window.addEventListener('DOMContentLoaded', function() {
+                                document.getElementById('companyForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            });
+                            </text>
+    }
+   /* =========================================
+       REALTIME REPORT STYLE PAGINATION
+    ========================================= */
+
+    var PAGE_SIZE = 50;
+    var currentPage = 1;
+    var allRows = [];
+    var filteredRows = [];
+
+    document.addEventListener('DOMContentLoaded', function () {
+
+        allRows = Array.from(document.querySelectorAll('#companyListTable tbody tr'));
+        filteredRows = [...allRows];
+
+        setupSearch();
+        renderTable();
+    });
+
+    function setupSearch() {
+
+        document.getElementById('companySearchInput')
+            .addEventListener('input', function () {
+
+                var query = this.value.toLowerCase().trim();
+
+                filteredRows = allRows.filter(function (row) {
+
+                    return row.innerText
+                        .toLowerCase()
+                        .includes(query);
+                });
+
+                currentPage = 1;
+                renderTable();
+            });
+
+        var cardFilter = document.getElementById('cardTypeFilter');
+
+        if (cardFilter) {
+
+            cardFilter.addEventListener('change', function () {
+
+                applyFilters();
+            });
+        }
+    }
+
+    function applyFilters() {
+
+        var query = document.getElementById('companySearchInput')
+            .value.toLowerCase().trim();
+
+        var selectedCard = '';
+
+        var cardFilter = document.getElementById('cardTypeFilter');
+
+        if (cardFilter) {
+            selectedCard = cardFilter.value.toLowerCase();
+        }
+
+        filteredRows = allRows.filter(function (row) {
+
+            var text = row.innerText.toLowerCase();
+
+            var matchesSearch = text.includes(query);
+
+            var matchesCard = true;
+
+            if (selectedCard) {
+                matchesCard = text.includes(selectedCard);
+            }
+
+            return matchesSearch && matchesCard;
+        });
+
+        currentPage = 1;
+
+        renderTable();
+    }
+
+    function renderTable() {
+
+        allRows.forEach(function (row) {
+            row.style.display = 'none';
+        });
+
+        var total = filteredRows.length;
+
+        var start = (currentPage - 1) * PAGE_SIZE;
+        var end = start + PAGE_SIZE;
+
+        filteredRows
+            .slice(start, end)
+            .forEach(function (row) {
+                row.style.display = '';
+            });
+
+        updatePageInfo(total, start, end);
+
+        buildPagination(total);
+
+        var wrapper = document.querySelector('.table-scroll-wrapper');
+
+        if (wrapper) {
+            wrapper.scrollTop = 0;
+        }
+    }
+
+    function updatePageInfo(total, start, end) {
+
+        var pageInfo = document.getElementById('pageInfo');
+
+        if (total === 0) {
+
+            pageInfo.innerText = 'No records found';
+            return;
+        }
+
+        pageInfo.innerText =
+            'Showing ' +
+            (start + 1) +
+            ' - ' +
+            Math.min(end, total) +
+            ' of ' +
+            total +
+            ' records';
+    }
+
+    function buildPagination(totalRecords) {
+
+        var totalPages =
+            Math.ceil(totalRecords / PAGE_SIZE);
+
+        var pagination =
+            document.getElementById('pagination');
+
+        pagination.innerHTML = '';
+
+        if (totalPages <= 1) return;
+
+        addPageButton('« Prev',
+            currentPage - 1,
+            currentPage === 1);
+
+        for (var i = 1; i <= totalPages; i++) {
+
+            addPageButton(
+                i,
+                i,
+                false,
+                i === currentPage
+            );
+        }
+
+        addPageButton(
+            'Next »',
+            currentPage + 1,
+            currentPage === totalPages
+        );
+    }
+
+    function addPageButton(text, page, disabled, active) {
+
+        var li = document.createElement('li');
+
+        li.className =
+            'page-item' +
+            (disabled ? ' disabled' : '') +
+            (active ? ' active' : '');
+
+        var a = document.createElement('a');
+
+        a.className = 'page-link';
+
+        a.innerHTML = text;
+
+        a.href = '#';
+
+        if (!disabled) {
+
+            a.addEventListener('click', function (e) {
+
+                e.preventDefault();
+
+                currentPage = page;
+
+                renderTable();
+            });
+        }
+
+        li.appendChild(a);
+
+        document.getElementById('pagination')
+            .appendChild(li);
+    }
+</script>

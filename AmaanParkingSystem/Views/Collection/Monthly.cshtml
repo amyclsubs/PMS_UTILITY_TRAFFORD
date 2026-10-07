@@ -1,0 +1,631 @@
+﻿@{
+    ViewData["Title"] = "Monthly Collection Report";
+}
+
+<div class="container-fluid mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">
+                <i class="fas fa-calendar-alt"></i> Monthly Collection Report
+            </h4>
+            <p class="mb-0 small">Monthly parking collection summary data from AMAAN_PMS database</p>
+        </div>
+        <div class="card-body">
+            <!-- TABS -->
+            <ul class="nav nav-tabs mb-4" id="monthlyTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="exited-cars-tab" data-bs-toggle="tab"
+                            data-bs-target="#exited-cars" type="button" role="tab">
+                        <i class="fas fa-car"></i> Monthly Collection [Exited Cars]
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="transactions-tab" data-bs-toggle="tab"
+                            data-bs-target="#transactions" type="button" role="tab">
+                        <i class="fas fa-receipt"></i> Monthly Collection [Transactions]
+                    </button>
+                </li>
+            </ul>
+
+            <!-- Tab Content -->
+            <div class="tab-content" id="monthlyTabContent">
+
+                <!-- TAB 1: EXITED CARS -->
+                <div class="tab-pane fade show active" id="exited-cars" role="tabpanel">
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold">Select Month:</label>
+                            <select class="form-select" id="monthSelectExited">
+                                <option value="1">January</option>
+                                <option value="2">February</option>
+                                <option value="3">March</option>
+                                <option value="4">April</option>
+                                <option value="5">May</option>
+                                <option value="6">June</option>
+                                <option value="7">July</option>
+                                <option value="8">August</option>
+                                <option value="9">September</option>
+                                <option value="10">October</option>
+                                <option value="11" selected>November</option>
+                                <option value="12">December</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold">Select Year:</label>
+                            <select class="form-select" id="yearSelectExited">
+                                <option value="2024">2024</option>
+                                <option value="2025" selected>2025</option>
+                                <option value="2026">2026</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 d-flex align-items-end">
+                            <button class="btn btn-primary me-2" onclick="loadExitedCarsData()">
+                                <i class="fas fa-search"></i> Show
+                            </button>
+                            <button type="button" class="btn btn-success ms-2" id="thisMonthBtnExited">This Month</button>
+                            <button type="button" class="btn btn-info ms-2" id="previousMonthBtnExited">Previous Month</button>
+                            <button class="btn btn-success me-2" onclick="exportExitedCarsExcel()">
+                                <i class="fas fa-file-excel"></i> Export Excel
+                            </button>
+                            <button class="btn btn-warning" onclick="clearExitedCarsData()">
+                                <i class="fas fa-eraser"></i> Clear
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card mb-4">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0">Daily Collection Summary</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover table-sm" id="exitedCarsTable">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <!-- MAIN TABLE COLUMNS (metrics + summary) -->
+                                            <th rowspan="2">Id</th>
+                                            <th rowspan="2">Date</th>
+                                            <th rowspan="2">Day</th>
+                                            <th rowspan="2">Total Vehicles</th>
+                                            <th rowspan="2">Cash Count</th>
+                                            <th rowspan="2">Cash Total (KES)</th>
+                                            <th rowspan="2">M-Pesa Count</th>
+                                            <th rowspan="2">M-Pesa Total (KES)</th>
+                                            <th rowspan="2">FOC Count</th>
+                                            <th rowspan="2">FOC Amount (KES)</th>
+                                            <th rowspan="2">CTM FOC Count</th>
+                                            <th rowspan="2">CTM FOC Amount (KES)</th>
+
+                                            <!-- SUMMARY COLUMNS (stay in main block) -->
+                                            <th rowspan="2">Total Charges (KES)</th>
+                                            <th rowspan="2">Total Paid (KES)</th>
+                                            <th rowspan="2">Discount (KES)</th>
+                                            <th rowspan="2">Zero Charge Count</th>
+                                            <th rowspan="2" class="sep-right">Permanent Parkers</th>
+
+                                            <!-- SIDE TABLE BLOCK: CARD TYPES + VIP (matches Excel side table) -->
+                                            <th colspan="3" class="text-center">Temporary</th>
+                                            <th colspan="3" class="text-center">FOC_PER_UNIT</th>
+                                            <th colspan="3" class="text-center">Daily Access</th>
+                                            <th colspan="3" class="text-center">Cash Card</th>
+                                            <th rowspan="2">VIP (Parking Owners)</th>
+                                        </tr>
+                                        <tr>
+                                            <!-- SUB-HEADERS FOR CARD TYPES -->
+                                            <th>Zero Charge</th>
+                                            <th>Charged</th>
+                                            <th>Paid Amount (KES)</th>
+
+                                            <th>Zero Charge</th>
+                                            <th>Charged</th>
+                                            <th>Paid Amount (KES)</th>
+
+                                            <th>Zero Charge</th>
+                                            <th>Charged</th>
+                                            <th>Paid Amount (KES)</th>
+
+                                            <th>Zero Charge</th>
+                                            <th>Charged</th>
+                                            <th>Paid Amount (KES)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="exitedCarsTableBody">
+                                        <tr>
+                                            <td colspan="29" class="text-center text-muted">
+                                                Select month and year, then click "Show"
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                    <tfoot id="exitedCarsTotalRow" style="display:none;">
+                                        <tr class="table-warning fw-bold">
+                                            <!-- MAIN TABLE TOTALS -->
+                                            <td colspan="3">Total:</td>
+                                            <td id="totalVehiclesExited">0</td>
+                                            <td id="totalCashCountExited">0</td>
+                                            <td id="totalCashAmountExited">0</td>
+                                            <td id="totalMPesaCountExited">0</td>
+                                            <td id="totalMPesaAmountExited">0</td>
+                                            <td id="totalFOCCountExited">0</td>
+                                            <td id="totalFOCAmountExited">0</td>
+                                            <td id="totalCTMFOCCountExited">0</td>
+                                            <td id="totalCTMFOCAmountExited">0</td>
+
+                                            <!-- SUMMARY TOTALS -->
+                                            <td id="totalChargesExited">0</td>
+                                            <td id="totalPaidExited">0</td>
+                                            <td id="totalDiscountExited">0</td>
+                                            <td id="totalZeroChargeExited">0</td>
+                                            <td id="totalPermanentExited" class="sep-right">0</td>
+
+                                            <!-- SIDE TABLE TOTALS -->
+                                            <td id="totalTempZeroExited">0</td>
+                                            <td id="totalTempChargedExited">0</td>
+                                            <td id="totalTempPaidExited">0</td>
+
+                                            <td id="totalFocPerUnitZeroExited">0</td>
+                                            <td id="totalFocPerUnitChargedExited">0</td>
+                                            <td id="totalFocPerUnitPaidExited">0</td>
+
+                                            <td id="totalDailyAccessZeroExited">0</td>
+                                            <td id="totalDailyAccessChargedExited">0</td>
+                                            <td id="totalDailyAccessPaidExited">0</td>
+
+                                            <td id="totalCashCardZeroExited">0</td>
+                                            <td id="totalCashCardChargedExited">0</td>
+                                            <td id="totalCashCardPaidExited">0</td>
+
+                                            <td id="totalVipExited">0</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+               
+                <!-- TAB 2: TRANSACTIONS -->
+                <div class="tab-pane fade" id="transactions" role="tabpanel">
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold">Select Month:</label>
+                            <select class="form-select" id="monthSelectTrans">
+                                <option value="1">January</option>
+                                <option value="2">February</option>
+                                <option value="3">March</option>
+                                <option value="4">April</option>
+                                <option value="5">May</option>
+                                <option value="6">June</option>
+                                <option value="7">July</option>
+                                <option value="8">August</option>
+                                <option value="9">September</option>
+                                <option value="10">October</option>
+                                <option value="11" selected>November</option>
+                                <option value="12">December</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold">Select Year:</label>
+                            <select class="form-select" id="yearSelectTrans">
+                                <option value="2024">2024</option>
+                                <option value="2025" selected>2025</option>
+                                <option value="2026">2026</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 d-flex align-items-end">
+                            <button class="btn btn-primary me-2" onclick="loadTransactionsData()">
+                                <i class="fas fa-search"></i> Show
+                            </button>
+                            <button type="button" class="btn btn-success ms-2" id="thisMonthBtnTrans">This Month</button>
+                            <button type="button" class="btn btn-info ms-2" id="previousMonthBtnTrans">Previous Month</button>
+                            <button class="btn btn-success me-2" onclick="exportTransactionsExcel()">
+                                <i class="fas fa-file-excel"></i> Export Excel
+                            </button>
+                            <button class="btn btn-warning" onclick="clearTransactionsData()">
+                                <i class="fas fa-eraser"></i> Clear
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card mb-4">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0">Daily Transaction Summary</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover table-sm" id="transactionsTable">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Id</th>
+                                            <th>Date</th>
+                                            <th>Day</th>
+                                            <th>Total Vehicles</th>
+                                            <th>Total Transactions</th>
+                                            <th>Cash Count</th>
+                                            <th>Cash Total (KES)</th>
+                                            <th>M-Pesa Count</th>
+                                            <th>M-Pesa Total (KES)</th>
+                                            <th>Cash Count (TOP-UP)</th>
+                                            <th>Cash Total (KES)(TOP-UP)</th>
+                                            <th>M-Pesa Count (TOP-UP)</th>
+                                            <th>M-Pesa Total (KES)(TOP-UP)</th>
+                                            <th class="table-success text-dark">Total Collected Cash (KES)</th>
+                                            <th class="table-success text-dark">Total Collected M-Pesa (KES)</th>
+                                            <th class="table-success text-dark">Total Collected Amount (KES)</th>
+                                            <th>FOC Count</th>
+                                            <th>FOC Amount (KES)</th>
+                                            <th>CTM FOC Count</th>
+                                            <th>CTM FOC Amount (KES)</th>
+                                            <th>Total Charged Amount (KES)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="transactionsTableBody">
+                                        <tr>
+                                            <td colspan="21" class="text-center text-muted">
+                                                Select month and year, then click "Show"
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                    <tfoot id="transactionsTotalRow" style="display:none;">
+                                        <tr class="table-warning fw-bold">
+                                            <td colspan="3">Total:</td>
+                                            <td id="totalVehiclesTrans">0</td>
+                                            <td id="totalTransactions">0</td>
+                                            <td id="totalCashCountTrans">0</td>
+                                            <td id="totalCashAmountTrans">KES 0.00</td>
+                                            <td id="totalMPesaCountTrans">0</td>
+                                            <td id="totalMPesaAmountTrans">KES 0.00</td>
+                                            <td id="totalCashTopUpCountTrans">0</td>
+                                            <td id="totalCashTopUpAmountTrans">KES 0.00</td>
+                                            <td id="totalMPesaTopUpCountTrans">0</td>
+                                            <td id="totalMPesaTopUpAmountTrans">KES 0.00</td>
+                                            <td id="totalCollCashTrans">KES 0.00</td>
+                                            <td id="totalCollMpesaTrans">KES 0.00</td>
+                                            <td id="totalCollGrandTrans">KES 0.00</td>
+                                            <td id="totalFOCCountTrans">0</td>
+                                            <td id="totalFOCAmountTrans">KES 0.00</td>
+                                            <td id="totalCTMFOCCountTrans">0</td>
+                                            <td id="totalCTMFOCAmountTrans">KES 0.00</td>
+                                            <td id="totalChargedAmountTrans">KES 0.00</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<style>
+    /* Vertical separator between main table and card-type block */
+    th.sep-right,
+    td.sep-right {
+        border-right: 4px solid #999 !important; /* faint but visible line */
+    }
+</style>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
+<script>
+    // ============================================
+    // TAB 1: EXITED CARS FUNCTIONS (SAFE VERSION)
+    // ============================================
+    function loadExitedCarsData() {
+        const month = document.getElementById('monthSelectExited').value;
+        const year = document.getElementById('yearSelectExited').value;
+
+        fetch(`/Collection/GetMonthlyExitedCarsData?year=${year}&month=${month}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.data && data.data.length > 0) {
+                    displayExitedCarsData(data.data);
+                } else {
+                    alert('No data found for the selected month');
+                    clearExitedCarsData();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to load data. Check console for details.');
+            });
+    }
+
+                function displayExitedCarsData(data) {
+        const tbody = document.getElementById('exitedCarsTableBody');
+        tbody.innerHTML = '';
+
+        let totals = {
+            vehicles: 0, cashCount: 0, cashTotal: 0,
+            mPesaCount: 0, mPesaTotal: 0, focCount: 0, focAmount: 0,
+            ctmFocCount: 0, ctmFocAmount: 0,
+            tempZero: 0, tempCharged: 0, tempPaid: 0,
+            focPerUnitZero: 0, focPerUnitCharged: 0, focPerUnitPaid: 0,
+            dailyAccessZero: 0, dailyAccessCharged: 0, dailyAccessPaid: 0,
+            cashCardZero: 0, cashCardCharged: 0, cashCardPaid: 0,
+            vip: 0,
+            charges: 0, paid: 0, discount: 0,
+            zeroCharge: 0, permanent: 0
+        };
+
+        data.forEach((item, index) => {
+            const cashTotal           = item.cashTotal               ?? 0;
+            const mPesaTotal          = item.mPesaTotal              ?? 0;
+            const focAmount           = item.focAmount               ?? 0;
+            const ctmFocAmount        = item.ctmFocAmount            ?? 0;
+            const totalCharges        = item.totalCharges            ?? 0;
+            const totalPaid           = item.totalPaid               ?? 0;
+            const discount            = item.discount                ?? 0;
+            const zeroChargeCount     = item.zeroChargeCount         ?? 0;
+            const permanentCount      = item.permanentParkersCount   ?? 0;
+            const tempZero            = item.tempZeroChargeCount     ?? 0;
+            const tempCharged         = item.tempChargedCount        ?? 0;
+            const tempPaid            = item.tempPaidAmount          ?? 0;
+            const focPerUnitZero      = item.focPerUnitZeroCount     ?? 0;
+            const focPerUnitCharged   = item.focPerUnitChargedCount  ?? 0;
+            const focPerUnitPaid      = item.focPerUnitPaidAmount    ?? 0;
+            const dailyAccessZero     = item.dailyAccessZeroCount    ?? 0;
+            const dailyAccessCharged  = item.dailyAccessChargedCount ?? 0;
+            const dailyAccessPaid     = item.dailyAccessPaidAmount   ?? 0;
+            const cashCardZero        = item.cashCardZeroCount       ?? 0;
+            const cashCardCharged     = item.cashCardChargedCount    ?? 0;
+            const cashCardPaid        = item.cashCardPaidAmount      ?? 0;
+            const vipCount            = item.vipCount                ?? 0;
+
+            const row = `<tr>
+                <td>${index + 1}</td>
+                <td>${new Date(item.date).toLocaleDateString('en-GB')}</td>
+                <td>${new Date(item.date).toLocaleDateString('en-US', { weekday: 'long' })}</td>
+                <td>${item.totalVehicles}</td>
+                <td>${item.cashCount}</td>
+                <td>${cashTotal.toFixed(2)}</td>
+                <td>${item.mPesaCount}</td>
+                <td>${mPesaTotal.toFixed(2)}</td>
+                <td>${item.focCount}</td>
+                <td>${focAmount.toFixed(2)}</td>
+                <td>${item.ctmFocCount}</td>
+                <td>${ctmFocAmount.toFixed(2)}</td>
+                <td>${tempZero}</td>
+                <td>${tempCharged}</td>
+                <td>${tempPaid.toFixed(2)}</td>
+                <td>${focPerUnitZero}</td>
+                <td>${focPerUnitCharged}</td>
+                <td>${focPerUnitPaid.toFixed(2)}</td>
+                <td>${dailyAccessZero}</td>
+                <td>${dailyAccessCharged}</td>
+                <td>${dailyAccessPaid.toFixed(2)}</td>
+                <td>${cashCardZero}</td>
+                <td>${cashCardCharged}</td>
+                <td>${cashCardPaid.toFixed(2)}</td>
+                <td>${vipCount}</td>
+                <td>${totalCharges.toFixed(2)}</td>
+                <td>${totalPaid.toFixed(2)}</td>
+                <td>${discount.toFixed(2)}</td>
+                <td>${zeroChargeCount}</td>
+                <td>${permanentCount}</td>
+            </tr>`;
+            tbody.innerHTML += row;
+
+            totals.vehicles         += item.totalVehicles;
+            totals.cashCount        += item.cashCount;
+            totals.cashTotal        += cashTotal;
+            totals.mPesaCount       += item.mPesaCount;
+            totals.mPesaTotal       += mPesaTotal;
+            totals.focCount         += item.focCount;
+            totals.focAmount        += focAmount;
+            totals.ctmFocCount      += item.ctmFocCount ?? 0;
+            totals.ctmFocAmount     += ctmFocAmount;
+            totals.tempZero         += tempZero;
+            totals.tempCharged      += tempCharged;
+            totals.tempPaid         += tempPaid;
+            totals.focPerUnitZero   += focPerUnitZero;
+            totals.focPerUnitCharged+= focPerUnitCharged;
+            totals.focPerUnitPaid   += focPerUnitPaid;
+            totals.dailyAccessZero  += dailyAccessZero;
+            totals.dailyAccessCharged += dailyAccessCharged;
+            totals.dailyAccessPaid  += dailyAccessPaid;
+            totals.cashCardZero     += cashCardZero;
+            totals.cashCardCharged  += cashCardCharged;
+            totals.cashCardPaid     += cashCardPaid;
+            totals.vip              += vipCount;
+            totals.charges          += totalCharges;
+            totals.paid             += totalPaid;
+            totals.discount         += discount;
+            totals.zeroCharge       += zeroChargeCount;
+            totals.permanent        += permanentCount;
+        });
+
+        document.getElementById('totalVehiclesExited').textContent           = totals.vehicles;
+        document.getElementById('totalCashCountExited').textContent          = totals.cashCount;
+        document.getElementById('totalCashAmountExited').textContent         = totals.cashTotal.toFixed(2);
+        document.getElementById('totalMPesaCountExited').textContent         = totals.mPesaCount;
+        document.getElementById('totalMPesaAmountExited').textContent        = totals.mPesaTotal.toFixed(2);
+        document.getElementById('totalFOCCountExited').textContent           = totals.focCount;
+        document.getElementById('totalFOCAmountExited').textContent          = totals.focAmount.toFixed(2);
+        document.getElementById('totalCTMFOCCountExited').textContent        = totals.ctmFocCount;
+        document.getElementById('totalCTMFOCAmountExited').textContent       = totals.ctmFocAmount.toFixed(2);
+        document.getElementById('totalTempZeroExited').textContent           = totals.tempZero;
+        document.getElementById('totalTempChargedExited').textContent        = totals.tempCharged;
+        document.getElementById('totalTempPaidExited').textContent           = totals.tempPaid.toFixed(2);
+        document.getElementById('totalFocPerUnitZeroExited').textContent     = totals.focPerUnitZero;
+        document.getElementById('totalFocPerUnitChargedExited').textContent  = totals.focPerUnitCharged;
+        document.getElementById('totalFocPerUnitPaidExited').textContent     = totals.focPerUnitPaid.toFixed(2);
+        document.getElementById('totalDailyAccessZeroExited').textContent    = totals.dailyAccessZero;
+        document.getElementById('totalDailyAccessChargedExited').textContent = totals.dailyAccessCharged;
+        document.getElementById('totalDailyAccessPaidExited').textContent    = totals.dailyAccessPaid.toFixed(2);
+        document.getElementById('totalCashCardZeroExited').textContent       = totals.cashCardZero;
+        document.getElementById('totalCashCardChargedExited').textContent    = totals.cashCardCharged;
+        document.getElementById('totalCashCardPaidExited').textContent       = totals.cashCardPaid.toFixed(2);
+        document.getElementById('totalVipExited').textContent                = totals.vip;
+        document.getElementById('totalChargesExited').textContent            = totals.charges.toFixed(2);
+        document.getElementById('totalPaidExited').textContent               = totals.paid.toFixed(2);
+        document.getElementById('totalDiscountExited').textContent           = totals.discount.toFixed(2);
+        document.getElementById('totalZeroChargeExited').textContent         = totals.zeroCharge;
+        document.getElementById('totalPermanentExited').textContent          = totals.permanent;
+        document.getElementById('exitedCarsTotalRow').style.display = '';
+    }
+
+    function exportExitedCarsExcel() {
+        const month = document.getElementById('monthSelectExited').value;
+        const year = document.getElementById('yearSelectExited').value;
+        window.location.href = `/Collection/ExportMonthlyExcel?month=${month}&year=${year}`;
+    }
+
+                function clearExitedCarsData() {
+        document.getElementById('exitedCarsTableBody').innerHTML =
+            '<tr><td colspan="30" class="text-center text-muted">Select month and year, then click "Show"</td></tr>';
+        document.getElementById('exitedCarsTotalRow').style.display = 'none';
+    }
+
+    // ============================================
+    // TAB 2: TRANSACTIONS FUNCTIONS (21-COL)
+    // ============================================
+    function loadTransactionsData() {
+        const month = document.getElementById('monthSelectTrans').value;
+        const year = document.getElementById('yearSelectTrans').value;
+
+        fetch(`/Collection/GetMonthlyTransactionsData?year=${year}&month=${month}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayTransactionsData(data.data);
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to load data');
+            });
+    }
+
+    function displayTransactionsData(data) {
+        const tbody = document.getElementById('transactionsTableBody');
+        tbody.innerHTML = '';
+
+        let totals = {
+            vehicles: 0, transactions: 0, cashCount: 0, cashTotal: 0,
+            mPesaCount: 0, mPesaTotal: 0,
+            cashTopUpCount: 0, cashTopUpTotal: 0,
+            mPesaTopUpCount: 0, mPesaTopUpTotal: 0,
+            collCash: 0, collMpesa: 0, collGrand: 0,
+            focCount: 0, focAmount: 0,
+            ctmFocCount: 0, ctmFocAmount: 0,
+            chargedAmount: 0
+        };
+
+        data.forEach((item, index) => {
+            const rowCollCash = (item.cashTotal || 0) + (item.cashTopUpTotal || 0);
+            const rowCollMpesa = (item.mPesaTotal || 0) + (item.mPesaTopUpTotal || 0);
+            const rowCollGrand = rowCollCash + rowCollMpesa;
+
+            const row = `<tr>
+                <td>${index + 1}</td>
+                <td>${new Date(item.date).toLocaleDateString('en-GB')}</td>
+                <td>${new Date(item.date).toLocaleDateString('en-US', { weekday: 'long' })}</td>
+                <td>${item.totalVehicles}</td>
+                <td>${item.totalTransactions}</td>
+                <td>${item.cashCount}</td>
+                <td>KES ${item.cashTotal.toFixed(2)}</td>
+                <td>${item.mPesaCount}</td>
+                <td>KES ${item.mPesaTotal.toFixed(2)}</td>
+                <td>${item.cashTopUpCount}</td>
+                <td>KES ${item.cashTopUpTotal.toFixed(2)}</td>
+                <td>${item.mPesaTopUpCount}</td>
+                <td>KES ${item.mPesaTopUpTotal.toFixed(2)}</td>
+                <td class="fw-bold">KES ${rowCollCash.toFixed(2)}</td>
+                <td class="fw-bold">KES ${rowCollMpesa.toFixed(2)}</td>
+                <td class="fw-bold text-success">KES ${rowCollGrand.toFixed(2)}</td>
+                <td>${item.focCount}</td>
+                <td>KES ${item.focAmount.toFixed(2)}</td>
+                <td>${item.ctmFocCount}</td>
+                <td>KES ${item.ctmFocAmount.toFixed(2)}</td>
+                <td class="fw-bold">KES ${item.totalChargedAmount.toFixed(2)}</td>
+            </tr>`;
+            tbody.innerHTML += row;
+
+            totals.vehicles += item.totalVehicles;
+            totals.transactions += item.totalTransactions;
+            totals.cashCount += item.cashCount;
+            totals.cashTotal += item.cashTotal;
+            totals.mPesaCount += item.mPesaCount;
+            totals.mPesaTotal += item.mPesaTotal;
+            totals.cashTopUpCount += item.cashTopUpCount;
+            totals.cashTopUpTotal += item.cashTopUpTotal;
+            totals.mPesaTopUpCount += item.mPesaTopUpCount;
+            totals.mPesaTopUpTotal += item.mPesaTopUpTotal;
+            totals.collCash += rowCollCash;
+            totals.collMpesa += rowCollMpesa;
+            totals.collGrand += rowCollGrand;
+            totals.focCount += item.focCount;
+            totals.focAmount += item.focAmount;
+            totals.ctmFocCount += item.ctmFocCount;
+            totals.ctmFocAmount += item.ctmFocAmount;
+            totals.chargedAmount += item.totalChargedAmount;
+        });
+
+        document.getElementById('totalVehiclesTrans').textContent = totals.vehicles;
+        document.getElementById('totalTransactions').textContent = totals.transactions;
+        document.getElementById('totalCashCountTrans').textContent = totals.cashCount;
+        document.getElementById('totalCashAmountTrans').textContent = `KES ${totals.cashTotal.toFixed(2)}`;
+        document.getElementById('totalMPesaCountTrans').textContent = totals.mPesaCount;
+        document.getElementById('totalMPesaAmountTrans').textContent = `KES ${totals.mPesaTotal.toFixed(2)}`;
+        document.getElementById('totalCashTopUpCountTrans').textContent = totals.cashTopUpCount;
+        document.getElementById('totalCashTopUpAmountTrans').textContent = `KES ${totals.cashTopUpTotal.toFixed(2)}`;
+        document.getElementById('totalMPesaTopUpCountTrans').textContent = totals.mPesaTopUpCount;
+        document.getElementById('totalMPesaTopUpAmountTrans').textContent = `KES ${totals.mPesaTopUpTotal.toFixed(2)}`;
+        document.getElementById('totalCollCashTrans').textContent = `KES ${totals.collCash.toFixed(2)}`;
+        document.getElementById('totalCollMpesaTrans').textContent = `KES ${totals.collMpesa.toFixed(2)}`;
+        document.getElementById('totalCollGrandTrans').textContent = `KES ${totals.collGrand.toFixed(2)}`;
+        document.getElementById('totalFOCCountTrans').textContent = totals.focCount;
+        document.getElementById('totalFOCAmountTrans').textContent = `KES ${totals.focAmount.toFixed(2)}`;
+        document.getElementById('totalCTMFOCCountTrans').textContent = totals.ctmFocCount;
+        document.getElementById('totalCTMFOCAmountTrans').textContent = `KES ${totals.ctmFocAmount.toFixed(2)}`;
+        document.getElementById('totalChargedAmountTrans').textContent = `KES ${totals.chargedAmount.toFixed(2)}`;
+        document.getElementById('transactionsTotalRow').style.display = '';
+    }
+
+    function exportTransactionsExcel() {
+        const month = document.getElementById('monthSelectTrans').value;
+        const year = document.getElementById('yearSelectTrans').value;
+        window.location.href = `/Collection/ExportMonthlyTransactionsExcel?month=${month}&year=${year}`;
+    }
+
+    function clearTransactionsData() {
+        document.getElementById('transactionsTableBody').innerHTML = '<tr><td colspan="21" class="text-center text-muted">Select month and year, then click "Show"</td></tr>';
+        document.getElementById('transactionsTotalRow').style.display = 'none';
+    }
+
+    // Quick buttons
+    document.getElementById('thisMonthBtnExited').onclick = function() {
+        var now = new Date();
+        document.getElementById('monthSelectExited').value = (now.getMonth() + 1).toString();
+        document.getElementById('yearSelectExited').value = now.getFullYear().toString();
+        loadExitedCarsData();
+    };
+
+    document.getElementById('previousMonthBtnExited').onclick = function() {
+        var now = new Date();
+        var prevMonth = now.getMonth();
+        var prevYear = now.getFullYear();
+        if (prevMonth === 0) { prevMonth = 12; prevYear -= 1; }
+        document.getElementById('monthSelectExited').value = prevMonth.toString();
+        document.getElementById('yearSelectExited').value = prevYear.toString();
+        loadExitedCarsData();
+    };
+
+    document.getElementById('thisMonthBtnTrans').onclick = function() {
+        var now = new Date();
+        document.getElementById('monthSelectTrans').value = (now.getMonth() + 1).toString();
+        document.getElementById('yearSelectTrans').value = now.getFullYear().toString();
+        loadTransactionsData();
+    };
+
+    document.getElementById('previousMonthBtnTrans').onclick = function() {
+        var now = new Date();
+        var prevMonth = now.getMonth();
+        var prevYear = now.getFullYear();
+        if (prevMonth === 0) { prevMonth = 12; prevYear -= 1; }
+        document.getElementById('monthSelectTrans').value = prevMonth.toString();
+        document.getElementById('yearSelectTrans').value = prevYear.toString();
+        loadTransactionsData();
+    };
+</script>

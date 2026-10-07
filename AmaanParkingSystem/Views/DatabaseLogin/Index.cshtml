@@ -1,0 +1,458 @@
+﻿@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>AMAAN PMS – Database Connection</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .db-login-root {
+            display: flex;
+            height: 100vh;
+            width: 100%;
+        }
+
+        /* LEFT PANEL */
+        .db-login-left {
+            flex: 0 0 50%;
+            background-color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .db-login-left-inner {
+            max-width: 80%;
+            text-align: center;
+        }
+
+            .db-login-left-inner img {
+                max-width: 75%;
+                height: auto;
+            }
+
+        /* RIGHT PANEL */
+        .db-login-right {
+            flex: 0 0 50%;
+            background-color: #A9A9A9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 80px;
+            box-sizing: border-box;
+        }
+
+        .db-login-card {
+            width: 100%;
+            max-width: 480px;
+        }
+
+        .db-login-header-main {
+            font-size: 28px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 6px;
+        }
+
+        .db-login-header-sub {
+            font-size: 15px;
+            color: #ffffff;
+            font-weight: 500;
+            margin-bottom: 28px;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            color: #ffffff;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+            .form-label .hint {
+                font-size: 11px;
+                font-weight: 400;
+                color: #e0e0e0;
+            }
+
+        .db-input {
+            width: 100%;
+            padding: 10px 13px;
+            border-radius: 5px;
+            border: 1px solid #cbd2d9;
+            font-size: 15px;
+            color: #111827;
+            box-sizing: border-box;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+            .db-input:focus {
+                outline: none;
+                border-color: #2563eb;
+                box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.35);
+            }
+
+        .btn-connect {
+            width: 100%;
+            padding: 12px 0;
+            background-color: #16a34a;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 6px;
+            transition: background-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+            .btn-connect:hover {
+                background-color: #15803d;
+                box-shadow: 0 3px 8px rgba(22, 163, 74, 0.35);
+            }
+
+            .btn-connect:disabled {
+                background-color: #6b7280;
+                cursor: not-allowed;
+            }
+
+        .db-error {
+            background-color: #fee2e2;
+            color: #b91c1c;
+            font-size: 13px;
+            border-left: 4px solid #f97373;
+            padding: 9px 12px;
+            border-radius: 4px;
+            margin-bottom: 16px;
+            word-break: break-word;
+        }
+
+        /* saved-settings notice */
+        .db-saved-notice {
+            background-color: rgba(255, 255, 255, 0.18);
+            border-left: 4px solid #bbf7d0;
+            color: #ffffff;
+            font-size: 12px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin-bottom: 16px;
+        }
+
+        /* auto-connect failure warning */
+        .db-autoconnect-warning {
+            background-color: #fff7ed;
+            border-left: 4px solid #f97316;
+            color: #9a3412;
+            font-size: 13px;
+            padding: 9px 12px;
+            border-radius: 4px;
+            margin-bottom: 16px;
+        }
+
+        .copyright {
+            margin-top: 24px;
+            font-size: 12px;
+            color: #ffffff;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        /* spinner */
+        .spinner {
+            display: none;
+            width: 18px;
+            height: 18px;
+            border: 3px solid rgba(255,255,255,0.4);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        @@keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* ── Auto-connect overlay ──────────────────────────────────────────── */
+        #autoConnectOverlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .ac-box {
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 36px 44px;
+            text-align: center;
+            min-width: 280px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+        }
+
+        .ac-spinner {
+            width: 44px;
+            height: 44px;
+            border: 5px solid #e5e7eb;
+            border-top-color: #16a34a;
+            border-radius: 50%;
+            animation: spin 0.75s linear infinite;
+            margin: 0 auto 18px auto;
+        }
+
+        .ac-title {
+            font-size: 17px;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 6px;
+        }
+
+        .ac-sub {
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+        /* Mobile */
+        @@media (max-width: 900px) {
+            .db-login-root {
+                flex-direction: column;
+            }
+
+            .db-login-left {
+                flex: 0 0 35%;
+                padding: 20px 0;
+            }
+
+            .db-login-right {
+                flex: 1;
+                padding: 30px 20px;
+            }
+
+            .db-login-left-inner img {
+                max-width: 55%;
+            }
+        }
+
+        @@media (max-width: 600px) {
+            .db-login-left {
+                display: none;
+            }
+
+            .db-login-right {
+                flex: 1 0 auto;
+                padding: 30px 20px;
+            }
+
+            .db-login-card {
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    @* ── Auto-connect overlay — shown only when saved credentials exist AND   *@
+    @* no auto-connect failure has been signalled yet (first GET after restart). *@
+    @if (ViewBag.AutoConnectFailed == null && !string.IsNullOrEmpty(ViewBag.ServerName as string) == false
+        && ViewBag.Error == null)
+    {
+        @* Show overlay only on a clean first-hit where nothing is pre-filled and   *@
+        @* no error exists — i.e. the middleware is about to (or just did) attempt  *@
+        @* auto-connect. The JS below calls /DatabaseLogin/AutoConnect and either   *@
+        @* redirects or hides the overlay and shows the form.                       *@
+    }
+
+    @* Simpler, correct condition: show overlay whenever the page is loaded fresh  *@
+    @* and we have not yet been told auto-connect failed.                           *@
+    @{
+        bool showOverlay = ViewBag.AutoConnectFailed == null && ViewBag.Error == null;
+    }
+
+    @if (showOverlay)
+    {
+        <div id="autoConnectOverlay">
+            <div class="ac-box">
+                <div class="ac-spinner"></div>
+                <div class="ac-title">Connecting to Database…</div>
+                <div class="ac-sub">Please wait while saved settings are applied.</div>
+            </div>
+        </div>
+    }
+
+    <div class="db-login-root">
+
+        <!-- LEFT: Logo -->
+        <div class="db-login-left">
+            <div class="db-login-left-inner">
+                <img src="~/images/amaan-pms.png" alt="AMAAN Parking and Control Systems" />
+            </div>
+        </div>
+
+        <!-- RIGHT: DB Connection Form -->
+        <div class="db-login-right">
+            <div class="db-login-card">
+
+                <div class="db-login-header-main">Database Connection</div>
+                <div class="db-login-header-sub">Enter your SQL Server credentials to connect</div>
+
+                @* ── Auto-connect failure notice ── *@
+                @if (ViewBag.AutoConnectFailed == true)
+                {
+                    <div class="db-autoconnect-warning">
+                        ⚠ Automatic reconnection failed. Please verify your credentials and try again.
+                    </div>
+                }
+
+                @* ── Saved settings notice ── *@
+                @if (!string.IsNullOrEmpty(ViewBag.ServerName as string) && ViewBag.AutoConnectFailed != true)
+                {
+                    <div class="db-saved-notice">
+                        ✔ Last saved settings loaded. Review and click Connect.
+                    </div>
+                }
+
+                @* ── Error message ── *@
+                @if (ViewBag.Error != null)
+                {
+                    <div class="db-error">@ViewBag.Error</div>
+                }
+
+                <form method="post" autocomplete="off" id="dbLoginForm">
+                    @Html.AntiForgeryToken()
+
+                    <div class="form-group">
+                        <label class="form-label" for="serverName">
+                            Server Name
+                            <span class="hint">&nbsp;e.g. DESKTOP-ABC\\SQLEXPRESS or 192.168.1.10</span>
+                        </label>
+                        <input class="db-input"
+                               id="serverName"
+                               name="serverName"
+                               type="text"
+                               value="@(ViewBag.ServerName as string ?? "")"
+                               placeholder="SERVER\\INSTANCE"
+                               required />
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="databaseName">Database Name</label>
+                        <input class="db-input"
+                               id="databaseName"
+                               name="databaseName"
+                               type="text"
+                               value="@(ViewBag.DatabaseName as string ?? "")"
+                               placeholder="AMAAN_PMS"
+                               required />
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="username">SQL Server Username</label>
+                        <input class="db-input"
+                               id="username"
+                               name="username"
+                               type="text"
+                               value="@(ViewBag.Username as string ?? "")"
+                               placeholder="sa"
+                               required />
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="password">SQL Server Password</label>
+                        <input class="db-input"
+                               id="password"
+                               name="password"
+                               type="password"
+                               value="@(ViewBag.Password as string ?? "")"
+                               placeholder="••••••••"
+                               required />
+                    </div>
+
+                    <div class="form-group" style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                        <input type="checkbox"
+                               id="rememberMe"
+                               name="rememberMe"
+                               value="true"
+                               style="width:17px; height:17px; cursor:pointer; accent-color:#16a34a;"
+                               @(ViewBag.RememberMe == true ? "checked" : "") />
+                        <label for="rememberMe"
+                               style="color:#ffffff; font-size:14px; font-weight:600; margin:0; cursor:pointer;">
+                            Remember credentials on this machine
+                        </label>
+                    </div>
+
+                    <button class="btn-connect" type="submit" id="connectBtn">
+                        <span class="spinner" id="spinner"></span>
+                        <span id="btnText">Connect to Database</span>
+                    </button>
+
+                    <div class="copyright">
+                        &copy; 2025 Amaan Parking and Control Systems
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // ── Form submit spinner ───────────────────────────────────────────────
+        document.getElementById('dbLoginForm').addEventListener('submit', function () {
+            var btn     = document.getElementById('connectBtn');
+            var spinner = document.getElementById('spinner');
+            var btnText = document.getElementById('btnText');
+            btn.disabled = true;
+            spinner.style.display = 'inline-block';
+            btnText.textContent = 'Connecting...';
+        });
+
+        // ── Auto-connect overlay logic ────────────────────────────────────────
+        // Only runs when the overlay is present (i.e. showOverlay == true server-side).
+        (function () {
+            var overlay = document.getElementById('autoConnectOverlay');
+            if (!overlay) return;   // No overlay rendered — nothing to do.
+
+            fetch('/DatabaseLogin/AutoConnect', { method: 'GET', credentials: 'same-origin' })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.success) {
+                        // Auto-connect worked — go to the operator login page.
+                        window.location.href = '/Utility/Login';
+                    } else {
+                        // Auto-connect failed — hide overlay, show form with a hint.
+                        overlay.style.display = 'none';
+                        // Inject the failure warning into the page without a full reload.
+                        var card = document.querySelector('.db-login-card');
+                        var warning = document.createElement('div');
+                        warning.className = 'db-autoconnect-warning';
+                        warning.innerHTML = '&#9888; Automatic reconnection failed. Please verify your credentials and try again.';
+                        // Insert before first child of card (before header)
+                        card.insertBefore(warning, card.firstChild);
+                    }
+                })
+                .catch(function () {
+                    // Network error — just show the form.
+                    overlay.style.display = 'none';
+                });
+        })();
+    </script>
+</body>
+</html>

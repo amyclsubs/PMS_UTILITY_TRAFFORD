@@ -1,0 +1,849 @@
+﻿@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Daily Parking Utilization Report";
+}
+
+<style>
+    .bu-filter-card, .bu-chart-card, .bu-table-card, .bu-kpi {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: .75rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    }
+
+    .bu-filter-card {
+        padding: 1rem 1.25rem;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        gap: .75rem;
+        margin-bottom: 1rem
+    }
+
+    .bu-filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: .25rem
+    }
+
+    .bu-filter-label {
+        font-size: .72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        color: #64748b
+    }
+
+    .bu-filter-input, .bu-filter-select {
+        height: 38px;
+        padding: 0 .75rem;
+        border: 1px solid #d1d5db;
+        border-radius: .5rem;
+        font-size: .875rem;
+        background: #f9fafb;
+        color: #111827;
+        outline: none
+    }
+
+        .bu-filter-input:focus, .bu-filter-select:focus {
+            border-color: #0369a1;
+            box-shadow: 0 0 0 3px rgba(3,105,161,.12)
+        }
+
+    .bu-quick-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .5rem;
+        margin: .25rem 0 .75rem
+    }
+
+    .bu-btn {
+        height: 36px;
+        padding: 0 1rem;
+        border-radius: .5rem;
+        font-size: .82rem;
+        font-weight: 600;
+        border: 1px solid transparent;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        transition: .15s
+    }
+
+        .bu-btn:active {
+            transform: scale(.98)
+        }
+
+    .bu-btn-primary {
+        background: #0369a1;
+        color: #fff
+    }
+
+        .bu-btn-primary:hover {
+            background: #0284c7
+        }
+
+    .bu-btn-success {
+        background: #15803d;
+        color: #fff
+    }
+
+    .bu-btn-ghost {
+        background: #f1f5f9;
+        color: #334155;
+        border-color: #e2e8f0
+    }
+
+        .bu-btn-ghost:hover {
+            background: #e2e8f0
+        }
+
+    .bu-kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill,minmax(210px,1fr));
+        gap: .75rem;
+        margin-bottom: 1rem
+    }
+
+    .bu-kpi {
+        padding: 1rem 1.1rem;
+        position: relative;
+        overflow: hidden
+    }
+
+        .bu-kpi::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--kpi-color,#64748b)
+        }
+
+    .bu-kpi-label {
+        font-size: .68rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        color: #64748b;
+        margin-bottom: .35rem
+    }
+
+    .bu-kpi-value {
+        font-size: 1.6rem;
+        font-weight: 800;
+        line-height: 1;
+        color: var(--kpi-color,#1e293b);
+        font-variant-numeric: tabular-nums
+    }
+
+    .bu-kpi-sub {
+        font-size: .72rem;
+        color: #64748b;
+        margin-top: .2rem
+    }
+
+    .bu-chart-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: .75rem;
+        margin-bottom: 1rem;
+        max-height: 220px; /* ← constrains the whole row */
+    }
+
+    @@media(max-width:900px) {
+        .bu-chart-row {
+            grid-template-columns: 1fr;
+            max-height: none;
+        }
+    }
+
+    .bu-chart-card {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: .75rem;
+        padding: .75rem 1rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,.06);
+        height: 220px; /* ← fixed height, both cards same */
+        overflow: hidden;
+    }
+
+    .bu-chart-title {
+        font-size: .82rem;
+        font-weight: 700;
+        color: #334155;
+        margin-bottom: .75rem
+    }
+
+    .bu-table-card {
+        overflow: hidden
+    }
+
+    .bu-table-header {
+        padding: .85rem 1.1rem;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: .5rem
+    }
+
+    .bu-table-title {
+        font-size: .95rem;
+        font-weight: 700;
+        color: #1e293b
+    }
+
+    .bu-table-sub {
+        font-size: .72rem;
+        color: #64748b
+    }
+
+    .bu-table-scroll {
+        overflow-x: auto;
+        max-height: 62vh;
+        overflow-y: auto
+    }
+
+    table.bu-tbl {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 950px;
+        font-size: .82rem
+    }
+
+        table.bu-tbl thead th {
+            background: #f1f5f9;
+            color: #475569;
+            font-size: .68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            padding: .55rem .75rem;
+            text-align: left;
+            white-space: nowrap;
+            border-bottom: 2px solid #e2e8f0;
+            position: sticky;
+            top: 0;
+            z-index: 2
+        }
+
+            table.bu-tbl thead th.r {
+                text-align: right
+            }
+
+        table.bu-tbl tbody tr {
+            border-bottom: 1px solid #f1f5f9;
+            transition: background .1s
+        }
+
+            table.bu-tbl tbody tr:hover {
+                background: #f8fafc
+            }
+
+        table.bu-tbl tbody td {
+            padding: .5rem .75rem;
+            vertical-align: middle;
+            white-space: nowrap
+        }
+
+            table.bu-tbl tbody td.r {
+                text-align: right;
+                font-variant-numeric: tabular-nums;
+                font-family: 'Courier New',monospace;
+                font-size: .78rem
+            }
+
+    tr.bu-date-group td {
+        background: #f8fafc;
+        padding: .4rem .75rem;
+        font-size: .7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .07em;
+        color: #0369a1;
+        border-top: 2px solid #e2e8f0
+    }
+
+    tr.bu-subtotal td {
+        background: #f1f5f9;
+        font-weight: 700;
+        font-size: .78rem
+    }
+
+    tr.bu-grand td {
+        background: #e2e8f0;
+        font-weight: 800;
+        font-size: .85rem;
+        border-top: 2px solid #cbd5e1
+    }
+
+    .type-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 2px 8px;
+        border-radius: 9999px;
+        font-size: .68rem;
+        font-weight: 700
+    }
+
+    .type-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        display: inline-block
+    }
+
+    .util-wrap {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 100px
+    }
+
+    .util-bar {
+        flex: 1;
+        height: 5px;
+        background: #e2e8f0;
+        border-radius: 9999px;
+        overflow: hidden
+    }
+
+    .util-fill {
+        height: 100%;
+        border-radius: 9999px
+    }
+
+    .util-pct {
+        font-size: .68rem;
+        min-width: 34px;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+        color: #475569
+    }
+
+    .bu-spinner {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 3rem;
+        color: #64748b;
+        gap: .75rem
+    }
+
+    .spinner-ring {
+        width: 22px;
+        height: 22px;
+        border: 2px solid #e2e8f0;
+        border-top-color: #0369a1;
+        border-radius: 50%;
+        animation: spin .65s linear infinite
+    }
+
+    @@keyframes spin {
+        to {
+            transform: rotate(360deg)
+        }
+    }
+
+    .bu-empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 3.5rem 1rem;
+        color: #94a3b8;
+        text-align: center
+    }
+
+        .bu-empty h4 {
+            font-size: .9rem;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: .25rem
+        }
+
+        .bu-empty p {
+            font-size: .78rem
+        }
+</style>
+
+<div class="container-fluid py-3 px-3">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+            <h5 class="mb-0 fw-bold"><i class="fas fa-parking me-2 text-primary"></i>Daily Parking Utilization Report</h5>
+            <small class="text-muted">Date-wise vehicle count, parked hours and charges from Exit table</small>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="bu-btn bu-btn-success" id="btnExportExcel" onclick="exportExcel()" style="display:none">
+                <i class="fas fa-file-excel"></i> Export Excel
+            </button>
+            <button class="bu-btn bu-btn-ghost" onclick="window.print()">
+                <i class="fas fa-print"></i> Print
+            </button>
+        </div>
+    </div>
+
+    <div class="bu-filter-card">
+        <div style="flex:1 1 100%">
+            <div class="bu-quick-row">
+                <button type="button" class="bu-btn bu-btn-ghost" onclick="applyQuickRange('yesterday')">Yesterday</button>
+                <button type="button" class="bu-btn bu-btn-ghost" onclick="applyQuickRange('lastWeek')">Last Week (Mon-Sun)</button>
+                <button type="button" class="bu-btn bu-btn-ghost" onclick="applyQuickRange('lastMonth')">Last Month (1st-last)</button>
+            </div>
+        </div>
+
+        <div class="bu-filter-group">
+            <label class="bu-filter-label">From Date</label>
+            <input type="date" id="buFromDate" class="bu-filter-input">
+        </div>
+        <div class="bu-filter-group">
+            <label class="bu-filter-label">To Date</label>
+            <input type="date" id="buToDate" class="bu-filter-input">
+        </div>
+        <div class="bu-filter-group">
+            <label class="bu-filter-label">Card Type</label>
+            <select id="buCardType" class="bu-filter-select">
+                <option value="ALL">All Card Types</option>
+            </select>
+        </div>
+        <div class="bu-filter-group">
+            <label class="bu-filter-label">Group By</label>
+            <select id="buGroupBy" class="bu-filter-select">
+                <option value="date_type">Date → Card Type</option>
+                <option value="type_date">Card Type → Date</option>
+                <option value="date_only">Date Only (Summary)</option>
+            </select>
+        </div>
+        <button class="bu-btn bu-btn-primary" onclick="loadReport()">
+            <i class="fas fa-search"></i> Generate Report
+        </button>
+        <button class="bu-btn bu-btn-ghost" onclick="resetReport()">
+            <i class="fas fa-undo"></i> Reset
+        </button>
+    </div>
+
+    <div class="bu-kpi-grid" id="buKpiGrid"></div>
+
+    <div class="bu-chart-row" id="buChartRow" style="display:none">
+        <div class="bu-chart-card">
+            <div class="bu-chart-title"><i class="fas fa-car me-1 text-primary"></i>Vehicle Count by Card Type</div>
+            <canvas id="chartCount" height="150"></canvas>
+        </div>
+        <div class="bu-chart-card">
+            <div class="bu-chart-title"><i class="fas fa-clock me-1 text-success"></i>Parked Hours by Card Type</div>
+            <canvas id="chartHours" height="150"></canvas>
+        </div>
+    </div>
+
+    <div class="bu-table-card">
+        <div class="bu-table-header">
+            <div>
+                <div class="bu-table-title"><i class="fas fa-table me-2"></i>Daily Parking Utilization Detail</div>
+                <div class="bu-table-sub" id="buTableSub">Select date range and click Generate Report</div>
+            </div>
+        </div>
+        <div class="bu-table-scroll">
+            <table class="bu-tbl" id="buMainTable">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Day</th>
+                        <th>Card Type</th>
+                        <th class="r">Vehicles</th>
+                        <th class="r">Total Hrs</th>
+                        <th class="r">Avg Hrs/Vehicle</th>
+                        <th class="r">Total Charges</th>
+                        <th class="r">Avg Chg/Vehicle</th>
+                        <th class="r">Chg/Hour</th>
+                        <th class="r">Paid</th>
+                        <th>Utilization</th>
+                        <th class="r">Avg Bay Utilization</th>
+                    </tr>
+                </thead>
+                <tbody id="buTbody">
+                    <tr>
+                        <td colspan="12">
+                            <div class="bu-empty">
+                                <h4>No data yet</h4>
+                                <p>Select a date range and click Generate Report</p>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        let lastData = null;
+        let chartCount = null, chartHours = null;
+        let dynamicCardTypes = [];
+
+        const PALETTE = [
+            { color: '#b45309', bg: '#fef3c7' },
+            { color: '#15803d', bg: '#dcfce7' },
+            { color: '#0369a1', bg: '#e0f2fe' },
+            { color: '#7c3aed', bg: '#ede9fe' },
+            { color: '#c2410c', bg: '#ffedd5' },
+            { color: '#be123c', bg: '#ffe4e6' },
+            { color: '#0f766e', bg: '#ccfbf1' },
+            { color: '#4338ca', bg: '#e0e7ff' },
+            { color: '#a16207', bg: '#fef9c3' },
+            { color: '#1d4ed8', bg: '#dbeafe' }
+        ];
+
+        function getCardCfg(type, idx = 0) {
+            const p = PALETTE[idx % PALETTE.length];
+            return p;
+        }
+
+        (function () {
+            const today = new Date();
+            const first = new Date(today.getFullYear(), today.getMonth(), 1);
+            document.getElementById('buFromDate').value = toInputDate(first);
+            document.getElementById('buToDate').value = toInputDate(today);
+        })();
+
+        function toInputDate(d) {
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function applyQuickRange(type) {
+            const today = new Date();
+            let from, to;
+
+            if (type === 'yesterday') {
+                from = new Date(today);
+                from.setDate(today.getDate() - 1);
+                to = new Date(from);
+            } else if (type === 'lastWeek') {
+                const currentDay = today.getDay();
+                const diffToMonday = currentDay === 0 ? 6 : currentDay - 1;
+                const thisWeekMonday = new Date(today);
+                thisWeekMonday.setDate(today.getDate() - diffToMonday);
+                from = new Date(thisWeekMonday);
+                from.setDate(thisWeekMonday.getDate() - 7);
+                to = new Date(from);
+                to.setDate(from.getDate() + 6);
+            } else if (type === 'lastMonth') {
+                from = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                to = new Date(today.getFullYear(), today.getMonth(), 0);
+            }
+
+            document.getElementById('buFromDate').value = toInputDate(from);
+            document.getElementById('buToDate').value = toInputDate(to);
+            loadReport();
+        }
+
+        async function loadReport() {
+            const from = document.getElementById('buFromDate').value;
+            const to = document.getElementById('buToDate').value;
+            const cardType = document.getElementById('buCardType').value;
+            const groupBy = document.getElementById('buGroupBy').value;
+
+            if (!from || !to) { alert('Please select both From and To dates.'); return; }
+            if (new Date(from) > new Date(to)) { alert('From date must be before To date.'); return; }
+
+            document.getElementById('buTbody').innerHTML =
+                `<tr><td colspan="12"><div class="bu-spinner"><div class="spinner-ring"></div>Loading report data…</div></td></tr>`;
+            document.getElementById('buKpiGrid').innerHTML = '';
+            document.getElementById('buChartRow').style.display = 'none';
+
+            try {
+                const formData = new URLSearchParams();
+                formData.append('fromDate', from);
+                formData.append('toDate', to);
+                formData.append('cardType', cardType);
+
+                const resp = await fetch('/AccessReport/GetBayUtilization', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? ''
+                    },
+                    body: formData.toString()
+                });
+
+                const d = await resp.json();
+                if (!d.success) throw new Error(d.message || 'Failed to load report.');
+
+                dynamicCardTypes = d.cardTypes || [];
+                populateCardTypeDropdown(dynamicCardTypes, cardType);
+
+                lastData = { ...d, from, to, cardType, groupBy };
+                renderKPIs(d);
+                renderTable(d, groupBy);
+                renderCharts(d);
+
+                document.getElementById('btnExportExcel').style.display = '';
+            } catch (err) {
+                document.getElementById('buTbody').innerHTML =
+                    `<tr><td colspan="11" style="text-align:center;padding:2rem;color:#b91c1c;">
+                        <i class="fas fa-exclamation-circle me-2"></i>${err.message}
+                     </td></tr>`;
+                console.error(err);
+            }
+        }
+
+        function populateCardTypeDropdown(types, selectedValue) {
+            const ddl = document.getElementById('buCardType');
+            const current = selectedValue || ddl.value || 'ALL';
+            let html = `<option value="ALL">All Card Types</option>`;
+            types.forEach(t => {
+                const selected = current === t ? 'selected' : '';
+                html += `<option value="${escapeHtml(t)}" ${selected}>${escapeHtml(t)}</option>`;
+            });
+            ddl.innerHTML = html;
+        }
+
+        function resetReport() {
+            const today = new Date();
+            const first = new Date(today.getFullYear(), today.getMonth(), 1);
+            document.getElementById('buFromDate').value = toInputDate(first);
+            document.getElementById('buToDate').value = toInputDate(today);
+            document.getElementById('buCardType').innerHTML = '<option value="ALL">All Card Types</option>';
+            document.getElementById('buGroupBy').value = 'date_type';
+            document.getElementById('buKpiGrid').innerHTML = '';
+            document.getElementById('buChartRow').style.display = 'none';
+            document.getElementById('btnExportExcel').style.display = 'none';
+            document.getElementById('buTableSub').textContent = 'Select date range and click Generate Report';
+            document.getElementById('buTbody').innerHTML = `<tr><td colspan="12"><div class="bu-empty"><h4>No data yet</h4><p>Select a date range and click Generate Report</p></div></td></tr>`;
+            lastData = null;
+            dynamicCardTypes = [];
+            if (chartCount) { chartCount.destroy(); chartCount = null; }
+            if (chartHours) { chartHours.destroy(); chartHours = null; }
+        }
+
+        function renderKPIs(d) {
+            const grid = document.getElementById('buKpiGrid');
+            let html = '';
+
+            dynamicCardTypes.forEach((t, idx) => {
+                const s = d.summaryByCardType[t] ?? { vehicleCount: 0, totalParkedHours: 0, totalCharges: 0 };
+                const cfg = getCardCfg(t, idx);
+                html += `<div class="bu-kpi" style="--kpi-color:${cfg.color}">
+                    <div class="bu-kpi-label">${escapeHtml(t)}</div>
+                    <div class="bu-kpi-value">${Number(s.vehicleCount || 0).toLocaleString()}</div>
+                    <div class="bu-kpi-sub">${Number(s.totalParkedHours || 0).toFixed(1)} hrs · KES ${Number(s.totalCharges || 0).toLocaleString()}</div>
+                </div>`;
+            });
+
+            const g = d.grandTotal;
+            html += `<div class="bu-kpi" style="--kpi-color:#1e293b">
+                <div class="bu-kpi-label">GRAND TOTAL</div>
+                <div class="bu-kpi-value">${Number(g.vehicleCount || 0).toLocaleString()}</div>
+                <div class="bu-kpi-sub">${Number(g.totalParkedHours || 0).toFixed(1)} hrs · KES ${Number(g.totalCharges || 0).toLocaleString()}</div>
+            </div>`;
+
+            grid.innerHTML = html;
+        }
+
+        function renderTable(d, groupBy) {
+            const tbody = document.getElementById('buTbody');
+            if (!d.rows || d.rows.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="12"><div class="bu-empty"><h4>No records found</h4><p>Try a wider date range.</p></div></td></tr>`;
+                return;
+            }
+
+            const maxVehicles = Math.max(...d.rows.map(r => r.dayTotal.vehicleCount), 1);
+            let html = '';
+            const gt = d.grandTotal;
+            const types = dynamicCardTypes;
+
+            if (groupBy === 'date_only') {
+                d.rows.forEach(r => {
+                    const dt = r.dayTotal;
+                    const util = Math.round(dt.vehicleCount / maxVehicles * 100);
+                    html += buildRow(r.exitDate, r.dayOfWeek, 'ALL', dt, util, -1);
+                });
+            } else if (groupBy === 'date_type') {
+                d.rows.forEach(r => {
+                    html += `<tr class="bu-date-group"><td colspan="12">${escapeHtml(r.exitDate)} &mdash; ${escapeHtml(r.dayOfWeek)}</td></tr>`;
+                    const maxDay = Math.max(...types.map(t => r.byCardType[t]?.vehicleCount ?? 0), 1);
+
+                    types.forEach((t, idx) => {
+                        const row = r.byCardType[t];
+                        if (!row) return;
+                        const util = Math.round(row.vehicleCount / maxDay * 100);
+                        html += buildRow('', '', t, row, util, idx);
+                    });
+
+                    const dt = r.dayTotal;
+                    html += `<tr class="bu-subtotal">
+                        <td colspan="3" style="color:#475569">Subtotal &mdash; ${escapeHtml(r.exitDate)}</td>
+                        <td class="r">${Number(dt.vehicleCount || 0).toLocaleString()}</td>
+                        <td class="r">${Number(dt.totalParkedHours || 0).toFixed(2)}</td>
+                        <td class="r">${Number(dt.avgParkedHours || 0).toFixed(2)}</td>
+                        <td class="r">${Number(dt.totalCharges || 0).toLocaleString()}</td>
+                        <td class="r">${Number(dt.avgChargesPerVehicle || 0).toFixed(2)}</td>
+                        <td class="r">${Number(dt.chargesPerHour || 0).toFixed(2)}</td>
+                        <td class="r">${Number(dt.totalPaid || 0).toLocaleString()}</td>
+                        <td></td>
+                    </tr>`;
+                });
+            } else {
+                types.forEach((t, idx) => {
+                    const typeRows = d.rows.filter(r => r.byCardType[t]);
+                    if (!typeRows.length) return;
+
+                    const cfg = getCardCfg(t, idx);
+                    html += `<tr class="bu-date-group"><td colspan="11" style="color:${cfg.color}">${escapeHtml(t)}</td></tr>`;
+
+                    const maxType = Math.max(...typeRows.map(r => r.byCardType[t].vehicleCount), 1);
+                    let tCount = 0, tHrs = 0, tChg = 0, tPaid = 0;
+
+                    typeRows.forEach(r => {
+                        const row = r.byCardType[t];
+                        const util = Math.round(row.vehicleCount / maxType * 100);
+                        html += buildRow(r.exitDate, r.dayOfWeek, t, row, util, idx);
+                        tCount += row.vehicleCount;
+                        tHrs += row.totalParkedHours;
+                        tChg += row.totalCharges;
+                        tPaid += (row.totalPaid ?? 0);
+                    });
+
+                    html += `<tr class="bu-subtotal">
+                        <td colspan="3" style="color:#475569">Subtotal &mdash; ${escapeHtml(t)}</td>
+                        <td class="r">${tCount.toLocaleString()}</td>
+                        <td class="r">${tHrs.toFixed(2)}</td>
+                        <td class="r">${tCount > 0 ? (tHrs / tCount).toFixed(2) : '0.00'}</td>
+                        <td class="r">${tChg.toLocaleString()}</td>
+                        <td class="r">${tCount > 0 ? (tChg / tCount).toFixed(2) : '0.00'}</td>
+                        <td class="r">${tHrs > 0 ? (tChg / tHrs).toFixed(2) : '0.00'}</td>
+                        <td class="r">${tPaid.toLocaleString()}</td>
+                        <td></td>
+                    </tr>`;
+                });
+            }
+
+            html += `<tr class="bu-grand">
+                <td colspan="3"><strong>GRAND TOTAL</strong></td>
+                <td class="r"><strong>${Number(gt.vehicleCount || 0).toLocaleString()}</strong></td>
+                <td class="r"><strong>${Number(gt.totalParkedHours || 0).toFixed(2)}</strong></td>
+                <td class="r"><strong>${Number(gt.avgParkedHours || 0).toFixed(2)}</strong></td>
+                <td class="r"><strong>${Number(gt.totalCharges || 0).toLocaleString()}</strong></td>
+                <td class="r"><strong>${Number(gt.avgChargesPerVehicle || 0).toFixed(2)}</strong></td>
+                <td class="r"><strong>${Number(gt.chargesPerHour || 0).toFixed(2)}</strong></td>
+                <td class="r"><strong>${Number(gt.totalPaid || 0).toLocaleString()}</strong></td>
+                <td></td>
+            </tr>`;
+
+            tbody.innerHTML = html;
+            document.getElementById('buTableSub').textContent =
+                `${d.rows.length} date(s) — ${Number(gt.vehicleCount || 0).toLocaleString()} vehicles · ${Number(gt.totalParkedHours || 0).toFixed(1)} hrs · KES ${Number(gt.totalCharges || 0).toLocaleString()} charged`;
+        }
+
+        function buildRow(date, day, type, row, util, idx) {
+            const cfg = type === 'ALL'
+                ? { color: '#334155', bg: '#e2e8f0' }
+                : getCardCfg(type, idx);
+
+            const barColor = util > 75 ? '#15803d' : util > 40 ? '#b45309' : '#0369a1';
+            const badge = type === 'ALL'
+                ? `<span class="type-badge" style="background:#e2e8f0;color:#334155">ALL</span>`
+                : `<span class="type-badge" style="background:${cfg.bg};color:${cfg.color}"><span class="type-dot" style="background:${cfg.color}"></span>${escapeHtml(type)}</span>`;
+
+            return `<tr>
+                <td>${date ? `<strong>${escapeHtml(date)}</strong>` : ''}</td>
+                <td style="color:#64748b;font-size:.75rem">${escapeHtml(day || '')}</td>
+                <td>${badge}</td>
+                <td class="r">${Number(row.vehicleCount || 0).toLocaleString()}</td>
+                <td class="r">${Number(row.totalParkedHours || 0).toFixed(2)}</td>
+                <td class="r">${Number(row.avgParkedHours || 0).toFixed(2)}</td>
+                <td class="r">${Number(row.totalCharges || 0).toLocaleString()}</td>
+                <td class="r">${Number(row.avgChargesPerVehicle || 0).toFixed(2)}</td>
+                <td class="r">${Number(row.chargesPerHour || 0).toFixed(2)}</td>
+                <td class="r">${Number(row.totalPaid || 0).toLocaleString()}</td>
+                <td><div class="util-wrap">
+                    <div class="util-bar"><div class="util-fill" style="width:${util}%;background:${barColor}"></div></div>
+                    <span class="util-pct">${util}%</span>
+                </div></td>
+            </tr>`;
+        }
+
+        function renderCharts(d) {
+            if (!dynamicCardTypes.length) {
+                document.getElementById('buChartRow').style.display = 'none';
+                return;
+            }
+
+            document.getElementById('buChartRow').style.display = '';
+            const types = dynamicCardTypes;
+            const colors = types.map((t, i) => getCardCfg(t, i).color);
+            const bgs = types.map((t, i) => getCardCfg(t, i).bg + 'cc');
+            const counts = types.map(t => d.summaryByCardType[t]?.vehicleCount ?? 0);
+            const hours = types.map(t => +(d.summaryByCardType[t]?.totalParkedHours ?? 0).toFixed(1));
+
+                    const baseCfg = {
+            responsive: true,
+            maintainAspectRatio: false,   // ← change true to false
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: 'rgba(0,0,0,.05)' } },
+                y: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: 'rgba(0,0,0,.05)' } }
+            }
+        };
+
+            if (chartCount) chartCount.destroy();
+            if (chartHours) chartHours.destroy();
+
+            chartCount = new Chart(document.getElementById('chartCount'), {
+                type: 'bar',
+                data: { labels: types, datasets: [{ data: counts, backgroundColor: bgs, borderColor: colors, borderWidth: 2, borderRadius: 6 }] },
+                options: { ...baseCfg, plugins: { ...baseCfg.plugins, tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y.toLocaleString()} vehicles` } } } }
+            });
+
+            chartHours = new Chart(document.getElementById('chartHours'), {
+                type: 'bar',
+                data: { labels: types, datasets: [{ data: hours, backgroundColor: bgs, borderColor: colors, borderWidth: 2, borderRadius: 6 }] },
+                options: { ...baseCfg, plugins: { ...baseCfg.plugins, tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y.toFixed(1)} hours` } } } }
+            });
+        }
+
+                function exportExcel() {
+            if (!lastData) return;
+
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/AccessReport/ExportBayUtilizationExcel';
+
+            const addField = (n, v) => {
+                const i = document.createElement('input');
+                i.type = 'hidden'; i.name = n; i.value = v;
+                form.appendChild(i);
+            };
+
+            addField('fromDate', lastData.from);
+            addField('toDate',   lastData.to);
+            addField('cardType', document.getElementById('buCardType').value);
+            addField('groupBy',  document.getElementById('buGroupBy').value);  // ← add this
+
+            const tok = document.querySelector('input[name="__RequestVerificationToken"]');
+            if (tok) addField('__RequestVerificationToken', tok.value);
+
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+        }
+    </script>
+}

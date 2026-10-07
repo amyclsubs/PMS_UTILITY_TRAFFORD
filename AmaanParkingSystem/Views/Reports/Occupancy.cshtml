@@ -1,0 +1,370 @@
+﻿@{
+    ViewData["Title"] = "Occupancy Report";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    .occ-card-value { font-size: 2rem; font-weight: 700; }
+    .occ-table { width: auto; min-width: 680px; }
+    .occ-table th, .occ-table td { padding: 0.4rem 0.75rem; vertical-align: middle; white-space: nowrap; }
+    .badge-entered  { background: #0d6efd; color: #fff; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; }
+    .badge-exited   { background: #fd7e14; color: #fff; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; }
+    .badge-inside   { background: #198754; color: #fff; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; }
+    .badge-left     { background: #6f42c1; color: #fff; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; }
+</style>
+
+<div class="page-header">
+    <h2>Occupancy Report</h2>
+    <p>Shows occupancy summary per hour, day, month, and year.</p>
+</div>
+
+
+<div class="card mb-3">
+    <div class="card-header"><h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filters</h5></div>
+    <div class="card-body p-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label mb-1">Report Type</label>
+                <select id="reportType" class="form-select form-select-sm">
+                    <option value="hourly">Hourly</option>
+                    <option value="daily">Daily</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="yearly">Yearly</option>
+                </select>
+            </div>
+            <div class="col-md-2" id="dailyFilter">
+                <label class="form-label mb-1">Date</label>
+                <input type="date" id="selectedDate" class="form-control form-control-sm"
+                       value="@DateTime.Now.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="col-md-2 d-none" id="monthFilter">
+                <label class="form-label mb-1">Month</label>
+                <select id="month" class="form-select form-select-sm">
+                    @for (int i = 1; i <= 12; i++)
+                    {
+                        <option value="@i" selected="@(i == DateTime.Now.Month)">
+                            @System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(i)
+                        </option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2" id="yearFilter">
+                <label class="form-label mb-1">Year</label>
+                <input type="number" id="year" class="form-control form-control-sm" value="@DateTime.Now.Year" />
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-primary btn-sm w-100" id="btnLoadReport">
+                    <i class="fas fa-search me-1"></i> Load Report
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3">
+        <div class="card text-center border-0 shadow-sm">
+            <div class="card-body py-3">
+                <div class="text-muted small mb-1"><i class="fas fa-sign-in-alt me-1"></i>Total Entries</div>
+                <div class="occ-card-value text-primary" id="cardEntered">0</div>
+                <div class="text-muted" style="font-size:0.75rem;">Cars that entered</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center border-0 shadow-sm">
+            <div class="card-body py-3">
+                <div class="text-muted small mb-1"><i class="fas fa-sign-out-alt me-1"></i>Total Exits</div>
+                <div class="occ-card-value text-warning" id="cardExited">0</div>
+                <div class="text-muted" style="font-size:0.75rem;">Cars that exited</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center border-0 shadow-sm">
+            <div class="card-body py-3">
+                <div class="text-muted small mb-1"><i class="fas fa-car me-1"></i>Still Inside</div>
+                <div class="occ-card-value text-success" id="cardInside">0</div>
+                <div class="text-muted" style="font-size:0.75rem;">Currently parked</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center border-0 shadow-sm">
+            <div class="card-body py-3">
+                <div class="text-muted small mb-1"><i class="fas fa-parking me-1"></i>Left After Entry</div>
+                <div class="occ-card-value text-purple" id="cardLeft" style="color:#6f42c1;">0</div>
+                <div class="text-muted" style="font-size:0.75rem;">Completed sessions</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="row g-3 mb-3">
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-header"><h6 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Inside vs Left</h6></div>
+            <div class="card-body"><canvas id="pieChart" height="200"></canvas></div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-header"><h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Summary</h6></div>
+            <div class="card-body"><canvas id="barChart" height="200"></canvas></div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-header"><h6 class="mb-0"><i class="fas fa-chart-line me-2"></i>Entry vs Exit Trend</h6></div>
+            <div class="card-body"><canvas id="lineChart" height="200"></canvas></div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-header"><h6 class="mb-0"><i class="fas fa-table me-2"></i>Occupancy Details</h6></div>
+    <div class="card-body p-3">
+        <div class="table-responsive">
+            <table class="table table-sm table-bordered table-hover occ-table">
+                <thead id="reportTableHead"></thead>
+                <tbody id="reportTableBody">
+                    <tr><td colspan="5" class="text-center text-muted">No data loaded.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    let pieChart = null, barChart = null, lineChart = null;
+
+    document.addEventListener('DOMContentLoaded', function () {
+        toggleFilters();
+        loadOccupancyReport();
+        document.getElementById('reportType').addEventListener('change', function () {
+            toggleFilters();
+            loadOccupancyReport();
+        });
+        document.getElementById('btnLoadReport').addEventListener('click', loadOccupancyReport);
+    });
+
+    function toggleFilters() {
+        const t = document.getElementById('reportType').value;
+        document.getElementById('dailyFilter').classList.toggle('d-none', !(t === 'daily' || t === 'hourly'));
+        document.getElementById('monthFilter').classList.toggle('d-none', t !== 'monthly');
+        document.getElementById('yearFilter').classList.toggle('d-none', t === 'daily' || t === 'hourly');
+    }
+
+    function loadOccupancyReport() {
+        const t = document.getElementById('reportType').value;
+        let url = '', body = '';
+
+        if (t === 'hourly') {
+            url = '/AccessReport/GetHourlyOccupancy';
+            body = `selectedDate=${encodeURIComponent(document.getElementById('selectedDate').value)}`;
+        } else if (t === 'daily') {
+            url = '/AccessReport/GetDailyOccupancy';
+            body = `selectedDate=${encodeURIComponent(document.getElementById('selectedDate').value)}`;
+        } else if (t === 'monthly') {
+            url = '/AccessReport/GetMonthlyOccupancy';
+            body = `month=${encodeURIComponent(document.getElementById('month').value)}&year=${encodeURIComponent(document.getElementById('year').value)}`;
+        } else {
+            url = '/AccessReport/GetYearlyOccupancy';
+            body = `year=${encodeURIComponent(document.getElementById('year').value)}`;
+        }
+
+        document.getElementById('reportTableBody').innerHTML =
+            `<tr><td colspan="5" class="text-center text-muted"><i class="fas fa-spinner fa-spin me-1"></i>Loading...</td></tr>`;
+
+        fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: body
+        })
+        .then(r => r.json())
+        .then(res => {
+            if (!res.success) {
+                document.getElementById('reportTableBody').innerHTML =
+                    `<tr><td colspan="5" class="text-center text-danger">${res.message || 'Failed to load.'}</td></tr>`;
+                return;
+            }
+            if (t === 'hourly')  renderHourly(res.data || []);
+            else if (t === 'daily') renderDaily(res.data);
+            else renderList(t, res.data || []);
+        })
+        .catch(err => {
+            console.error(err);
+            document.getElementById('reportTableBody').innerHTML =
+                `<tr><td colspan="5" class="text-center text-danger">Error loading report.</td></tr>`;
+        });
+    }
+
+    // ── HOURLY ────────────────────────────────────────────────
+    function renderHourly(data) {
+        const totalEntered = data.reduce((s, x) => s + (x.total_entered || 0), 0);
+        const totalExited  = data.reduce((s, x) => s + (x.total_exited  || 0), 0);
+        const peakInside   = data.reduce((m, x) => Math.max(m, x.still_inside || 0), 0);
+        const totalLeft    = data.reduce((s, x) => s + (x.left_after_entry || 0), 0);
+
+        setCards(totalEntered, totalExited, peakInside, totalLeft);
+
+        document.getElementById('reportTableHead').innerHTML = `
+            <tr>
+                <th>Hour</th>
+                <th><span class="badge-entered">Entries</span></th>
+                <th><span class="badge-exited">Exits</span></th>
+                <th><span class="badge-inside">Parked Inside</span></th>
+                <th><span class="badge-left">Completed Sessions</span></th>
+            </tr>`;
+
+        let rows = '';
+        data.forEach(item => {
+            const inside = item.still_inside || 0;
+            rows += `
+                <tr>
+                    <td><strong>${item.hour_label ?? ''}</strong></td>
+                    <td>${item.total_entered ?? 0}</td>
+                    <td>${item.total_exited ?? 0}</td>
+                    <td>${inside > 0 ? `<span class="badge-inside">${inside}</span>` : 0}</td>
+                    <td>${item.left_after_entry ?? 0}</td>
+                </tr>`;
+        });
+
+        document.getElementById('reportTableBody').innerHTML =
+            rows || `<tr><td colspan="5" class="text-center text-muted">No records found.</td></tr>`;
+
+        renderPie(peakInside, totalLeft);
+        renderBar(['Entries', 'Exits', 'Peak Inside', 'Completed'], [totalEntered, totalExited, peakInside, totalLeft]);
+        renderLine(data.map(x => x.hour_label || ''), data.map(x => x.total_entered || 0), data.map(x => x.total_exited || 0));
+    }
+
+    // ── DAILY ─────────────────────────────────────────────────
+    function renderDaily(item) {
+        if (!item) return;
+        setCards(item.total_entered ?? 0, item.total_exited ?? 0, item.still_inside ?? 0, item.left_after_entry ?? 0);
+
+        document.getElementById('reportTableHead').innerHTML = `
+            <tr>
+                <th>Date</th>
+                <th><span class="badge-entered">Entries</span></th>
+                <th><span class="badge-exited">Exits</span></th>
+                <th><span class="badge-inside">Still Inside</span></th>
+                <th><span class="badge-left">Completed Sessions</span></th>
+            </tr>`;
+
+        document.getElementById('reportTableBody').innerHTML = `
+            <tr>
+                <td><strong>${formatDate(item.report_date)}</strong></td>
+                <td>${item.total_entered ?? 0}</td>
+                <td>${item.total_exited ?? 0}</td>
+                <td>${item.still_inside ?? 0}</td>
+                <td>${item.left_after_entry ?? 0}</td>
+            </tr>`;
+
+        renderPie(item.still_inside ?? 0, item.left_after_entry ?? 0);
+        renderBar(['Entries', 'Exits', 'Still Inside', 'Completed'],
+            [item.total_entered ?? 0, item.total_exited ?? 0, item.still_inside ?? 0, item.left_after_entry ?? 0]);
+        renderLine(['Selected Day'], [item.total_entered ?? 0], [item.total_exited ?? 0]);
+    }
+
+    // ── MONTHLY / YEARLY ──────────────────────────────────────
+    function renderList(type, data) {
+        const totalEntered = data.reduce((s, x) => s + (x.total_entered || 0), 0);
+        const totalExited  = data.reduce((s, x) => s + (x.total_exited  || 0), 0);
+        const totalInside  = data.reduce((s, x) => s + (x.still_inside  || 0), 0);
+        const totalLeft    = data.reduce((s, x) => s + (x.left_after_entry || 0), 0);
+
+        setCards(totalEntered, totalExited, totalInside, totalLeft);
+
+        const labelCol = type === 'monthly' ? 'Date' : 'Month';
+        document.getElementById('reportTableHead').innerHTML = `
+            <tr>
+                <th>${labelCol}</th>
+                <th><span class="badge-entered">Entries</span></th>
+                <th><span class="badge-exited">Exits</span></th>
+                <th><span class="badge-inside">Still Inside</span></th>
+                <th><span class="badge-left">Completed Sessions</span></th>
+            </tr>`;
+
+        let rows = '';
+        data.forEach(item => {
+            const label = type === 'monthly' ? formatDate(item.report_date) : (item.month_name ?? '');
+            rows += `
+                <tr>
+                    <td><strong>${label}</strong></td>
+                    <td>${item.total_entered ?? 0}</td>
+                    <td>${item.total_exited ?? 0}</td>
+                    <td>${item.still_inside ?? 0}</td>
+                    <td>${item.left_after_entry ?? 0}</td>
+                </tr>`;
+        });
+
+        document.getElementById('reportTableBody').innerHTML =
+            rows || `<tr><td colspan="5" class="text-center text-muted">No records found.</td></tr>`;
+
+        const chartLabels = type === 'monthly'
+            ? data.map(x => formatDate(x.report_date))
+            : data.map(x => x.month_name || '');
+
+        renderPie(totalInside, totalLeft);
+        renderBar(['Entries', 'Exits', 'Still Inside', 'Completed'], [totalEntered, totalExited, totalInside, totalLeft]);
+        renderLine(chartLabels, data.map(x => x.total_entered || 0), data.map(x => x.total_exited || 0));
+    }
+
+    // ── HELPERS ───────────────────────────────────────────────
+    function setCards(entered, exited, inside, left) {
+        document.getElementById('cardEntered').textContent = entered;
+        document.getElementById('cardExited').textContent  = exited;
+        document.getElementById('cardInside').textContent  = inside;
+        document.getElementById('cardLeft').textContent    = left;
+    }
+
+    function formatDate(v) { return v ? v.split('T')[0] : ''; }
+
+    function renderPie(inside, left) {
+        const ctx = document.getElementById('pieChart').getContext('2d');
+        if (pieChart) pieChart.destroy();
+        pieChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: ['Still Inside', 'Completed Sessions'],
+                datasets: [{ data: [inside, left], backgroundColor: ['#198754', '#6f42c1'] }]
+            },
+            options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+        });
+    }
+
+    function renderBar(labels, values) {
+        const ctx = document.getElementById('barChart').getContext('2d');
+        if (barChart) barChart.destroy();
+        barChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{ label: 'Count', data: values, backgroundColor: ['#0d6efd','#fd7e14','#198754','#6f42c1'] }]
+            },
+            options: { responsive: true, scales: { y: { beginAtZero: true } } }
+        });
+    }
+
+    function renderLine(labels, enteredData, exitedData) {
+        const ctx = document.getElementById('lineChart').getContext('2d');
+        if (lineChart) lineChart.destroy();
+        lineChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: 'Entries', data: enteredData, borderColor: '#0d6efd', backgroundColor: 'rgba(13,110,253,0.1)', fill: false, tension: 0.3 },
+                    { label: 'Exits',   data: exitedData,  borderColor: '#fd7e14', backgroundColor: 'rgba(253,126,20,0.1)',  fill: false, tension: 0.3 }
+                ]
+            },
+            options: { responsive: true, scales: { y: { beginAtZero: true } } }
+        });
+    }
+</script>
+}

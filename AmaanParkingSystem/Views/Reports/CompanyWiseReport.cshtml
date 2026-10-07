@@ -1,0 +1,782 @@
+﻿@{
+    ViewBag.Title = "Company Wise Report";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    .report-section {
+        border: 2px solid #dee2e6;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 25px;
+        background-color: #ffffff;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+        .report-section h5 {
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #0d6efd;
+            color: #0d6efd;
+            font-weight: bold;
+        }
+
+    .sub-company-row {
+        background-color: #90EE90 !important;
+        font-weight: 500;
+    }
+</style>
+
+<div class="container-fluid my-4">
+    <h3 class="mb-4">Company Wise Report</h3>
+
+    <!-- Company Search -->
+    <div class="mb-3 position-relative" style="max-width: 600px;">
+        <input id="companySearch" type="text" class="form-control form-control-lg"
+               placeholder="Search Company Name..." autocomplete="off" />
+        <div id="companyResults" class="list-group position-absolute w-100" style="z-index:1000;"></div>
+    </div>
+
+    <!-- Tabs for Date Range / Month & Year -->
+    <ul class="nav nav-tabs mb-3">
+        <li class="nav-item">
+            <a class="nav-link active" data-bs-toggle="tab" href="#rangeTab">By Date Range</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#monthTab">By Month & Year</a>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content border rounded px-3 py-3 bg-light">
+        <!-- Date Range Tab -->
+        <div class="tab-pane fade show active" id="rangeTab">
+            <div class="row mb-2">
+                <div class="col-md-4">
+                    <label>From</label>
+                    <input id="dateFrom" type="text" class="form-control" placeholder="Start Date" readonly />
+                </div>
+                <div class="col-md-4">
+                    <label>To</label>
+                    <input id="dateTo" type="text" class="form-control" placeholder="End Date" readonly />
+                </div>
+                <div class="col-md-4 align-self-end">
+                    <button class="btn btn-outline-info btn-sm" id="last6MonthsBtn">
+                        <i class="fas fa-calendar-alt me-1"></i>Last 6 Months
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Month & Year Tab -->
+        <div class="tab-pane fade" id="monthTab">
+            <div class="row mb-2">
+                <div class="col-md-3">
+                    <label>Month</label>
+                    <select id="monthSelect" class="form-select">
+                        <option value="">--Select--</option>
+                        <option value="1">January</option>
+                        <option value="2">February</option>
+                        <option value="3">March</option>
+                        <option value="4">April</option>
+                        <option value="5">May</option>
+                        <option value="6">June</option>
+                        <option value="7">July</option>
+                        <option value="8">August</option>
+                        <option value="9">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label>Year</label>
+                    <select id="yearSelect" class="form-select">
+                        @{
+                            var currentYear = DateTime.Now.Year;
+                            for (var y = 2020; y <= currentYear; y++)
+                            {
+                                if (y == currentYear)
+                                {
+                                    <option selected>@y</option>
+                                }
+                                else
+                                {
+                                    <option>@y</option>
+                                }
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-md-6 align-self-end">
+                    <button class="btn btn-outline-primary btn-sm me-1" id="thisMonthBtn">This Month</button>
+                    <button class="btn btn-outline-primary btn-sm me-1" id="lastMonthBtn">Previous Month</button>
+                    <button class="btn btn-outline-secondary btn-sm me-1" id="thisYearBtn">This Year</button>
+                    <button class="btn btn-outline-secondary btn-sm" id="lastYearBtn">Previous Year</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons - UPDATED WITH EMAIL BUTTON -->
+    <div class="my-3">
+        <button class="btn btn-success" id="showBtn"><i class="fas fa-search"></i> Show</button>
+        <button class="btn btn-outline-dark" id="exportBtn"><i class="fas fa-download"></i> Export</button>
+        <button class="btn btn-outline-primary" id="emailBtn"><i class="fas fa-envelope"></i> Email Report</button>
+    </div>
+
+    <!-- Report Sections -->
+    <div id="reportContainer" style="display:none;">
+        <!-- 1. TOP-UP Section -->
+        <div class="report-section">
+            <h5><i class="fas fa-money-bill-wave me-2"></i>TOP-UP</h5>
+            <div id="topUpTable" class="table-responsive"></div>
+        </div>
+
+        <!-- 2. Company Details Section (SUB COMPANY ONLY) -->
+        <div class="report-section">
+            <h5><i class="fas fa-building me-2"></i>Company Details</h5>
+            <div id="companyTable" class="table-responsive"></div>
+        </div>
+
+        <!-- 3. Card Details Section (NEW SECTION) -->
+        <div class="report-section">
+            <h5><i class="fas fa-id-card me-2"></i>Card Details</h5>
+            <div id="cardTable" class="table-responsive"></div>
+        </div>
+
+        <!-- 4. Detailed Transaction Report -->
+        <div class="report-section">
+            <h5><i class="fas fa-list-alt me-2"></i>Detailed Transaction Report</h5>
+            <div id="reportTable" class="table-responsive"></div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+<script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<script>
+    let currentTopUpData = [];
+    let currentCompanyData = null;
+    let currentReportData = [];
+
+    $(function () {
+        // Initialize date pickers
+        $('#dateFrom, #dateTo').datepicker({
+            dateFormat: 'dd-M-yy',
+            changeMonth: true,
+            changeYear: true,
+            yearRange: '2020:2050',
+            showButtonPanel: true
+        });
+
+        // Company search autocomplete
+        $('#companySearch').on('input', function () {
+            let q = $(this).val();
+            if (q.length < 1) {
+                $('#companyResults').hide();
+                return;
+            }
+
+            $.get('/CompanyWiseReport/SearchCompanies?q=' + encodeURIComponent(q), function (res) {
+                let box = $('#companyResults').html('');
+                res.forEach(company => {
+                    box.append(`<a href="#" class="list-group-item list-group-item-action" data-company="${company.company_name}">${company.company_name}</a>`);
+                });
+                box.show();
+            });
+        });
+
+        // Select company from autocomplete
+        $('#companyResults').on('click', 'a', function (e) {
+            e.preventDefault();
+            $('#companySearch').val($(this).data('company'));
+            $('#companyResults').hide();
+        });
+
+        // Quick date buttons
+        $('#thisMonthBtn').click(function () {
+            let d = new Date();
+            $('#monthSelect').val(d.getMonth() + 1);
+            $('#yearSelect').val(d.getFullYear());
+        });
+
+        $('#lastMonthBtn').click(function () {
+            let d = new Date();
+            d.setMonth(d.getMonth() - 1);
+            $('#monthSelect').val(d.getMonth() + 1);
+            $('#yearSelect').val(d.getFullYear());
+        });
+
+        $('#thisYearBtn').click(function () {
+            const d = new Date();
+            $('#yearSelect').val(d.getFullYear());
+            $('#monthSelect').val('');
+            $('.nav-tabs a[href="#monthTab"]').tab('show');
+        });
+
+        $('#lastYearBtn').click(function () {
+            const d = new Date();
+            $('#yearSelect').val(d.getFullYear() - 1);
+            $('#monthSelect').val('');
+            $('.nav-tabs a[href="#monthTab"]').tab('show');
+        });
+
+        $('#last6MonthsBtn').click(function () {
+            const today = new Date();
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+
+            const sixMonthsAgo = new Date();
+            sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+            const formatDateForPicker = (date) => {
+                const day = String(date.getDate()).padStart(2, '0');
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                const month = months[date.getMonth()];
+                const year = date.getFullYear();
+                return `${day}-${month}-${year}`;
+            };
+
+            $('#dateFrom').val(formatDateForPicker(sixMonthsAgo));
+            $('#dateTo').val(formatDateForPicker(tomorrow));
+            $('.nav-tabs a[href="#rangeTab"]').tab('show');
+        });
+
+        // Show report
+        $('#showBtn').click(function () {
+            let company = $('#companySearch').val();
+            if (!company) {
+                alert('Please select a company!');
+                return;
+            }
+
+            let activeTab = $('.nav-tabs .active').attr('href');
+            let req = {
+                Company: company,
+                From: null, To: null, Month: null, Year: null
+            };
+
+            if (activeTab === '#rangeTab') {
+                req.From = $('#dateFrom').val();
+                req.To = $('#dateTo').val();
+            } else {
+                const month = $('#monthSelect').val();
+                const year = $('#yearSelect').val();
+
+                if (month) {
+                    req.Month = parseInt(month, 10);
+                    req.Year = parseInt(year || new Date().getFullYear(), 10);
+                } else if (year) {
+                    const y = parseInt(year, 10);
+                    const now = new Date();
+                    const todayIso = now.toISOString().substring(0, 10);
+
+                    req.From = `01-Jan-${y}`;
+                    if (y === now.getFullYear()) {
+                        req.To = todayIso;
+                    } else {
+                        req.To = `31-Dec-${y}`;
+                    }
+                }
+            }
+
+            loadTopUpPayments(req);
+            loadCompanyDetails(req);
+            loadDetailedReport(req);
+            $('#reportContainer').show();
+        });
+
+        // Export to Excel (existing code - keep as is)
+        $('#exportBtn').click(function () {
+            if (!currentReportData || currentReportData.length === 0) {
+                alert("No data to export!");
+                return;
+            }
+            exportToExcelWithBorders();
+        });
+
+        // ========== NEW EMAIL BUTTON HANDLER ==========
+        $('#emailBtn').click(function () {
+            let company = $('#companySearch').val();
+            if (!company) {
+                alert('Please select a company!');
+                return;
+            }
+
+            if (!currentReportData || currentReportData.length === 0) {
+                alert("Please generate the report first by clicking 'Show' button!");
+                return;
+            }
+
+            if (!confirm(`Send this report to ${company} via email?`)) {
+                return;
+            }
+
+            // Disable button and show loading
+            $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Sending...');
+
+            let activeTab = $('.nav-tabs .active').attr('href');
+            let req = {
+                Company: company,
+                From: null, To: null, Month: null, Year: null
+            };
+
+            if (activeTab === '#rangeTab') {
+                req.From = $('#dateFrom').val();
+                req.To = $('#dateTo').val();
+            } else {
+                const month = $('#monthSelect').val();
+                const year = $('#yearSelect').val();
+
+                if (month) {
+                    req.Month = parseInt(month, 10);
+                    req.Year = parseInt(year || new Date().getFullYear(), 10);
+                } else if (year) {
+                    const y = parseInt(year, 10);
+                    const now = new Date();
+                    const todayIso = now.toISOString().substring(0, 10);
+
+                    req.From = `01-Jan-${y}`;
+                    if (y === now.getFullYear()) {
+                        req.To = todayIso;
+                    } else {
+                        req.To = `31-Dec-${y}`;
+                    }
+                }
+            }
+
+            $.ajax({
+                url: '/CompanyWiseReport/SendCompanyWiseReportEmail',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(req),
+                success: function (response) {
+                    if (response.success) {
+                        alert('✓ ' + response.message);
+                    } else {
+                        alert('✗ ' + response.message);
+                    }
+                },
+                error: function (xhr, status, error) {
+                    alert('✗ Error sending email: ' + error);
+                },
+                complete: function () {
+                    $('#emailBtn').prop('disabled', false).html('<i class="fas fa-envelope"></i> Email Report');
+                }
+            });
+        });
+        // ========== END EMAIL BUTTON HANDLER ==========
+
+        // All existing functions below remain unchanged...
+        function loadTopUpPayments(req) {
+            $.ajax({
+                url: '/CompanyWiseReport/GetTopUpPayments',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(req),
+                success: function (data) {
+                    currentTopUpData = data;
+                    renderTopUpTable(data);
+                }
+            });
+        }
+
+        function loadCompanyDetails(req) {
+            $.ajax({
+                url: '/CompanyWiseReport/GetCompanyDetails',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(req),
+                success: function (data) {
+                    currentCompanyData = data;
+                    renderCompanyTable(data);
+                }
+            });
+        }
+
+        function loadDetailedReport(req) {
+            $.ajax({
+                url: '/CompanyWiseReport/GetReport',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(req),
+                success: function (data) {
+                    currentReportData = data;
+                    renderReportTable(data);
+                }
+            });
+        }
+
+            function renderTopUpTable(data) {
+        if (!data || data.length === 0) {
+            $('#topUpTable').html('<table class="table table-sm table-bordered"><thead><tr><th>Payment Date</th><th>Payment Amount</th><th>Payment Mode</th><th>Remark</th></tr></thead><tbody><tr><td colspan="4" class="text-center">No Top-UP payments found</td></tr></tbody></table>');
+            return;
+        }
+
+        let html = '<table class="table table-sm table-bordered">';
+        html += '<thead class="table-light"><tr><th>Payment Date</th><th>Payment Amount</th><th>Payment Mode</th><th>Remark</th></tr></thead><tbody>';
+
+        data.forEach(row => {
+            html += '<tr>';
+            html += `<td>${formatDate(row.payment_date)}</td>`;
+            html += `<td>${row.payment_amount ?? 0} KES</td>`;
+            html += `<td>${row.payment_mode ?? ""}</td>`;
+            html += `<td>${row.remark ?? ""}</td>`;
+            html += '</tr>';
+        });
+
+        html += '</tbody></table>';
+        $('#topUpTable').html(html);
+    }
+
+            // ========== STEP 2: UPDATE renderCompanyTable FUNCTION ==========
+    // REPLACE the existing renderCompanyTable function with this:
+
+    function renderCompanyTable(data) {
+        if (!data || !data.subCompany) {
+            $('#companyTable').html('<div class="alert alert-warning">No company details found</div>');
+            $('#cardTable').html('');
+            return;
+        }
+
+        let sub = data.subCompany;
+
+        // ===== COMPANY TABLE (SUB COMPANY SUMMARY ONLY) =====
+        let html = '<table class="table table-sm table-bordered">';
+        html += '<thead class="table-light"><tr>';
+        html += '<th>Sub Company Name</th><th>Contact Person</th><th>Email</th>';
+        html += '<th>Contact/USER ID</th><th>PIN</th><th>Status</th>';
+        html += '<th>Applicable Card Type</th><th>Password</th><th>Card Limit</th>';
+        html += '<th>Total Cards</th><th>Total Paid</th><th>Total Deducted</th><th>Balance</th>';
+        html += '</tr></thead><tbody>';
+
+        html += '<tr class="sub-company-row">';
+        html += `<td>${sub.car_parkers_sub_co_name ?? ""}</td>`;
+        html += `<td>${sub.sub_co_car_parkers_contact_person ?? ""}</td>`;
+        html += `<td>${sub.sub_co_car_parkers_email ?? ""}</td>`;
+        html += `<td>${sub.sub_co_car_parkers_contact_number ?? ""}</td>`;
+        html += `<td>${sub.sub_co_car_parkers_pin ?? ""}</td>`;
+        html += `<td>${sub.car_parkers_status == '1' ? 'Active' : 'Inactive'}</td>`;
+        html += `<td>${sub.applicable_card_type ?? ""}</td>`;
+        html += `<td>${sub.card_parkers_company_password ?? ""}</td>`;
+        html += `<td>${sub.Total_Card_Limit_Under_Sub_Co ?? ""}</td>`;
+        html += `<td>${sub.Total_Cards_Under_Sub_Co ?? ""}</td>`;
+        html += `<td>${sub.Total_Paid_Amount ?? ""}</td>`;
+        html += `<td>${sub.Total_Deducted_Amount ?? ""}</td>`;
+        html += `<td>${sub.Balance_Amount ?? ""}</td>`;
+        html += '</tr>';
+
+        html += '</tbody></table>';
+        $('#companyTable').html(html);
+
+        // ===== CARD TABLE (SEPARATE SECTION) =====
+        renderCardTable(data.cards || []);
+    }
+
+    // ========== STEP 3: ADD NEW renderCardTable FUNCTION ==========
+        function renderCardTable(cards) {
+        if (!cards || cards.length === 0) {
+            $('#cardTable').html('<div class="alert alert-info">No cards found</div>');
+            return;
+        }
+
+        let html = '<table class="table table-sm table-bordered table-hover">';
+        html += '<thead class="table-light"><tr>';
+        html += '<th>#</th><th>Card Name</th><th>Card Type</th><th>Plate No</th>';
+        html += '<th>Owner Name</th><th>Owner Phone</th><th>Card Status</th>';
+        html += '<th>Expiry Date</th><th>Access Rights</th><th>Total Charge</th>';
+        html += '</tr></thead><tbody>';
+
+        cards.forEach((card, i) => {
+            html += '<tr>';
+            html += `<td>${i + 1}</td>`;
+            html += `<td>${card.cardname ?? ""}</td>`;
+            html += `<td>${card.card_type_remark ?? ""}</td>`;
+            html += `<td>${card.car_plate_no ?? ""}</td>`;
+            html += `<td>${card.car_owner_name ?? ""}</td>`;
+            html += `<td>${card.car_owner_contact_no ?? ""}</td>`;
+            html += `<td>${card.status == '1' ? 'Active' : 'Inactive'}</td>`;
+            html += `<td>${card.expiry_date ? formatDate(card.expiry_date) : ""}</td>`;
+            html += `<td>${card.access_rights ?? ""}</td>`;
+            html += `<td>${card.total_charge ?? 0} KES</td>`;
+            html += '</tr>';
+        });
+
+        html += '</tbody></table>';
+        $('#cardTable').html(html);
+    }
+
+                        function renderReportTable(data) {
+        if (!data || data.length === 0) {
+            $('#reportTable').html('<div class="alert alert-info">No transactions found</div>');
+            return;
+        }
+
+        let html = '<table class="table table-sm table-bordered table-hover">';
+        html += '<thead class="table-light"><tr>';
+        html += '<th>#</th><th>ID</th><th>Card Name</th><th>Owner Name</th><th>Plate No</th><th>Card Type</th>';
+        html += '<th>Entry Date</th><th>Entry Time</th><th>Exit Date</th><th>Exit Time</th>';
+        html += '<th>Park Time</th><th class="text-end">Charge</th><th>Remarks</th>';
+        html += '</tr></thead><tbody>';
+
+        data.forEach((row, i) => {
+            html += '<tr>';
+            html += `<td>${i + 1}</td>`;
+            html += `<td>${row.id}</td>`;
+            html += `<td>${row.card_name ?? ""}</td>`;
+            html += `<td>${row.car_owner_name ?? ""}</td>`;
+            html += `<td>${row.allocated_plate_no ?? row.car_plate_no ?? ""}</td>`;
+            html += `<td>${row.card_type_remark ?? row.card_type ?? ""}</td>`;
+            html += `<td>${row.entry_date ?? formatDate(row.entry_time)}</td>`;
+            html += `<td>${row.entry_time_only ?? formatTime(row.entry_time)}</td>`;
+            html += `<td>${row.exit_date ?? formatDate(row.exit_time)}</td>`;
+            html += `<td>${row.exit_time_only ?? formatTime(row.exit_time)}</td>`;
+            html += `<td>${row.park_time_total ?? formatParkTime(row.entry_time, row.exit_time)}</td>`;
+            html += `<td class="text-end">${row.charges != null ? parseFloat(row.charges).toFixed(2) : "0.00"}</td>`;
+            html += `<td>${row.remarks ?? ""}</td>`;
+            html += '</tr>';
+        });
+
+        html += '</tbody></table>';
+        $('#reportTable').html(html);
+    }
+
+                // ========== STEP 4: UPDATE exportToExcelWithBorders FUNCTION ==========
+    // REPLACE the Company Details section in export with this:
+
+        function exportToExcelWithBorders() {
+        const wb = XLSX.utils.book_new();
+        const ws_data = [];
+
+        let topUpHeaderRow = -1;
+        let companyHeaderRow = -1;
+        let cardHeaderRow = -1;
+        let reportHeaderRow = -1;
+        let subCompanyRow = -1;
+
+        let r = 0;
+
+        // 1. TOP-UP section
+        ws_data[r++] = ['TOP-UP'];
+        ws_data[r] = ['Payment Date', 'Payment Amount', 'Payment Mode', 'Remark'];
+        topUpHeaderRow = r;
+        r++;
+
+        if (currentTopUpData && currentTopUpData.length > 0) {
+            currentTopUpData.forEach(row => {
+                ws_data[r++] = [
+                    formatDate(row.payment_date),
+                    (row.payment_amount ?? 0) + ' KES',
+                    row.payment_mode ?? '',
+                    row.remark ?? ''
+                ];
+            });
+        }
+        ws_data[r++] = [];
+        ws_data[r++] = [];
+
+        // 2. COMPANY DETAILS SECTION (SUB COMPANY ONLY)
+        ws_data[r++] = ['Company Details'];
+
+        if (currentCompanyData && currentCompanyData.subCompany) {
+            const sub = currentCompanyData.subCompany;
+
+            ws_data[r] = [
+                'Sub Company Name', 'Contact Person', 'Email',
+                'Contact/USER ID', 'PIN', 'Status',
+                'Applicable Card Type', 'Password', 'Card Limit',
+                'Total Cards', 'Total Paid', 'Total Deducted', 'Balance'
+            ];
+            companyHeaderRow = r;
+            r++;
+
+            // Sub company data row
+            ws_data[r] = [
+                sub.car_parkers_sub_co_name ?? '',
+                sub.sub_co_car_parkers_contact_person ?? '',
+                sub.sub_co_car_parkers_email ?? '',
+                sub.sub_co_car_parkers_contact_number ?? '',
+                sub.sub_co_car_parkers_pin ?? '',
+                sub.car_parkers_status == '1' ? 'Active' : 'Inactive',
+                sub.applicable_card_type ?? '',
+                sub.card_parkers_company_password ?? '',
+                sub.Total_Card_Limit_Under_Sub_Co ?? '',
+                sub.Total_Cards_Under_Sub_Co ?? '',
+                sub.Total_Paid_Amount ?? '',
+                sub.Total_Deducted_Amount ?? '',
+                sub.Balance_Amount ?? ''
+            ];
+            subCompanyRow = r;
+            r++;
+        }
+
+        ws_data[r++] = [];
+        ws_data[r++] = [];
+
+        // 3. CARD DETAILS SECTION
+        ws_data[r++] = ['Card Details'];
+
+        if (currentCompanyData && currentCompanyData.cards && currentCompanyData.cards.length > 0) {
+            ws_data[r] = [
+                '#', 'Card Name', 'Card Type', 'Plate No',
+                'Owner Name', 'Owner Phone', 'Card Status',
+                'Expiry Date', 'Access Rights', 'Total Charge'
+            ];
+            cardHeaderRow = r;
+            r++;
+
+            const cards = currentCompanyData.cards;
+            cards.forEach((c, i) => {
+                ws_data[r++] = [
+                    i + 1,
+                    c.cardname ?? '',
+                    c.card_type_remark ?? '',
+                    c.car_plate_no ?? '',
+                    c.car_owner_name ?? '',
+                    c.car_owner_contact_no ?? '',
+                    c.status == '1' ? 'Active' : 'Inactive',
+                    c.expiry_date ? formatDate(c.expiry_date) : '',
+                    c.access_rights ?? '',
+                    (c.total_charge ?? 0) + ' KES'
+                ];
+            });
+        }
+
+        ws_data[r++] = [];
+        ws_data[r++] = [];
+
+        // 4. Detailed Transaction Report
+        ws_data[r++] = ['Detailed Transaction Report'];
+
+        ws_data[r] = [
+            '#', 'ID', 'Card Name', 'Owner Name', 'Plate No', 'Card Type',
+            'Entry Date', 'Entry Time', 'Exit Date', 'Exit Time',
+            'Park Time', 'Charge', 'Remarks'
+        ];
+        reportHeaderRow = r;
+        r++;
+
+        currentReportData.forEach((row, i) => {
+            ws_data[r++] = [
+                i + 1,
+                row.id,
+                row.card_name ?? '',
+                row.car_owner_name ?? '',
+                row.allocated_plate_no ?? row.car_plate_no ?? '',
+                row.card_type_remark ?? row.card_type ?? '',
+                row.entry_date ?? formatDate(row.entry_time),
+                row.entry_time_only ?? formatTime(row.entry_time),
+                row.exit_date ?? formatDate(row.exit_time),
+                row.exit_time_only ?? formatTime(row.exit_time),
+                row.park_time_total ?? formatParkTime(row.entry_time, row.exit_time),
+                row.charges ?? 0,
+                row.remarks ?? ''
+            ];
+        });
+
+        // STYLING
+        const ws = XLSX.utils.aoa_to_sheet(ws_data);
+
+        const border = {
+            top: { style: 'thin', color: { rgb: '000000' } },
+            bottom: { style: 'thin', color: { rgb: '000000' } },
+            left: { style: 'thin', color: { rgb: '000000' } },
+            right: { style: 'thin', color: { rgb: '000000' } }
+        };
+
+        const headerStyle = {
+            fill: { fgColor: { rgb: 'D9D9D9' } },
+            font: { bold: true }
+        };
+
+        const subCompanyStyle = {
+            fill: { fgColor: { rgb: 'C6EFCE' } },
+            font: { bold: true }
+        };
+
+        const range = XLSX.utils.decode_range(ws['!ref']);
+
+        for (let R = range.s.r; R <= range.e.r; ++R) {
+            for (let C = range.s.c; C <= range.e.c; ++C) {
+                const addr = { c: C, r: R };
+                const ref = XLSX.utils.encode_cell(addr);
+
+                if (!ws[ref]) continue;
+                if (!ws[ref].s) ws[ref].s = {};
+
+                ws[ref].s.border = border;
+
+                // Grey headers for ALL section headers
+                if (R === topUpHeaderRow || R === companyHeaderRow ||
+                    R === cardHeaderRow || R === reportHeaderRow) {
+                    ws[ref].s = { ...ws[ref].s, ...headerStyle };
+                }
+                // Green ONLY for sub-company summary row
+                else if (R === subCompanyRow) {
+                    ws[ref].s = { ...ws[ref].s, ...subCompanyStyle };
+                }
+            }
+        }
+
+        // Auto-width columns
+        ws['!cols'] = Array.from({ length: 18 }, () => ({ wch: 16 }));
+
+        XLSX.utils.book_append_sheet(wb, ws, 'Report');
+
+        const companyName = $('#companySearch').val().replace(/[^a-zA-Z0-9_-]/g, '_');
+        const filename = `${companyName}_${new Date().toISOString().slice(0,10)}_Companywise-report.xlsx`;
+        XLSX.writeFile(wb, filename);
+    }
+
+
+        function formatDate(dtstr) {
+            if (!dtstr) return "";
+            let d = new Date(dtstr);
+            if (isNaN(d)) return "";
+
+            const day = String(d.getDate()).padStart(2, '0');
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                            'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const month = months[d.getMonth()];
+            const year = d.getFullYear();
+            return `${day}-${month}-${year}`;
+        }
+
+        function formatTime(dtstr) {
+            if (!dtstr) return "";
+            let d = new Date(dtstr);
+            if (isNaN(d)) return "";
+            return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+
+                function formatParkTime(entryTime, exitTime) {
+        if (!entryTime || !exitTime) return "";
+
+        const entry = new Date(entryTime);
+        const exit = new Date(exitTime);
+
+        if (isNaN(entry.getTime()) || isNaN(exit.getTime())) return "";
+
+        // Calculate difference in milliseconds
+        const diffMs = exit - entry;
+        const diffSeconds = Math.floor(diffMs / 1000);
+
+        // Handle negative values (exit before entry)
+        if (diffSeconds < 0) return "00:00:00";
+
+        // Convert to HH:MM:SS
+        const hours = Math.floor(diffSeconds / 3600);
+        const minutes = Math.floor((diffSeconds % 3600) / 60);
+        const seconds = diffSeconds % 60;
+
+        return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+    });
+</script>

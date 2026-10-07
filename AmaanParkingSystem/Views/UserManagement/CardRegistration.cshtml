@@ -1,0 +1,849 @@
+﻿@model AmaanParkingSystem.Models.CardRegistrationModel
+@{
+    ViewData["Title"] = "Card Registration";
+    var cardList = ViewBag.CardList as List<AmaanParkingSystem.Models.CardRegistrationModel> ?? new List<AmaanParkingSystem.Models.CardRegistrationModel>();
+    var isEdit = ViewBag.IsEdit ?? false;
+    var zones = ViewBag.Zones as List<dynamic> ?? new List<dynamic>();
+    var accessRightsBinary = Model.access_rights ?? "";
+    // Get duplicate plate numbers from ViewBag
+    var duplicatePlateNumbers = ViewBag.DuplicatePlateNumbers as HashSet<string> ?? new HashSet<string>();
+    // Find duplicate Owner Contact numbers
+    var ownerContactGroups = cardList
+        .Where(c => !string.IsNullOrEmpty(c.car_owner_contact_no))
+        .GroupBy(c => c.car_owner_contact_no)
+        .Where(g => g.Count() > 1)
+        .Select(g => g.Key)
+        .ToHashSet();
+}
+
+<div class="container-fluid mt-4">
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Card Allocation Form - EDIT COMPANY ONLY -->
+    <div class="card shadow mb-4" id="cardForm">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-@(Model.id > 0 ? "edit" : "plus-circle")"></i>
+                @(Model.id > 0 ? "Reassign Company" : "Allocate") Card
+            </h5>
+        </div>
+        <div class="card-body">
+            <form asp-action="AddOrEditCard" method="post">
+                <input type="hidden" asp-for="id" />
+
+                <!-- Row 1: Company Info + Status -->
+                <div class="row mb-3">
+                    <div class="col-md-2">
+                        <label class="form-label">Customer/Site *</label>
+                        <input asp-for="customer_id" id="customerIdField" class="form-control form-control-sm bg-light" readonly required />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Sub Company *</label>
+                        <select asp-for="car_parkers_sub_co_id" asp-items="ViewBag.SubCompanies"
+                                id="subCompanyDropdown" class="form-control form-control-sm" required>
+                            <option value="">--Select--</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Parent Company</label>
+                        <input asp-for="car_parkers_company_name" id="companyNameField" class="form-control form-control-sm bg-light" readonly />
+                        <input type="hidden" asp-for="car_parkers_company_id" id="companyIdField" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Sub Co ID</label>
+                        <input asp-for="car_parkers_sub_co_id" id="subCoIdFieldHidden" class="form-control form-control-sm bg-light" readonly />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Card Type *</label>
+                        <input asp-for="card_type" id="cardTypeField" class="form-control form-control-sm bg-light" readonly required />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Status *</label>
+                        <select asp-for="status" class="form-control form-control-sm" required>
+                            <option value="">--Select--</option>
+                            <option value="1">Active</option>
+                            <option value="0">Inactive</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Row 2: Card Details (NOW EDITABLE) -->
+                <div class="row mb-3">
+                    <div class="col-md-2">
+                        <label class="form-label">Card No</label>
+                        <input asp-for="cardno" class="form-control form-control-sm" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Card Name</label>
+                        <input asp-for="cardname" class="form-control form-control-sm" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Card Holder</label>
+                        <input asp-for="car_owner_name" class="form-control form-control-sm" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Owner Contact</label>
+                        <input asp-for="car_owner_contact_no" class="form-control form-control-sm" />
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label">LPR No</label>
+                        <input asp-for="car_plate_no" class="form-control form-control-sm" />
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label">Fee Sch</label>
+                        <input asp-for="fee_schedule_id" class="form-control form-control-sm" />
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label">App Form</label>
+                        <input asp-for="applicationform" class="form-control form-control-sm" />
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label">Expiry</label>
+                        <input asp-for="expiry_date" type="date" class="form-control form-control-sm" />
+                    </div>
+                </div>
+
+                <!-- Row 3: Access Rights (READONLY) & Actions -->
+                <div class="row mb-2">
+                    <div class="col-md-5">
+                        <label class="form-label">Access Rights (Zones)</label>
+                        <div class="d-flex flex-wrap gap-2">
+                            @for (int i = 0; i < zones.Count; i++)
+                            {
+                                var zone = zones[i];
+                                string zoneName = zone.zone_name;
+                                bool isChecked = i < accessRightsBinary.Length && accessRightsBinary[i] == '1';
+
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="zoneCheckboxes"
+                                           value="@zoneName"
+                                           id="zone_@zoneName.Replace(" ", "_")"
+                                           @(isChecked ? "checked" : "") />
+                                    <label class="form-check-label small text-muted" for="zone_@zoneName.Replace(" ", "_")">
+                                        @zoneName
+                                    </label>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Anti Pass Back</label>
+                        <input asp-for="antipassback" class="form-control form-control-sm bg-light" readonly />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Grouped</label>
+                        <input asp-for="grouped" class="form-control form-control-sm bg-light" readonly />
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end gap-2">
+                        @if (ViewBag.CanWrite == true)
+                        {
+                        <button type="submit" class="btn btn-warning btn-sm flex-grow-1">
+                            <i class="fas fa-save"></i> @(Model.id > 0 ? "Update Card Details" : "Add")
+                        </button>
+                        }
+                        @if (Model.id > 0)
+                        {
+                            <button type="button" onclick="window.location.href='/UserManagement/CardRegistration'" class="btn btn-secondary btn-sm">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        }
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Complete Card List Table - ALL 27 COLUMNS -->
+<div class="card shadow">
+    <div class="card-header bg-primary text-white d-flex align-items-center justify-content-between">
+        <h5 class="mb-0">
+            Cards Allocated List - Complete Table 
+            <small class="ms-2">(Showing @ViewBag.CardList.Count of @ViewBag.TotalRecords records)</small>
+        </h5>
+        <div class="d-flex gap-2 align-items-center">
+            <!-- Card Type Filter Dropdown -->
+            <select id="cardTypeFilter" class="form-select form-select-sm" style="max-width: 180px;">
+    <option value="">All Card Types</option>
+    @if (ViewBag.CardTypes != null)
+    {
+        @foreach (var cardType in ViewBag.CardTypes)
+        {
+            var isSelected = ViewBag.FilterCardType != null && 
+                           ViewBag.FilterCardType.ToString() == cardType.card_type.ToString();
+
+            @if (isSelected)
+            {
+                <option value="@cardType.card_type" selected>@cardType.display_name</option>
+            }
+            else
+            {
+                <option value="@cardType.card_type">@cardType.display_name</option>
+            }
+        }
+    }
+</select>
+
+            <!-- Search Box -->
+            <input id="cardSearchInput" type="text" class="form-control form-control-sm" 
+       placeholder="Search..." style="max-width: 250px;" 
+       value="@(ViewBag.SearchTerm ?? "")" />
+
+<button class="btn btn-secondary btn-sm" onclick="applyFilters()">
+    <i class="fas fa-search"></i> Search
+</button>
+
+@if (!string.IsNullOrEmpty(ViewBag.SearchTerm) || !string.IsNullOrEmpty(ViewBag.FilterCardType))
+{
+    <button class="btn btn-danger btn-sm" onclick="clearFilters()">
+        <i class="fas fa-times"></i> Clear
+    </button>
+}
+            <!-- Export Button -->
+            <button type="button" class="btn btn-success btn-sm" id="exportExcelBtn" title="Export to Excel" style="min-width: 40px;">
+                <i class="fas fa-file-excel"></i>
+                <span class="btn-export-text ms-1">Export</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="card-body">
+        <!-- Pagination Info and Controls - TOP -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <span class="text-muted">
+                    Showing @((ViewBag.CurrentPage - 1) * ViewBag.PageSize + 1) 
+                    to @Math.Min(ViewBag.CurrentPage * ViewBag.PageSize, ViewBag.TotalRecords) 
+                    of @ViewBag.TotalRecords records
+                </span>
+            </div>
+            <div class="d-flex gap-2 align-items-center">
+                <label class="mb-0 me-2">Per Page:</label>
+                <select id="pageSizeSelect" class="form-select form-select-sm" style="width: 80px;" onchange="changePageSize()">
+        @if (ViewBag.PageSize == 50)
+        {
+            <option value="50" selected>50</option>
+        }
+        else
+        {
+            <option value="50">50</option>
+        }
+
+        @if (ViewBag.PageSize == 100)
+        {
+            <option value="100" selected>100</option>
+        }
+        else
+        {
+            <option value="100">100</option>
+        }
+
+        @if (ViewBag.PageSize == 200)
+        {
+            <option value="200" selected>200</option>
+        }
+        else
+        {
+            <option value="200">200</option>
+        }
+
+        @if (ViewBag.PageSize == 500)
+        {
+            <option value="500" selected>500</option>
+        }
+        else
+        {
+            <option value="500">500</option>
+        }
+    </select>
+            </div>
+        </div>
+
+        <div class="table-responsive" style="max-height: 600px; overflow-x: auto; overflow-y: auto;">
+            <table id="cardListTable" class="table table-bordered table-sm table-hover">
+                <thead class="table-primary sticky-top">
+                    <tr>
+                        <th>ID</th>
+                        <th>Customer ID</th>
+                        <th>Company ID</th>
+                        <th>
+                            Company Name
+                            <a href="@Url.Action("CardRegistration", new { 
+                                sortColumn = "companyname", 
+                                sortOrder = (ViewBag.SortColumn == "companyname" && ViewBag.SortOrder == "asc" ? "desc" : "asc"),
+                                filterCardType = ViewBag.FilterCardType,
+                                searchTerm = ViewBag.SearchTerm,
+                                page = ViewBag.CurrentPage,
+                                pageSize = ViewBag.PageSize 
+                            })"
+                               class="text-white ms-1" title="Sort">
+                                <i class="fas fa-sort@(ViewBag.SortColumn == "companyname" ? (ViewBag.SortOrder == "asc" ? "-up" : "-down") : "")"></i>
+                            </a>
+                        </th>
+                        <th>Sub Co ID</th>
+                        <th>
+                            Sub Co Name
+                            <a href="@Url.Action("CardRegistration", new { 
+                                sortColumn = "subconame", 
+                                sortOrder = (ViewBag.SortColumn == "subconame" && ViewBag.SortOrder == "asc" ? "desc" : "asc"),
+                                filterCardType = ViewBag.FilterCardType,
+                                searchTerm = ViewBag.SearchTerm,
+                                page = ViewBag.CurrentPage,
+                                pageSize = ViewBag.PageSize 
+                            })"
+                               class="text-white ms-1" title="Sort">
+                                <i class="fas fa-sort@(ViewBag.SortColumn == "subconame" ? (ViewBag.SortOrder == "asc" ? "-up" : "-down") : "")"></i>
+                            </a>
+                        </th>
+                        <th>Card No</th>
+                        <th>Card Name</th>
+                        <th>Card Type</th>
+                        <th>Plate No</th>
+                        <th>Owner Name</th>
+                        <th>Owner Contact</th>
+                        <th>Application Form</th>
+                        <th>Fee Schedule ID</th>
+                        <th>Expiry Date</th>
+                        <th>Access Rights</th>
+                        <th>Anti Passback</th>
+                        <th>Grouped</th>
+                        <th>Group Type</th>
+                        <th>Group ID</th>
+                        <th>Master/Sub Card</th>
+                        <th>Balance</th>
+                        <th>Status</th>
+                        <th>Created By</th>
+                        <th>Created On</th>
+                        <th>Updated By</th>
+                        <th>Updated On</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @foreach (var c in cardList)
+                    {
+                        <tr>
+                            <td>@c.id</td>
+                            <td>@c.customer_id</td>
+                            <td>@c.car_parkers_company_id</td>
+                            <td>@c.car_parkers_company_name</td>
+                            <td>@c.car_parkers_sub_co_id</td>
+                            <td>@c.car_parkers_sub_co_name</td>
+                            <td><strong class="text-primary">@c.cardno</strong></td>
+                            <td>@c.cardname</td>
+                            <td>
+                                @{
+                                    var cardTypeText = c.card_type_remark ?? c.card_type;
+                                    var badgeClass = "badge badge-custom";
+                                    var badgeStyle = "";
+
+                                    switch (cardTypeText?.ToUpper())
+                                    {
+                                        case "CASH_CARD":
+                                        case "CASH CARD":
+                                            badgeStyle = "background-color: #4CAF50; color: white; font-weight: bold;";
+                                            break;
+                                        case "DAILY_ACCESS":
+                                        case "DAILY ACCESS":
+                                            badgeStyle = "background-color: #2196F3; color: white; font-weight: bold;";
+                                            break;
+                                        case "FOC_PER_UNIT":
+                                        case "FOC PER UNIT":
+                                        case "SEASONAL":
+                                            badgeStyle = "background-color: #FF9800; color: white; font-weight: bold;";
+                                            break;
+                                        case "PARKING_OWNER":
+                                        case "PARKING OWNER":
+                                        case "VIP":
+                                            badgeStyle = "background-color: #9C27B0; color: white; font-weight: bold;";
+                                            break;
+                                        case "TEMPORARY":
+                                            badgeStyle = "background-color: #00BCD4; color: white; font-weight: bold;";
+                                            break;
+                                        default:
+                                            badgeStyle = "background-color: #9E9E9E; color: white; font-weight: bold;";
+                                            break;
+                                    }
+                                }
+                                <span class="@badgeClass" style="@badgeStyle">@cardTypeText</span>
+                            </td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(c.car_plate_no) && duplicatePlateNumbers.Contains(c.car_plate_no))
+                                {
+                                    <strong style="color: red; font-weight: bold;">@c.car_plate_no</strong>
+                                }
+                                else
+                                {
+                                    @c.car_plate_no
+                                }
+                            </td>
+                            <td>@c.car_owner_name</td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(c.car_owner_contact_no) && ownerContactGroups.Contains(c.car_owner_contact_no))
+                                {
+                                    <strong style="color: red; font-weight: bold;">@c.car_owner_contact_no</strong>
+                                }
+                                else
+                                {
+                                    @c.car_owner_contact_no
+                                }
+                            </td>
+                            <td>@c.applicationform</td>
+                            <td>@c.fee_schedule_id</td>
+                            <td>@c.expiry_date</td>
+                            <td>@c.access_rights</td>
+                            <td>@c.antipassback</td>
+                            <td>@c.grouped</td>
+                            <td>@c.group_type</td>
+                            <td>@c.group_id</td>
+                            <td>@c.master_or_sub_card</td>
+                            <td>@c.balance</td>
+                            <td style="text-align: center; vertical-align: middle;">
+    @if (c.status == "1")
+    {
+        <span style="background-color: #28a745; color: white; font-weight: bold; padding: 3px 6px; font-size: 9px; border-radius: 3px; display: inline-block; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.3px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+            ACTIVE
+        </span>
+    }
+    else
+    {
+        <span style="background-color: #dc3545; color: white; font-weight: bold; padding: 3px 6px; font-size: 9px; border-radius: 3px; display: inline-block; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.3px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+            INACTIVE
+        </span>
+    }
+</td>
+                            <td>@c.created_by</td>
+                            <td>@(c.created_on?.ToString() ?? "-")</td>
+                            <td>@c.updated_by</td>
+                            <td>@(c.updated_on?.ToString() ?? "-")</td>
+                            <td style="white-space: nowrap;">
+                                @if (ViewBag.CanWrite == true)
+                                {
+                                <a href="@Url.Action("CardRegistration", "UserManagement", new { id = c.id })"
+                                   class="btn btn-primary btn-sm"
+                                   title="Edit ID: @c.id">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination Controls - BOTTOM -->
+        @if (ViewBag.TotalPages > 1)
+        {
+            <nav aria-label="Page navigation" class="mt-3">
+                <ul class="pagination pagination-sm justify-content-center">
+                    <!-- First Page -->
+                    <li class="page-item @(ViewBag.CurrentPage == 1 ? "disabled" : "")">
+                        <a class="page-link" href="@Url.Action("CardRegistration", new { 
+                            page = 1, 
+                            pageSize = ViewBag.PageSize,
+                            sortColumn = ViewBag.SortColumn,
+                            sortOrder = ViewBag.SortOrder,
+                            filterCardType = ViewBag.FilterCardType,
+                            searchTerm = ViewBag.SearchTerm 
+                        })">First</a>
+                    </li>
+
+                    <!-- Previous Page -->
+                    <li class="page-item @(ViewBag.CurrentPage == 1 ? "disabled" : "")">
+                        <a class="page-link" href="@Url.Action("CardRegistration", new { 
+                            page = ViewBag.CurrentPage - 1, 
+                            pageSize = ViewBag.PageSize,
+                            sortColumn = ViewBag.SortColumn,
+                            sortOrder = ViewBag.SortOrder,
+                            filterCardType = ViewBag.FilterCardType,
+                            searchTerm = ViewBag.SearchTerm 
+                        })">Previous</a>
+                    </li>
+
+                    <!-- Page Numbers (show 5 pages at a time) -->
+                    @{
+                        int startPage = Math.Max(1, ViewBag.CurrentPage - 2);
+                        int endPage = Math.Min(ViewBag.TotalPages, ViewBag.CurrentPage + 2);
+                    }
+
+                    @for (int i = startPage; i <= endPage; i++)
+                    {
+                        <li class="page-item @(ViewBag.CurrentPage == i ? "active" : "")">
+                            <a class="page-link" href="@Url.Action("CardRegistration", new { 
+                                page = i, 
+                                pageSize = ViewBag.PageSize,
+                                sortColumn = ViewBag.SortColumn,
+                                sortOrder = ViewBag.SortOrder,
+                                filterCardType = ViewBag.FilterCardType,
+                                searchTerm = ViewBag.SearchTerm 
+                            })">@i</a>
+                        </li>
+                    }
+
+                    <!-- Next Page -->
+                    <li class="page-item @(ViewBag.CurrentPage == ViewBag.TotalPages ? "disabled" : "")">
+                        <a class="page-link" href="@Url.Action("CardRegistration", new { 
+                            page = ViewBag.CurrentPage + 1, 
+                            pageSize = ViewBag.PageSize,
+                            sortColumn = ViewBag.SortColumn,
+                            sortOrder = ViewBag.SortOrder,
+                            filterCardType = ViewBag.FilterCardType,
+                            searchTerm = ViewBag.SearchTerm 
+                        })">Next</a>
+                    </li>
+
+                    <!-- Last Page -->
+                    <li class="page-item @(ViewBag.CurrentPage == ViewBag.TotalPages ? "disabled" : "")">
+                        <a class="page-link" href="@Url.Action("CardRegistration", new { 
+                            page = ViewBag.TotalPages, 
+                            pageSize = ViewBag.PageSize,
+                            sortColumn = ViewBag.SortColumn,
+                            sortOrder = ViewBag.SortOrder,
+                            filterCardType = ViewBag.FilterCardType,
+                            searchTerm = ViewBag.SearchTerm 
+                        })">Last</a>
+                    </li>
+                </ul>
+            </nav>
+        }
+    </div>
+</div>
+
+<style>
+    /* FORCE NO HORIZONTAL SCROLL */
+    html, body {
+        overflow-x: hidden !important;
+    }
+
+    .container-fluid {
+        overflow-x: hidden !important;
+        max-width: 100vw !important;
+        padding-left: 10px !important;
+        padding-right: 10px !important;
+    }
+
+    /* Table container - FIT TO SCREEN */
+    .table-responsive {
+        max-height: 600px;
+        overflow-x: auto !important;
+        overflow-y: auto;
+        width: 100% !important;
+    }
+
+    /* Make table fit width and reduce column sizes */
+    .table {
+        width: 100% !important;
+        table-layout: auto !important;
+        font-size: 9px !important;
+    }
+
+        .table th, .table td {
+            white-space: nowrap !important;
+            word-wrap: break-word;
+            font-size: 9px !important;
+            padding: 3px 4px !important;
+            overflow: hidden !important;
+            vertical-align: middle;
+            max-width: 120px;
+        }
+
+            /* Smaller column widths for specific columns */
+            .table th:nth-child(1), .table td:nth-child(1) {
+                max-width: 40px;
+            }
+            /* ID */
+            .table th:nth-child(2), .table td:nth-child(2) {
+                max-width: 60px;
+            }
+            /* Customer ID */
+            .table th:nth-child(3), .table td:nth-child(3) {
+                max-width: 60px;
+            }
+            /* Company ID */
+            .table th:nth-child(5), .table td:nth-child(5) {
+                max-width: 60px;
+            }
+            /* Sub Co ID */
+            .table th:nth-child(7), .table td:nth-child(7) {
+                max-width: 80px;
+            }
+            /* Card No */
+            .table th:nth-child(9), .table td:nth-child(9) {
+                max-width: 80px;
+            }
+    /* Card Type */
+
+    /* Fix badge overflow issue - KEEPS BADGES IN COLUMN */
+    .badge {
+        display: inline-block;
+        max-width: 100% !important;
+        white-space: normal !important;
+        word-wrap: break-word !important;
+        overflow-wrap: break-word !important;
+        font-size: 8px !important;
+        padding: 2px 4px !important;
+        line-height: 1.2 !important;
+        text-align: center;
+    }
+
+    /* Sticky header */
+    .sticky-top {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background-color: #fff !important;
+    }
+
+    /* Reduce button size to fit */
+    .btn-sm {
+        padding: 4px 8px !important;
+        font-size: 12px !important;
+    }
+
+    /* Export button - icon only on small screens */
+    .btn-export-text {
+        display: inline;
+    }
+
+    @@media (max-width: 1400px) {
+        .btn-export-text
+
+    {
+        display: none;
+    }
+
+    }
+
+    /* Filter dropdown styling */
+    .form-select-sm {
+        font-size: 12px;
+        padding: 4px 8px;
+        max-width: 180px !important;
+    }
+
+    /* Header controls */
+    .gap-2 {
+        gap: 0.4rem !important;
+    }
+
+    /* Make form controls smaller */
+    .form-control-sm {
+        font-size: 12px !important;
+        padding: 4px 8px !important;
+    }
+
+    /* Custom badge styling for card types */
+    .badge-custom {
+        padding: 6px 12px !important;
+        font-size: 11px !important;
+        font-weight: bold !important;
+        border-radius: 4px !important;
+        display: inline-block;
+        min-width: 110px !important;
+        text-align: center;
+        white-space: nowrap;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    /* Make Card Type column wider (9th column) */
+    .table th:nth-child(9),
+    .table td:nth-child(9) {
+        min-width: 130px !important;
+        width: 130px !important;
+    }
+    /* Status column styling - match card type badges */
+.table th:nth-child(22),
+.table td:nth-child(22) {
+    text-align: center !important;
+    vertical-align: middle !important;
+    min-width: 70px !important;
+}
+</style>
+
+<script>
+    var isEditMode = @(Model.id > 0 ? "true" : "false");
+
+    var remarkToCardTypeMapping = {
+        'FOC_PER_UNIT': 'SEASONAL',
+        'PARKING_OWNER': 'VIP',
+        'DAILY_ACCESS': 'DAILY_ACCESS'
+    };
+
+    // ✅ UNIFIED FILTER FUNCTION
+    function applyFilters() {
+        var cardType = document.getElementById('cardTypeFilter').value;
+        var searchTerm = document.getElementById('cardSearchInput').value.trim();
+
+        var url = '/UserManagement/CardRegistration?page=1';
+
+        if (cardType) {
+            url += '&filterCardType=' + encodeURIComponent(cardType);
+        }
+
+        if (searchTerm) {
+            url += '&searchTerm=' + encodeURIComponent(searchTerm);
+        }
+
+        // Preserve sort
+        var sortColumn = '@ViewBag.SortColumn';
+        var sortOrder = '@ViewBag.SortOrder';
+        if (sortColumn) {
+            url += '&sortColumn=' + sortColumn + '&sortOrder=' + sortOrder;
+        }
+
+        console.log('Applying filters:', url);
+        window.location.href = url;
+    }
+
+    // ✅ CLEAR ALL FILTERS
+    function clearFilters() {
+        window.location.href = '/UserManagement/CardRegistration';
+    }
+
+    // ✅ AUTO-APPLY when card type changes
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('cardTypeFilter').addEventListener('change', function() {
+            applyFilters();
+        });
+    });
+
+    // ✅ ENTER KEY to search
+    document.getElementById('cardSearchInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            applyFilters();
+        }
+    });
+
+    // ✅ CHANGE PAGE SIZE
+    function changePageSize() {
+        var pageSize = document.getElementById('pageSizeSelect').value;
+        var url = '/UserManagement/CardRegistration?page=1&pageSize=' + pageSize;
+
+        var cardType = document.getElementById('cardTypeFilter').value;
+        var searchTerm = document.getElementById('cardSearchInput').value.trim();
+
+        if (cardType) {
+            url += '&filterCardType=' + encodeURIComponent(cardType);
+        }
+
+        if (searchTerm) {
+            url += '&searchTerm=' + encodeURIComponent(searchTerm);
+        }
+
+        var sortColumn = '@ViewBag.SortColumn';
+        var sortOrder = '@ViewBag.SortOrder';
+        if (sortColumn) {
+            url += '&sortColumn=' + sortColumn + '&sortOrder=' + sortOrder;
+        }
+
+        window.location.href = url;
+    }
+
+    // Set page size dropdown value
+    document.addEventListener('DOMContentLoaded', function() {
+        var pageSize = '@ViewBag.PageSize';
+        if (pageSize) {
+            document.getElementById('pageSizeSelect').value = pageSize;
+        }
+    });
+
+    // Export to Excel
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('exportExcelBtn').addEventListener('click', function() {
+            var filterCardType = document.getElementById('cardTypeFilter').value;
+            var sortColumn = '@ViewBag.SortColumn';
+            var sortOrder = '@ViewBag.SortOrder';
+
+            var exportUrl = '/UserManagement/ExportCardsToExcel?';
+            var params = [];
+
+            if (filterCardType) {
+                params.push('filterCardType=' + encodeURIComponent(filterCardType));
+            }
+
+            if (sortColumn) {
+                params.push('sortColumn=' + encodeURIComponent(sortColumn));
+                params.push('sortOrder=' + encodeURIComponent(sortOrder));
+            }
+
+            exportUrl += params.join('&');
+            window.location.href = exportUrl;
+        });
+    });
+
+    // Sub Company Dropdown Change
+    document.getElementById('subCompanyDropdown').addEventListener('change', function() {
+        var selectedSubCoId = this.value;
+        var selectedText = this.options[this.selectedIndex].text;
+
+        console.log('Sub Company selected:', selectedText, 'ID:', selectedSubCoId);
+
+        if (!selectedSubCoId) {
+            clearAllFields();
+            return;
+        }
+
+        fetch('/UserManagement/GetSubCompanyDetails?subCoId=' + encodeURIComponent(selectedSubCoId))
+            .then(response => response.json())
+            .then(data => {
+                console.log('API Response:', data);
+
+                if (data.success) {
+                    document.getElementById('customerIdField').value = data.customer_id || '';
+                    document.getElementById('companyIdField').value = data.company_id || '';
+                    document.getElementById('companyNameField').value = data.company_name || '';
+                    document.getElementById('subCoIdFieldHidden').value = data.sub_co_id || '';
+
+                    var cardType = data.card_type || '';
+                    var displayCardType = remarkToCardTypeMapping[cardType] || cardType;
+
+                    console.log('Card Type from DB:', cardType, '→ Display as:', displayCardType);
+                    document.getElementById('cardTypeField').value = displayCardType;
+
+                    console.log('✓ All fields populated successfully');
+                } else {
+                    console.error('API returned success: false');
+                    alert('Sub Company details not found!');
+                }
+            })
+            .catch(error => {
+                console.error('API Error:', error);
+                alert('Error loading sub company details!');
+            });
+    });
+
+    function clearAllFields() {
+        document.getElementById('customerIdField').value = '';
+        document.getElementById('companyIdField').value = '';
+        document.getElementById('companyNameField').value = '';
+        document.getElementById('subCoIdFieldHidden').value = '';
+        document.getElementById('cardTypeField').value = '';
+    }
+
+    // On page load in edit mode
+    if (isEditMode) {
+        window.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() {
+                var subCompanyDropdown = document.getElementById('subCompanyDropdown');
+                var selectedValue = subCompanyDropdown.value;
+
+                console.log('Edit mode - Sub Company ID:', selectedValue);
+
+                if (selectedValue) {
+                    subCompanyDropdown.dispatchEvent(new Event('change'));
+                }
+
+                document.getElementById('cardForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 500);
+        });
+    }
+</script>

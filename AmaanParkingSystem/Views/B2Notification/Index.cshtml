@@ -1,0 +1,538 @@
+﻿@{
+    ViewData["Title"] = "B2 Entry Notification";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    .status-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .badge-enabled {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .badge-disabled {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .stat-card {
+        border-radius: 10px;
+        padding: 20px;
+        text-align: center;
+    }
+
+        .stat-card .stat-number {
+            font-size: 32px;
+            font-weight: 700;
+        }
+
+        .stat-card .stat-label {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 4px;
+        }
+
+    .settings-card {
+        border: 1px solid #dee2e6;
+        border-radius: 10px;
+        padding: 24px;
+        background: #fff;
+    }
+
+    .cooldown-row td {
+        font-size: 13px;
+    }
+
+    .on-cooldown {
+        color: #856404;
+        font-weight: 600;
+    }
+
+    .off-cooldown {
+        color: #155724;
+    }
+
+    #pendingTable td, #pendingTable th {
+        font-size: 13px;
+    }
+
+    .minutes-badge {
+        display: inline-block;
+        padding: 2px 10px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .minutes-high {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .minutes-medium {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .minutes-low {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .toggle-switch {
+        position: relative;
+        display: inline-block;
+        width: 56px;
+        height: 28px;
+    }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: .3s;
+        border-radius: 28px;
+    }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+    input:checked + .slider {
+        background-color: #28a745;
+    }
+
+        input:checked + .slider:before {
+            transform: translateX(28px);
+        }
+</style>
+
+<div class="container-fluid px-4 py-3">
+
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="mb-1 fw-bold">🅿️ B2 Entry Notification</h4>
+            <p class="text-muted mb-0" style="font-size:13px;">
+                Automatically emails sub companies when DAILY_ACCESS / SEASONAL vehicles haven't moved to B2 within the threshold time.
+            </p>
+        </div>
+        <div>
+            <button class="btn btn-outline-secondary btn-sm me-2" onclick="loadStatus()">
+                <i class="bi bi-arrow-clockwise"></i> Refresh
+            </button>
+            <button class="btn btn-primary btn-sm" onclick="triggerNow()" id="btnTrigger">
+                <i class="bi bi-play-fill"></i> Run Check Now
+            </button>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="position-fixed top-0 end-0 p-3" style="z-index:9999">
+        <div id="toast" class="toast align-items-center text-white border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body" id="toastMsg"></div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+
+        <!-- ── LEFT COLUMN ──────────────────────────────────────────────── -->
+        <div class="col-lg-4">
+
+            <!-- Service Status Card -->
+            <div class="settings-card mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold mb-0">⚙️ Service Status</h6>
+                    <span id="statusBadge" class="status-badge badge-enabled">ENABLED</span>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-3 p-3 rounded" style="background:#f8f9fa;">
+                    <div>
+                        <div class="fw-semibold" style="font-size:14px;">Enable / Disable Service</div>
+                        <div class="text-muted" style="font-size:12px;">Toggle automatic notifications</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="toggleEnabled" onchange="toggleService(this.checked)" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="row g-2 text-center mb-3">
+                    <div class="col-6">
+                        <div class="p-2 rounded" style="background:#e8f5e9;">
+                            <div class="fw-bold text-success" id="totalSent" style="font-size:22px;">0</div>
+                            <div style="font-size:11px;color:#555;">Emails Sent</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-2 rounded" style="background:#fdecea;">
+                            <div class="fw-bold text-danger" id="totalFailed" style="font-size:22px;">0</div>
+                            <div style="font-size:11px;color:#555;">Emails Failed</div>
+                        </div>
+                    </div>
+                </div>
+
+                <table class="table table-sm mb-0" style="font-size:13px;">
+                    <tr><td class="text-muted">Last Run</td><td id="lastRunTime" class="fw-semibold">Never</td></tr>
+                    <tr><td class="text-muted">Next Run</td><td id="nextRunTime" class="fw-semibold">—</td></tr>
+                    <tr><td class="text-muted">Last Status</td><td id="lastStatus" class="fw-semibold">—</td></tr>
+                    <tr><td class="text-muted">Pending Cars</td><td id="pendingCount" class="fw-semibold text-warning">0</td></tr>
+                </table>
+            </div>
+
+            <!-- Settings Card -->
+            <div class="settings-card mb-3">
+                <h6 class="fw-bold mb-3">🔧 Settings <span class="text-muted fw-normal" style="font-size:12px;">(in-memory)</span></h6>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" style="font-size:13px;">
+                        Threshold (minutes)
+                        <span class="text-muted fw-normal">— notify after this time without B2 entry</span>
+                    </label>
+                    <input type="number" id="thresholdInput" class="form-control form-control-sm" value="15" min="1" max="1440">
+                </div>
+
+                <button class="btn btn-success btn-sm w-100" onclick="saveSettings()">
+                    <i class="bi bi-save"></i> Save Settings
+                </button>
+            </div>
+
+            <!-- Notified Cards -->
+            <div class="settings-card">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="fw-bold mb-0">📧 Notified Cards</h6>
+                    <div class="d-flex gap-2">
+                        <input type="text"
+                               id="notifiedSearch"
+                               class="form-control form-control-sm"
+                               placeholder="Search card / name" />
+                        <button class="btn btn-outline-secondary btn-sm" onclick="exportNotified()">
+                            <i class="bi bi-file-earmark-excel"></i> Export
+                        </button>
+                    </div>
+                </div>
+                <div style="font-size:12px;color:#6c757d;" class="mb-2">
+                    Each card gets <strong>one email per entry</strong>. Cards listed below have already been notified for their current entry and will not receive another email.
+                </div>
+                <div id="cooldownTableWrapper">
+                    <div class="text-center text-muted py-3" style="font-size:13px;">No cards notified yet</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── RIGHT COLUMN ─────────────────────────────────────────────── -->
+        <div class="col-lg-8">
+
+            <!-- Pending Cars Table -->
+            <div class="settings-card">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h6 class="fw-bold mb-0">🚗 Pending B2 Cars <span id="pendingBadge" class="badge bg-warning text-dark ms-2">0</span></h6>
+                        <div class="text-muted" style="font-size:12px;">
+                            DAILY_ACCESS &amp; SEASONAL vehicles with no B2 entry yet, parked ≥ threshold time
+                        </div>
+                    </div>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="loadPendingCars()">
+                        <i class="bi bi-arrow-clockwise"></i> Refresh
+                    </button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm mb-0" id="pendingTable">
+                        <thead style="background:#1a3c5e;color:#fff;">
+                            <tr>
+                                <th>Card No</th>
+                                <th>Card Name</th>
+                                <th>Plate No</th>
+                                <th>Card Type</th>
+                                <th>Sub Company</th>
+                                <th>Entry Time</th>
+                                <th>Time Parked</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pendingTableBody">
+                            <tr><td colspan="7" class="text-center text-muted py-4">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // ── Toast ──────────────────────────────────────────────────────────────
+        function showToast(msg, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.className = `toast align-items-center text-white border-0 bg-${type === 'success' ? 'success' : type === 'warning' ? 'warning' : 'danger'}`;
+            document.getElementById('toastMsg').textContent = msg;
+            new bootstrap.Toast(toast, { delay: 4000 }).show();
+        }
+
+        // global cache for notified cards (for search + export)
+        window._b2Notified = [];
+
+        // ── Load Status ────────────────────────────────────────────────────────
+        function loadStatus() {
+            fetch('/B2Notification/GetStatus')
+                .then(r => r.json())
+                .then(res => {
+                    if (!res.success) return;
+
+                    document.getElementById('toggleEnabled').checked = res.isEnabled;
+                    document.getElementById('statusBadge').textContent = res.isEnabled ? 'ENABLED' : 'DISABLED';
+                    document.getElementById('statusBadge').className = `status-badge ${res.isEnabled ? 'badge-enabled' : 'badge-disabled'}`;
+
+                    document.getElementById('totalSent').textContent = res.totalEmailsSent;
+                    document.getElementById('totalFailed').textContent = res.totalFailed;
+                    document.getElementById('lastRunTime').textContent = res.lastRunTime;
+                    document.getElementById('nextRunTime').textContent = res.nextRunTime;
+                    document.getElementById('lastStatus').textContent = res.lastRunStatus;
+                    document.getElementById('pendingCount').textContent = res.lastPendingCount;
+
+                    document.getElementById('thresholdInput').value = res.thresholdMinutes;
+
+                    // cache notified data
+                    window._b2Notified = res.cooldowns || [];
+
+                    // render notified table
+                    const wrapper = document.getElementById('cooldownTableWrapper');
+                    if (!window._b2Notified || window._b2Notified.length === 0) {
+                        wrapper.innerHTML = '<div class="text-center text-muted py-3" style="font-size:13px;">No cards notified yet</div>';
+                    } else {
+                        renderNotifiedTable(window._b2Notified);
+                    }
+                });
+        }
+
+        function renderNotifiedTable(data) {
+            const wrapper = document.getElementById('cooldownTableWrapper');
+
+            const rows = data.map(c => {
+                const parts = (c.subCoId || '').split('|');
+                const cardNo = parts[0] || c.cardNo || '';
+                const entryId = parts[1]
+                    ? `<span class="text-muted" style="font-size:11px;">#${parts[1]}</span>`
+                    : '';
+
+                const status = c.status || 'Email Sent';
+                const isFail = status.toLowerCase().indexOf('fail') >= 0;
+                const badgeBg = isFail ? '#f8d7da' : '#d4edda';
+                const badgeText = isFail ? '#721c24' : '#155724';
+
+                return `
+                    <tr class="cooldown-row">
+                        <td>${cardNo} ${entryId}</td>
+                        <td>${c.cardName || ''}</td>
+                        <td>${c.subCompanyName || ''}</td>
+                        <td>${c.notificationTime || ''}</td>
+                        <td>
+                            <span class="badge" style="background:${badgeBg};color:${badgeText};font-size:11px;">
+                                ${status}
+                            </span>
+                        </td>
+                    </tr>`;
+            }).join('');
+
+            wrapper.innerHTML = `
+                <div style="max-height:220px;overflow-y:auto;">
+                    <table class="table table-sm mb-0">
+                        <thead style="position:sticky;top:0;background:#f8f9fa;">
+                            <tr>
+                                <th style="font-size:12px;">Card No</th>
+                                <th style="font-size:12px;">Card Name</th>
+                                <th style="font-size:12px;">Sub Company</th>
+                                <th style="font-size:12px;">Notification Time</th>
+                                <th style="font-size:12px;">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>`;
+        }
+
+        // search on notified cards
+        document.addEventListener('input', function (e) {
+            if (e.target && e.target.id === 'notifiedSearch') {
+                const q = e.target.value.toLowerCase();
+                if (!window._b2Notified) return;
+
+                const filtered = window._b2Notified.filter(c => {
+                    const cardNo = (c.cardNo || '').toLowerCase();
+                    const cardName = (c.cardName || '').toLowerCase();
+                    const subCo = (c.subCompanyName || '').toLowerCase();
+                    return cardNo.indexOf(q) >= 0 || cardName.indexOf(q) >= 0 || subCo.indexOf(q) >= 0;
+                });
+
+                if (filtered.length === 0) {
+                    document.getElementById('cooldownTableWrapper').innerHTML =
+                        '<div class="text-center text-muted py-3" style="font-size:13px;">No matching records</div>';
+                } else {
+                    renderNotifiedTable(filtered);
+                }
+            }
+        });
+
+        // simple CSV export
+        function exportNotified() {
+            if (!window._b2Notified || window._b2Notified.length === 0) {
+                showToast('No notified cards to export.', 'warning');
+                return;
+            }
+
+            const rows = [
+                ['Card No', 'Card Name', 'Card Type', 'Sub Company', 'Email', 'Entry Time', 'Notification Time', 'Status']
+            ];
+
+            window._b2Notified.forEach(c => {
+                rows.push([
+                    c.cardNo || '',
+                    c.cardName || '',
+                    c.cardType || '',
+                    c.subCompanyName || '',
+                    c.email || '',
+                    c.entryTime || '',
+                    c.notificationTime || '',
+                    c.status || ''
+                ]);
+            });
+
+            const csv = rows
+                .map(r => r.map(x => `"${(x || '').replace(/"/g, '""')}"`).join(','))
+                .join('\r\n');
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'B2_Notified_Cards.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // ── Load Pending Cars ──────────────────────────────────────────────────
+        function loadPendingCars() {
+            fetch('/B2Notification/GetPendingCars')
+                .then(r => r.json())
+                .then(res => {
+                    const tbody = document.getElementById('pendingTableBody');
+                    const badge = document.getElementById('pendingBadge');
+                    badge.textContent = res.count || 0;
+
+                    if (!res.success || !res.data || res.data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">✅ No pending B2 cars right now</td></tr>';
+                        return;
+                    }
+
+                    tbody.innerHTML = res.data.map(r => {
+                        let cls = r.minutes_parked >= 60 ? 'minutes-high' : r.minutes_parked >= 30 ? 'minutes-medium' : 'minutes-low';
+                        let dur = r.minutes_parked >= 60
+                            ? `${Math.floor(r.minutes_parked/60)}h ${r.minutes_parked%60}m`
+                            : `${r.minutes_parked}m`;
+                        return `<tr>
+                            <td>${r.cardno || '—'}</td>
+                            <td>${r.card_name || '—'}</td>
+                            <td>${r.car_plate_no || '—'}</td>
+                            <td><span class="badge bg-info text-dark">${r.card_type || '—'}</span></td>
+                            <td>${r.car_parkers_sub_co_name || r.car_parkers_sub_co_id || '—'}</td>
+                            <td>${r.entry_time}</td>
+                            <td><span class="minutes-badge ${cls}">${dur}</span></td>
+                        </tr>`;
+                    }).join('');
+                });
+        }
+
+        // ── Toggle Enable/Disable ──────────────────────────────────────────────
+        function toggleService(enable) {
+            fetch('/B2Notification/SetEnabled', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ enable })
+            }).then(r => r.json()).then(res => {
+                showToast(res.message, res.success ? 'success' : 'danger');
+                loadStatus();
+            });
+        }
+
+        // ── Save Settings ──────────────────────────────────────────────────────
+        function saveSettings() {
+            const threshold = parseInt(document.getElementById('thresholdInput').value);
+
+            fetch('/B2Notification/UpdateSettings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ thresholdMinutes: threshold, cooldownMinutes:  _b2Notified.cooldownMinutes })
+            }).then(r => r.json()).then(res => {
+                showToast(res.message, res.success ? 'success' : 'danger');
+                if (res.success) loadStatus();
+            });
+        }
+
+        // ── Trigger Now ────────────────────────────────────────────────────────
+        function triggerNow() {
+            const btn = document.getElementById('btnTrigger');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Running...';
+
+            fetch('/B2Notification/TriggerNow', { method: 'POST' })
+                .then(r => r.json())
+                .then(res => {
+                    showToast(res.message, res.success ? 'success' : 'danger');
+                    setTimeout(() => {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="bi bi-play-fill"></i> Run Check Now';
+                        loadStatus();
+                        loadPendingCars();
+                    }, 1500);
+                });
+        }
+
+        // ── Clear Cooldowns ────────────────────────────────────────────────────
+        function clearCooldowns() {
+            fetch('/B2Notification/ClearCooldowns', { method: 'POST' })
+                .then(r => r.json())
+                .then(res => {
+                    showToast(res.message, res.success ? 'success' : 'danger');
+                    loadStatus();
+                });
+        }
+
+        // ── Auto-refresh every 30 seconds ─────────────────────────────────────
+        loadStatus();
+        loadPendingCars();
+        setInterval(() => { loadStatus(); loadPendingCars(); }, 30000);
+    </script>
+}

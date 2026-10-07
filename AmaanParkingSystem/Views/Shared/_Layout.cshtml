@@ -1,0 +1,1503 @@
+﻿@using Microsoft.AspNetCore.Http
+@{
+    var loggedUser = Context.Session.GetString("UtilityUser") ?? "System";
+    var operatorType = Context.Session.GetString("OperatorType") ?? string.Empty;
+    var isManager = string.Equals(operatorType, "MANAGER", StringComparison.OrdinalIgnoreCase);
+    var isOperator = string.Equals(operatorType, "OPERATOR", StringComparison.OrdinalIgnoreCase);
+    var isAdmin = string.Equals(operatorType, "ADMIN", StringComparison.OrdinalIgnoreCase);
+    var canWrite = !isOperator;
+    var currentDateTime = DateTime.Now;
+
+    // Pick badge colour for the role pill shown in the top-right tab bar
+    var roleBadgeClass = isAdmin ? "bg-danger"
+                       : isManager ? "bg-warning text-dark"
+                       : "bg-secondary";
+    var rbacDeniedMsg = Context.Session.GetString("RbacDeniedMessage") ?? string.Empty;
+    if (!string.IsNullOrEmpty(rbacDeniedMsg))
+        Context.Session.Remove("RbacDeniedMessage");
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Amaan Parking System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #3b7dd6;
+            --secondary-color: #5a95d8;
+            --sidebar-bg: #4a7fb8;
+            --sidebar-width: 260px;
+            --dark-bg: #2c2c2c;
+            --tab-bar-height: 45px;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            display: flex;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        /* SIDEBAR STYLING */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: linear-gradient(180deg, #4a7fb8 0%, #3b6ba0 100%);
+            color: white;
+            position: fixed;
+            left: 0;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+            padding: 0;
+            box-shadow: 2px 0 15px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            transition: margin-left 0.3s ease;
+            padding-bottom: 60px;
+        }
+
+            .sidebar::-webkit-scrollbar {
+                width: 6px;
+            }
+
+            .sidebar::-webkit-scrollbar-track {
+                background: rgba(255, 255, 255, 0.1);
+            }
+
+            .sidebar::-webkit-scrollbar-thumb {
+                background: rgba(255, 255, 255, 0.3);
+                border-radius: 3px;
+            }
+
+                .sidebar::-webkit-scrollbar-thumb:hover {
+                    background: rgba(255, 255, 255, 0.5);
+                }
+
+        .sidebar-header {
+            padding: 25px 20px;
+            text-align: center;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.15);
+            background: rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+            .sidebar-header h4 {
+                margin: 0;
+                font-weight: 700;
+                font-size: 18px;
+                letter-spacing: 1px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+            }
+
+            .sidebar-header i {
+                font-size: 22px;
+            }
+
+        /* SIDEBAR TOGGLE BUTTON - ARROW AT BOTTOM */
+        #sidebarToggleBtn {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 1100;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+            #sidebarToggleBtn:hover {
+                background: #2d5fa8;
+                transform: scale(1.1);
+            }
+
+            #sidebarToggleBtn i {
+                font-size: 18px;
+                transition: transform 0.3s ease;
+            }
+
+        /* SEARCH BOX */
+        .sidebar-search {
+            padding: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 13px;
+            transition: all 0.3s ease;
+        }
+
+            .search-input::placeholder {
+                color: rgba(255, 255, 255, 0.6);
+            }
+
+            .search-input:focus {
+                outline: none;
+                background: rgba(255, 255, 255, 0.2);
+                border-color: rgba(255, 255, 255, 0.5);
+            }
+
+        /* SIDEBAR NAV */
+        .sidebar-nav {
+            list-style: none;
+            padding: 15px 0;
+            margin: 0;
+        }
+
+        .sidebar-nav-item {
+            margin: 0;
+            position: relative;
+        }
+
+        .sidebar-section-title {
+            padding: 12px 20px 8px;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+            .sidebar-section-title i {
+                font-size: 12px;
+            }
+
+        .sidebar-nav-link {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: rgba(255, 255, 255, 0.85);
+            text-decoration: none;
+            transition: all 0.25s ease;
+            border-left: 3px solid transparent;
+            position: relative;
+            font-size: 14px;
+            gap: 12px;
+        }
+
+            .sidebar-nav-link i {
+                width: 18px;
+                text-align: center;
+                font-size: 15px;
+            }
+
+            .sidebar-nav-link:hover {
+                background: rgba(255, 255, 255, 0.1);
+                color: white;
+                border-left-color: white;
+                padding-left: 25px;
+            }
+
+            .sidebar-nav-link.active {
+                background: rgba(255, 255, 255, 0.15);
+                color: white;
+                border-left-color: #ffd700;
+                font-weight: 600;
+            }
+
+            .sidebar-nav-link.has-submenu::after {
+                content: '\f078';
+                font-family: 'Font Awesome 6 Free';
+                font-weight: 900;
+                margin-left: auto;
+                font-size: 12px;
+                transition: transform 0.3s ease;
+            }
+
+            .sidebar-nav-link.has-submenu.collapsed::after {
+                transform: rotate(-90deg);
+            }
+
+        /* SUBMENU */
+        .sidebar-submenu {
+            background: rgba(0, 0, 0, 0.2);
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 500px;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+            .sidebar-submenu.collapsed {
+                max-height: 0;
+                overflow: hidden;
+            }
+
+        .sidebar-submenu-item {
+            margin: 0;
+        }
+
+        .sidebar-submenu-link {
+            display: flex;
+            align-items: center;
+            padding: 10px 20px 10px 50px;
+            color: rgba(255, 255, 255, 0.75);
+            text-decoration: none;
+            transition: all 0.25s ease;
+            border-left: 3px solid transparent;
+            font-size: 13px;
+            gap: 10px;
+        }
+
+            .sidebar-submenu-link:hover {
+                background: rgba(255, 255, 255, 0.1);
+                color: white;
+                border-left-color: white;
+                padding-left: 55px;
+            }
+
+            .sidebar-submenu-link.active {
+                background: rgba(255, 255, 255, 0.15);
+                color: white;
+                border-left-color: #ffd700;
+                font-weight: 600;
+            }
+
+        /* TAB BAR - NEW */
+        .tab-bar {
+            display: flex;
+            align-items: center;
+            background: #ffffff;
+            border-bottom: 2px solid #e0e0e0;
+            height: var(--tab-bar-height);
+            overflow-x: auto;
+            overflow-y: hidden;
+            white-space: nowrap;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            position: sticky;
+            top: 0;
+            z-index: 999;
+        }
+
+            .tab-bar::-webkit-scrollbar {
+                height: 3px;
+            }
+
+            .tab-bar::-webkit-scrollbar-thumb {
+                background: #ccc;
+                border-radius: 3px;
+            }
+
+        .tab-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: #f8f9fa;
+            border-right: 1px solid #e0e0e0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 13px;
+            color: #555;
+            position: relative;
+            max-width: 200px;
+        }
+
+            .tab-item:hover {
+                background: #e9ecef;
+            }
+
+            .tab-item.active {
+                background: white;
+                color: var(--primary-color);
+                font-weight: 600;
+                border-bottom: 3px solid var(--primary-color);
+            }
+
+        .tab-icon {
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .tab-title {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .tab-close {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: transparent;
+            color: #999;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+            .tab-close:hover {
+                background: #dc3545;
+                color: white;
+            }
+
+        /* MAIN CONTENT */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            transition: margin-left 0.3s ease;
+        }
+
+        .content-area {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+            background: #f5f5f5;
+        }
+
+        .page-header {
+            margin-bottom: 30px;
+        }
+
+            .page-header h2 {
+                color: #333;
+                font-weight: 600;
+                margin-bottom: 5px;
+                font-size: 28px;
+            }
+
+            .page-header p {
+                color: #666;
+                margin: 0;
+                font-size: 14px;
+            }
+
+        .card {
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            background: white;
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            border-radius: 8px 8px 0 0;
+            padding: 20px;
+            border: none;
+        }
+
+            .card-header h5 {
+                margin: 0;
+                font-weight: 600;
+                font-size: 16px;
+            }
+
+        .btn-primary {
+            background: var(--primary-color);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 13px;
+            transition: all 0.3s ease;
+        }
+
+            .btn-primary:hover {
+                background: #2d5fa8;
+                transform: translateY(-1px);
+                box-shadow: 0 4px 8px rgba(59, 125, 214, 0.3);
+            }
+
+        .btn-success {
+            background: #28a745;
+            border: none;
+        }
+
+            .btn-success:hover {
+                background: #218838;
+            }
+
+        .table {
+            background: white;
+            font-size: 13px;
+        }
+
+            .table thead {
+                background: var(--primary-color);
+                color: white;
+            }
+
+                .table thead th {
+                    border: none;
+                    font-weight: 600;
+                    padding: 12px;
+                }
+
+            .table tbody td {
+                padding: 12px;
+                border-color: #e0e0e0;
+            }
+
+        .table-hover tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .footer {
+            background: white;
+            border-top: 1px solid #e0e0e0;
+            padding: 20px;
+            text-align: center;
+            color: #999;
+            font-size: 12px;
+            margin-top: auto;
+        }
+
+        /* RESPONSIVE */
+        @@media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+                z-index: 1050;
+            }
+
+                .sidebar.show {
+                    transform: translateX(0);
+                }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .content-area {
+                padding: 20px;
+            }
+
+            .page-header h2 {
+                font-size: 22px;
+            }
+
+            #sidebarToggleBtn {
+                left: 15px;
+            }
+        }
+
+        /* BADGE STYLING */
+        .badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .badge-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .badge-success {
+            background: #28a745;
+            color: white;
+        }
+
+        #tabsContainer::-webkit-scrollbar {
+            height: 3px;
+        }
+
+        #tabsContainer::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar Toggle Button - Arrow at Bottom -->
+    <button id="sidebarToggleBtn">
+        <i class="fas fa-chevron-left"></i>
+    </button>
+
+    <!-- SIDEBAR -->
+    <div class="sidebar" id="sidebar">
+        <!-- Header -->
+        <div class="sidebar-header">
+            <h4><i class="fas fa-parking"></i> Amaan PMS</h4>
+        </div>
+
+        <!-- Search -->
+        <div class="sidebar-search">
+            <input type="text" class="search-input" placeholder="Search..." id="sidebarSearch">
+        </div>
+
+        <!-- Navigation -->
+        <ul class="sidebar-nav" id="sidebarNav">
+            <!-- Dashboard -->
+            <li class="sidebar-nav-item">
+                <a href="/Utility/Index" class="sidebar-nav-link" data-tab-title="Dashboard" data-tab-icon="fas fa-home">
+                    <i class="fas fa-home"></i> Dashboard
+                </a>
+            </li>
+
+            <!-- Operator Master — ADMIN only -->
+            @if (isAdmin)
+            {
+                <li class="sidebar-nav-item">
+                    <a href="#" class="sidebar-nav-link has-submenu collapsed" data-toggle="submenu" data-target="operatorMenu">
+                        <i class="fas fa-user-tie"></i> Operator Master
+                    </a>
+                    <ul class="sidebar-submenu collapsed" id="operatorMenu">
+                        <li class="sidebar-submenu-item">
+                            <a href="/Operator/OperatorRegistration" class="sidebar-submenu-link" data-tab-title="Operator Creation" data-tab-icon="fas fa-user-plus">
+                                <i class="fas fa-user-plus"></i> Operator Creation
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+            }
+
+            <!-- Shifts -->
+            <li class="sidebar-nav-item">
+                <a href="#" class="sidebar-nav-link has-submenu collapsed" data-toggle="submenu" data-target="shiftMenu">
+                    <i class="fas fa-clock"></i> Shifts
+                </a>
+                <ul class="sidebar-submenu collapsed" id="shiftMenu">
+                    <li class="sidebar-submenu-item">
+                        <a href="#" class="sidebar-submenu-link" data-tab-title="Shifts Schedule" data-tab-icon="fas fa-calendar-alt">
+                            <i class="fas fa-calendar-alt"></i> Shifts Schedule
+                        </a>
+                    </li>
+                </ul>
+            </li>
+
+            <!-- Site Master -->
+            <li class="sidebar-nav-item">
+                <a href="#" class="sidebar-nav-link has-submenu collapsed" data-toggle="submenu" data-target="siteMenu">
+                    <i class="fas fa-map-marker-alt"></i> Site Master
+                </a>
+                <ul class="sidebar-submenu collapsed" id="siteMenu">
+                    <li class="sidebar-submenu-item">
+                        <a href="/Site/Index" class="sidebar-submenu-link" data-tab-title="Site Creation" data-tab-icon="fas fa-plus">
+                            <i class="fas fa-plus"></i> Site Creation
+                        </a>
+                    </li>
+                    <li class="sidebar-submenu-item">
+                        <a href="/Printer/Index" class="sidebar-submenu-link" data-tab-title="Printer Config" data-tab-icon="fas fa-print">
+                            <i class="fas fa-print"></i> Printer Config
+                        </a>
+                    </li>
+                    <li class="sidebar-submenu-item">
+                        <a href="/FeeSchedule/Index" class="sidebar-submenu-link" data-tab-title="Fee Schedule" data-tab-icon="fas fa-percent">
+                            <i class="fas fa-percent"></i> Fee Schedule
+                        </a>
+                    </li>
+                    <li class="sidebar-submenu-item">
+                        <a href="/Penalties/Index" class="sidebar-submenu-link" data-tab-title="Penalties Schedule" data-tab-icon="fas fa-ban">
+                            <i class="fas fa-ban"></i> Penalties Schedule
+                        </a>
+                    </li>
+                    <li class="sidebar-submenu-item">
+                        <a href="@Url.Action("Index", "FocReason")"
+                           class="sidebar-submenu-link"
+                           data-tab-title="FOC Reasons"
+                           data-tab-icon="fas fa-list">
+                            <i class="fas fa-list"></i> FOC Reasons
+                        </a>
+                    </li>
+                </ul>
+            </li>
+
+            <!-- User Master -->
+            <li class="sidebar-nav-item">
+                <a href="#" class="sidebar-nav-link has-submenu collapsed" data-toggle="submenu" data-target="userMenu">
+                    <i class="fas fa-users-cog"></i> User Master
+                </a>
+                <ul class="sidebar-submenu collapsed" id="userMenu">
+                    <li class="sidebar-submenu-item">
+                        <a href="/ParkerCompanyMaster/ParkerCompanyMaster" class="sidebar-submenu-link" data-tab-title="Parker Company Master" data-tab-icon="fas fa-building">
+                            <i class="fas fa-building"></i> Parker Company Master
+                        </a>
+                    </li>
+                    <li class="sidebar-submenu-item">
+                        <a href="/ParkerCompany/ParkerCompanyRegistration" class="sidebar-submenu-link" data-tab-title="Parker Company Sub" data-tab-icon="fas fa-building">
+                            <i class="fas fa-building"></i> Parker Company Sub
+                        </a>
+                    </li>
+                    <li class="sidebar-submenu-item">
+                        <a href="/UserManagement/CardRegistration" class="sidebar-submenu-link" data-tab-title="Card Registration" data-tab-icon="fas fa-id-card">
+                            <i class="fas fa-id-card"></i> Card Registration
+                        </a>
+                    </li>
+                    <li class="sidebar-submenu-item">
+                        <a href="/Companies/CompanyHierarchy" class="sidebar-submenu-link" data-tab-title="Company Hierarchy" data-tab-icon="fas fa-sitemap">
+                            <i class="fas fa-sitemap"></i> Company Hierarchy
+                        </a>
+                    </li>
+                    <li class="sidebar-submenu-item">
+                        <a href="/LowBalanceAlerts" class="sidebar-submenu-link" data-tab-title="Low Balance Alerts" data-tab-icon="fas fa-exclamation-triangle">
+                            <i class="fas fa-exclamation-triangle"></i> Low Balance Alerts
+                        </a>
+                    </li>
+                </ul>
+            </li>
+
+            <!-- Access Report -->
+            <li class="sidebar-nav-item">
+                <a href="#" class="sidebar-nav-link has-submenu collapsed" data-toggle="submenu" data-target="accessMenu">
+                    <i class="fas fa-chart-line"></i> Access Report
+                </a>
+                <ul class="sidebar-submenu collapsed" id="accessMenu">
+                    <li class="sidebar-submenu-item">
+                        <a href="@Url.Action("Index", "RealTimeReport")"
+                           class="sidebar-submenu-link"
+                           data-tab-title="Real Time Report"
+                           data-tab-icon="fas fa-eye">
+                            <i class="fas fa-eye"></i> Real Time
+                        </a>
+                    </li>
+                    <li class="sidebar-submenu-item">
+                        <a href="/AccessReport/DailyEntryExit" class="sidebar-submenu-link" data-tab-title="Daily Entry & Exit" data-tab-icon="fas fa-calendar-day">
+                            <i class="fas fa-calendar-day"></i> Daily Entry & Exit
+                        </a>
+                    </li>
+                    <li class="sidebar-submenu-item">
+                        <a href="/AccessReport/MonthlyEntryExit" class="sidebar-submenu-link" data-tab-title="Monthly Entry & Exit" data-tab-icon="fas fa-calendar-alt">
+                            <i class="fas fa-calendar-alt"></i> Monthly Entry & Exit
+                        </a>
+                    </li>
+                    <li class="sidebar-submenu-item">
+                        <a href="/AccessReport/YearlyEntryExit" class="sidebar-submenu-link" data-tab-title="Yearly Entry & Exit" data-tab-icon="fas fa-calendar">
+                            <i class="fas fa-calendar"></i> Yearly Entry & Exit
+                        </a>
+                    </li>
+                    <li class="sidebar-submenu-item">
+                        <a href="/AccessReport/Occupancy" class="sidebar-submenu-link" data-tab-title="Occupancy" data-tab-icon="fas fa-chart-pie">
+                            <i class="fas fa-chart-pie"></i> Occupancy
+                        </a>
+                    </li>
+                    <li class="sidebar-submenu-item">
+                        <a href="/FocReport" class="sidebar-submenu-link" data-tab-title="FOC Report" data-tab-icon="fas fa-file-invoice-dollar">
+                            <i class="fas fa-file-invoice-dollar"></i> FOC Report
+                        </a>
+                    </li>
+                    <li class="sidebar-submenu-item">
+                        <a href="/Reports/TagUsageReport" class="sidebar-submenu-link" data-tab-title="Cards Usage Report" data-tab-icon="fas fa-tags">
+                            <i class="fas fa-tags"></i> Cards Usage Report
+                        </a>
+                    </li>
+                    <li class="sidebar-submenu-item">
+                        <a href="/Reports/ManualGateReport" class="sidebar-submenu-link" data-tab-title="Manual Gate Report" data-tab-icon="fas fa-door-open">
+                            <i class="fas fa-door-open"></i> Manual Gate Report
+                        </a>
+                    </li>
+                    <li class="sidebar-submenu-item">
+                        <a href="/AccessReport/BayUtilization"
+                           class="sidebar-submenu-link"
+                           data-tab-title="Daily Parking Utilization"
+                           data-tab-icon="fas fa-parking">
+                            <i class="fas fa-parking"></i> Daily Parking Utilization
+                        </a>
+                    </li>
+                    <li class="sidebar-submenu-item">
+                        <a href="~/AccessReport/ParkingDuration"
+                           class="sidebar-submenu-link"
+                           data-tab-title="Parking Duration Analysis"
+                           data-tab-icon="fas fa-clock">
+                            <i class="fas fa-clock"></i> Parking Duration Analysis
+                        </a>
+                    </li>
+                </ul>
+            </li>
+
+            <!-- ANPR -->
+            <li class="sidebar-nav-item">
+                <a href="/ANPR/Reports" class="sidebar-nav-link" data-tab-title="ANPR Reports" data-tab-icon="fas fa-camera">
+                    <i class="fas fa-camera"></i> ANPR Reports
+                </a>
+            </li>
+
+            <!-- Financial Report -->
+            <li class="sidebar-nav-item">
+                <a href="#" class="sidebar-nav-link has-submenu collapsed" data-toggle="submenu" data-target="financialMenu">
+                    <i class="fas fa-money-bill-wave"></i> Financial Report
+                </a>
+                <ul class="sidebar-submenu collapsed" id="financialMenu">
+                    <li class="sidebar-submenu-item">
+                        <a href="/Collection/Daily" class="sidebar-submenu-link" data-tab-title="Daily Collection" data-tab-icon="fas fa-calendar-day">
+                            <i class="fas fa-calendar-day"></i> Daily Collection
+                        </a>
+                    </li>
+                    <li class="sidebar-submenu-item">
+                        <a href="#" class="sidebar-submenu-link" data-tab-title="Hourly Collection" data-tab-icon="fas fa-hourglass-half">
+                            <i class="fas fa-hourglass-half"></i> Hourly Collection
+                        </a>
+                    </li>
+                    <li class="sidebar-submenu-item">
+                        <a href="/Collection/Monthly" class="sidebar-submenu-link" data-tab-title="Monthly Collection" data-tab-icon="fas fa-calendar-alt">
+                            <i class="fas fa-calendar-alt"></i> Monthly Collection
+                        </a>
+                    </li>
+                    <li class="sidebar-submenu-item">
+                        <a href="#" class="sidebar-submenu-link" data-tab-title="Yearly Collection" data-tab-icon="fas fa-calendar">
+                            <i class="fas fa-calendar"></i> Yearly Collection
+                        </a>
+                    </li>
+                    <li class="sidebar-submenu-item">
+                        <a href="#" class="sidebar-submenu-link" data-tab-title="Park Collection" data-tab-icon="fas fa-map">
+                            <i class="fas fa-map"></i> Park Collection
+                        </a>
+                    </li>
+                    <li class="sidebar-submenu-item">
+                        <a href="#" class="sidebar-submenu-link" data-tab-title="Monthly Duration" data-tab-icon="fas fa-hourglass-end">
+                            <i class="fas fa-hourglass-end"></i> Monthly Duration
+                        </a>
+                    </li>
+                    
+                    <li class="sidebar-submenu-item">
+                        <a href="/CardWiseReport" class="sidebar-submenu-link" data-tab-title="Card Wise Report" data-tab-icon="fas fa-id-card">
+                            <i class="fas fa-id-card"></i> Card Wise
+                        </a>
+                    </li>
+                    <li class="sidebar-submenu-item">
+                        <a href="/CompanyWiseReport" class="sidebar-submenu-link" data-tab-title="Company Wise Report" data-tab-icon="fas fa-building">
+                            <i class="fas fa-building"></i> Company Wise
+                        </a>
+                    </li>
+                    <li class="sidebar-submenu-item">
+                        <a href="/TopUpReport" class="sidebar-submenu-link" data-tab-title="Company Topup" data-tab-icon="fas fa-money-bill-wave">
+                            <i class="fas fa-money-bill-wave"></i> Company Topup
+                        </a>
+                    </li>
+                    <li class="sidebar-submenu-item">
+                        <a href="/PayStationCashLog" class="sidebar-submenu-link" data-tab-title="Pay Station Cash Log" data-tab-icon="fas fa-cash-register">
+                            <i class="fas fa-cash-register"></i> Pay Station Cash Log
+                        </a>
+                    </li>
+                </ul>
+            </li>
+
+            <!-- Utilities — hidden for MANAGER role -->
+            @if (isAdmin)
+            {
+                <li class="sidebar-nav-item">
+                    <a href="#" class="sidebar-nav-link has-submenu collapsed" data-toggle="submenu" data-target="utilitiesMenu">
+                        <i class="fas fa-screwdriver-wrench"></i> Utilities
+                    </a>
+                    <ul class="sidebar-submenu collapsed" id="utilitiesMenu">
+                        <li class="sidebar-submenu-item">
+                            <a href="/Backup" class="sidebar-submenu-link" data-tab-title="Database Backup" data-tab-icon="fas fa-database">
+                                <i class="fas fa-database"></i> Database
+                            </a>
+                        </li>
+                        <li class="sidebar-submenu-item">
+                            <a href="/EmailConfig" class="sidebar-submenu-link" data-tab-title="Email Config" data-tab-icon="fas fa-envelope-open-text">
+                                <i class="fas fa-envelope-open-text"></i> Email
+                            </a>
+                        </li>
+                        <li class="sidebar-submenu-item">
+                            <a href="/B2Notification"
+                               class="sidebar-submenu-link"
+                               data-tab-title="B2 Notification"
+                               data-tab-icon="fas fa-bell">
+                                <i class="fas fa-bell"></i> B2 Notification
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+            }
+        </ul>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content" id="mainContent">
+        <!-- TAB BAR WITH USER & LOGOUT -->
+        <div class="tab-bar" id="tabBar" style="display: flex; align-items: center;">
+            <!-- Tabs Container (scrollable) -->
+            <div id="tabsContainer" style="display: flex; align-items: center; overflow-x: auto; flex: 1;">
+                <!-- Tabs will be dynamically added here -->
+            </div>
+
+            <!-- User Info and Logout - Fixed Right -->
+            <div style="display: flex; align-items: center; gap: 15px; padding: 0 20px; border-left: 2px solid #e0e0e0; flex-shrink: 0; background: white;">
+                <span class="text-primary fw-bold" style="font-size: 13px; white-space: nowrap;">
+                    <i class="fas fa-user-circle"></i> @loggedUser
+                    @if (!string.IsNullOrEmpty(operatorType))
+                    {
+                        <span class="badge @roleBadgeClass ms-1" style="font-size:11px;">@operatorType</span>
+                    }
+                </span>
+                <a href="/Utility/Logout" class="btn btn-danger btn-sm" style="display: flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 13px; white-space: nowrap;">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </div>
+        </div>
+        <!-- CONTENT AREA -->
+        <div class="content-area">
+            @RenderBody()
+        </div>
+
+        <!-- FOOTER -->
+        <footer class="footer">
+            <p>&copy; 2025 - Amaan Parking System. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <!-- ✅ GLOBAL DUPLICATE / SUCCESS / ERROR POPUP TOAST -->
+    <!-- Toast Container -->
+    <div id="toast-container" style="
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 99999;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    pointer-events: none;
+    max-width: 580px;
+    width: 90%;
+"></div>
+
+    <style>
+        .pms-toast {
+            display: flex;
+            align-items: flex-start;
+            gap: 18px;
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.10);
+            padding: 28px 30px;
+            pointer-events: all;
+            min-width: 480px;
+            max-width: 580px;
+            border-left: 7px solid #ccc;
+            animation: toastSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            position: relative;
+            overflow: hidden;
+        }
+
+            .pms-toast.toast-error {
+                border-left-color: #dc3545;
+            }
+
+            .pms-toast.toast-success {
+                border-left-color: #28a745;
+            }
+
+            .pms-toast.toast-warning {
+                border-left-color: #fd7e14;
+            }
+
+            .pms-toast .toast-icon {
+                font-size: 36px !important;
+                flex-shrink: 0;
+                margin-top: 2px;
+            }
+
+            .pms-toast .toast-body {
+                flex: 1;
+            }
+
+            .pms-toast .toast-title {
+                font-weight: 700 !important;
+                font-size: 20px !important;
+                margin-bottom: 8px !important;
+                color: #1a1a1a !important;
+            }
+
+            .pms-toast .toast-msg {
+                font-size: 16px !important;
+                color: #444444 !important;
+                line-height: 1.6 !important;
+                word-break: break-word;
+            }
+
+            .pms-toast .toast-close {
+                background: none !important;
+                border: none !important;
+                font-size: 24px !important;
+                color: #999 !important;
+                cursor: pointer !important;
+                padding: 0 !important;
+                line-height: 1;
+                flex-shrink: 0;
+                margin-top: -2px;
+                transition: color 0.2s;
+            }
+
+                .pms-toast .toast-close:hover {
+                    color: #333 !important;
+                }
+
+            .pms-toast .toast-progress {
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                height: 4px;
+                border-radius: 0 0 0 14px;
+                animation: toastProgress 5s linear forwards;
+            }
+
+        .toast-error .toast-progress {
+            background: #dc3545;
+        }
+
+        .toast-success .toast-progress {
+            background: #28a745;
+        }
+
+        .toast-warning .toast-progress {
+            background: #fd7e14;
+        }
+
+        @@keyframes toastSlideIn {
+            from {
+                opacity: 0;
+                transform: translateX(60px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @@keyframes toastSlideOut {
+            from {
+                opacity: 1;
+                transform: translateX(0);
+                max-height: 200px;
+                margin-bottom: 0;
+            }
+
+            to {
+                opacity: 0;
+                transform: translateX(60px);
+                max-height: 0;
+                margin-bottom: -12px;
+                padding: 0;
+            }
+        }
+
+        @@keyframes toastProgress {
+            from {
+                width: 100%;
+            }
+
+            to {
+                width: 0%;
+            }
+        }
+    </style>
+
+    <script>
+        function showPmsToast(type, title, message) {
+            const container = document.getElementById('toast-container');
+            const icons = { error: '❌', success: '✅', warning: '⚠️' };
+
+            const toast = document.createElement('div');
+            toast.className = `pms-toast toast-${type}`;
+            toast.innerHTML = `
+                <span class="toast-icon">${icons[type] || 'ℹ️'}</span>
+                <div class="toast-body">
+                    <div class="toast-title">${title}</div>
+                    <div class="toast-msg">${message}</div>
+                </div>
+                <button class="toast-close" onclick="dismissToast(this.parentElement)">✕</button>
+                <div class="toast-progress"></div>
+            `;
+
+            container.appendChild(toast);
+
+            // Auto dismiss after 5 seconds
+            const timer = setTimeout(() => dismissToast(toast), 5000);
+            toast._timer = timer;
+        }
+
+        function dismissToast(toast) {
+            if (!toast || toast._dismissed) return;
+            toast._dismissed = true;
+            clearTimeout(toast._timer);
+            toast.style.animation = 'toastSlideOut 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards';
+            setTimeout(() => toast.remove(), 350);
+        }
+
+        // ✅ Read TempData values injected by Razor below and fire toasts on page load
+        document.addEventListener('DOMContentLoaded', function () {
+
+            // TempData["ErrorMessage"] — used by ParkerCompanyController, ParkerCompanyMasterController, UserManagementController
+            var errorMsg = '@Html.Raw(TempData["ErrorMessage"]?.ToString()?.Replace("'", "\\'") ?? "")';
+            if (errorMsg.trim() !== '') {
+                showPmsToast('error', 'Already Exists!', errorMsg);
+            }
+
+            // TempData["SuccessMessage"] — used by ParkerCompanyController, ParkerCompanyMasterController
+            var successMsg = '@Html.Raw(TempData["SuccessMessage"]?.ToString()?.Replace("'", "\\'") ?? "")';
+            if (successMsg.trim() !== '') {
+                showPmsToast('success', 'Success!', successMsg);
+            }
+
+
+            // RBAC access-denied message (set server-side when role blocks a page)
+            var rbacMsg = '@Html.Raw(rbacDeniedMsg.Replace("'", "\'"))';
+            if (rbacMsg.trim() !== '') {
+                showPmsToast('warning', 'Access Denied', rbacMsg);
+            }
+            // TempData["Message"] — used by SiteController
+            var siteMsg = '@Html.Raw(TempData["Message"]?.ToString()?.Replace("'", "\\'") ?? "")';
+            if (siteMsg.trim() !== '') {
+                var type = siteMsg.includes('❌') ? 'error' : 'success';
+                var title = type === 'error' ? 'Already Exists!' : 'Success!';
+                showPmsToast(type, title, siteMsg.replace('❌ ', ''));
+            }
+        });
+    </script>
+
+    <!-- SCRIPTS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // OPTIMIZED TAB MANAGEMENT SYSTEM - NO LAG (ONE TAB PER MODULE)
+        let openTabs = [];
+        let isInitialized = false;
+
+        // --- helper: normalize any URL to a module tab key ---
+                function getTabKey(rawUrl) {
+            const u = new URL(rawUrl, window.location.origin);
+            let path = u.pathname;
+
+            // Site Management (already working)
+            if (path.startsWith('/Site/Index')) return '/Site/Index';
+
+            // Parker Company MASTER
+            // List page:   /ParkerCompanyMaster/Index
+            // Edit page:   /ParkerCompanyMaster/EditParkerCompanyMaster/{id}
+            if (path.startsWith('/ParkerCompanyMaster')) return '/ParkerCompanyMaster/ParkerCompanyMaster';
+
+            // Parker Company SUB
+            // List page:   /ParkerCompany/Index
+            // Edit page:   /ParkerCompany/EditParkerCompany/{id}
+            if (path.startsWith('/ParkerCompany')) return '/ParkerCompany';
+
+            // Card Registration
+            // List page:   /UserManagement/CardRegistration
+            // Edit page:   /UserManagement/CardRegistration/{id}
+            if (path.startsWith('/UserManagement/CardRegistration'))
+                return '/UserManagement/CardRegistration';
+
+           if (path.startsWith("/RealTimeReport")) return "/RealTimeReport";
+           if (path.startsWith("/B2Notification")) return "/B2Notification";
+
+            // Add similar rules here if you see other modules with edit pages.
+            return path; // default: use full pathname
+        }
+
+        function addTab(url, title, icon) {
+            const key = getTabKey(url);
+
+            const existingTabIndex = openTabs.findIndex(tab => tab.url === key);
+            if (existingTabIndex !== -1) {
+                activateTabByIndex(existingTabIndex);
+                return;
+            }
+
+            const tab = { url: key, title, icon };
+            openTabs.push(tab);
+            renderNewTab(tab);
+            saveTabsToStorage();
+        }
+
+        function closeTab(url, event) {
+            event.stopPropagation();
+            event.preventDefault();
+
+            const key = getTabKey(url);
+            const tabIndex = openTabs.findIndex(tab => tab.url === key);
+            if (tabIndex === -1) return;
+
+            const isCurrentPage = getTabKey(window.location.href) === key;
+
+            openTabs.splice(tabIndex, 1);
+
+            const tabBar = document.getElementById('tabBar');
+            const tabElements = tabBar.querySelectorAll('.tab-item');
+            if (tabElements[tabIndex]) {
+                tabElements[tabIndex].remove();
+            }
+
+            saveTabsToStorage();
+
+            if (isCurrentPage && openTabs.length > 0) {
+                const newActiveTab = openTabs[Math.max(0, tabIndex - 1)];
+                window.location.href = newActiveTab.url;
+            }
+        }
+
+        function activateTabByIndex(index) {
+            const tabBar = document.getElementById('tabBar');
+            const tabElements = tabBar.querySelectorAll('.tab-item');
+            tabElements.forEach(el => el.classList.remove('active'));
+            if (tabElements[index]) tabElements[index].classList.add('active');
+        }
+
+        function renderNewTab(tab) {
+            const tabBar = document.getElementById('tabBar');
+            const isActive = getTabKey(window.location.href) === tab.url;
+
+            const tabElement = document.createElement('div');
+            tabElement.className = 'tab-item' + (isActive ? ' active' : '');
+            tabElement.onclick = () => { pmsTabSaveState(); window.location.href = tab.url; };
+
+            tabElement.innerHTML = `
+                <i class="${tab.icon} tab-icon"></i>
+                <span class="tab-title" title="${tab.title}">${tab.title}</span>
+                <span class="tab-close" onclick="closeTab('${tab.url}', event)">
+                    <i class="fas fa-times"></i>
+                </span>
+            `;
+            const tabsContainer = document.getElementById('tabsContainer') || tabBar;
+            tabsContainer.appendChild(tabElement);
+        }
+
+        function renderAllTabs() {
+            const tabBar = document.getElementById('tabBar');
+            const currentKey = getTabKey(window.location.href);
+            const fragment = document.createDocumentFragment();
+
+            openTabs.forEach(tab => {
+                const isActive = currentKey === tab.url;
+
+                const tabElement = document.createElement('div');
+                tabElement.className = 'tab-item' + (isActive ? ' active' : '');
+                tabElement.onclick = () => { pmsTabSaveState(); window.location.href = tab.url; };
+
+                tabElement.innerHTML = `
+                    <i class="${tab.icon} tab-icon"></i>
+                    <span class="tab-title" title="${tab.title}">${tab.title}</span>
+                    <span class="tab-close" onclick="closeTab('${tab.url}', event)">
+                        <i class="fas fa-times"></i>
+                    </span>
+                `;
+                fragment.appendChild(tabElement);
+            });
+
+            const tabsContainer = document.getElementById('tabsContainer');
+            if (tabsContainer) {
+                tabsContainer.innerHTML = '';
+                tabsContainer.appendChild(fragment);
+            } else {
+                tabBar.innerHTML = '';
+                tabBar.appendChild(fragment);
+            }
+        }
+
+        function saveTabsToStorage() {
+            if ('requestIdleCallback' in window) {
+                requestIdleCallback(() => {
+                    localStorage.setItem('openTabs', JSON.stringify(openTabs));
+                });
+            } else {
+                setTimeout(() => {
+                    localStorage.setItem('openTabs', JSON.stringify(openTabs));
+                }, 0);
+            }
+        }
+
+        function initializeTabs() {
+            if (isInitialized) return;
+            isInitialized = true;
+
+            const savedTabs = localStorage.getItem('openTabs');
+            if (savedTabs) {
+                try { openTabs = JSON.parse(savedTabs); } catch { openTabs = []; }
+            }
+
+            const currentKey = getTabKey(window.location.href);
+            const pageTitle = document.querySelector('.page-header h2')?.textContent?.trim()
+                           || document.title.split('-')[0]?.trim()
+                           || 'Page';
+            const currentIcon = 'fas fa-file';
+
+            if (!openTabs.find(tab => tab.url === currentKey)) {
+                openTabs.push({ url: currentKey, title: pageTitle, icon: currentIcon });
+            }
+
+            renderAllTabs();
+            saveTabsToStorage();
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeTabs);
+        } else {
+            initializeTabs();
+        }
+
+        // Sidebar links – create/reuse module tab, navigate in same browser tab
+        document.addEventListener('click', function (e) {
+            const link = e.target.closest('.sidebar-nav-link, .sidebar-submenu-link');
+            if (link && link.href && !link.href.includes('#')) {
+                const url = link.href;
+                const title = link.getAttribute('data-tab-title') || link.textContent.trim();
+                const icon = link.getAttribute('data-tab-icon') || 'fas fa-file';
+                addTab(url, title, icon);
+                // No preventDefault: browser navigation is normal
+            }
+        }, true);
+
+        // Edit links – reuse same module tab (Site, Parker Company, Card, etc.)
+        document.addEventListener('click', function (e) {
+            const editLink = e.target.closest('a');
+            if (!editLink || !editLink.href) return;
+
+            const href = editLink.href;
+
+            if (href.includes('/Site/Index')
+                || href.includes('/ParkerCompanyMaster/Index')
+                || href.includes('/ParkerCompanySub/Index')
+                || href.includes('/CardRegistration/Index')) {
+
+                const title = editLink.getAttribute('data-tab-title')
+                            || document.querySelector('.page-header h2')?.textContent?.trim()
+                            || 'Edit';
+                const icon = editLink.getAttribute('data-tab-icon') || 'fas fa-edit';
+
+                addTab(href, title, icon);
+                // Browser still goes to full /.../Index/{id} in same browser tab
+            }
+        }, true);
+
+        // SIDEBAR TOGGLE - unchanged
+        (function initSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            const toggleBtn = document.getElementById('sidebarToggleBtn');
+            const toggleIcon = toggleBtn.querySelector('i');
+
+            let isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+
+            sidebar.style.transition = 'none';
+            mainContent.style.transition = 'none';
+            toggleBtn.style.transition = 'none';
+
+            if (isCollapsed) {
+                sidebar.style.marginLeft = '-260px';
+                mainContent.style.marginLeft = '0';
+                toggleBtn.style.left = '15px';
+                toggleIcon.className = 'fas fa-chevron-right';
+            } else {
+                toggleBtn.style.left = '220px';
+            }
+
+            setTimeout(() => {
+                sidebar.style.transition = '';
+                mainContent.style.transition = '';
+                toggleBtn.style.transition = '';
+            }, 50);
+
+            toggleBtn.addEventListener('click', function () {
+                isCollapsed = !isCollapsed;
+
+                if (isCollapsed) {
+                    sidebar.style.marginLeft = '-260px';
+                    mainContent.style.marginLeft = '0';
+                    toggleBtn.style.left = '15px';
+                    toggleIcon.className = 'fas fa-chevron-right';
+                } else {
+                    sidebar.style.marginLeft = '0';
+                    mainContent.style.marginLeft = 'var(--sidebar-width)';
+                    toggleBtn.style.left = '220px';
+                    toggleIcon.className = 'fas fa-chevron-left';
+                }
+
+                localStorage.setItem('sidebarCollapsed', isCollapsed);
+            });
+        })();
+
+        // Sidebar submenu toggle - unchanged
+        document.addEventListener('click', function (e) {
+            const toggleLink = e.target.closest('[data-toggle="submenu"]');
+            if (!toggleLink) return;
+
+            e.preventDefault();
+
+            const targetId = toggleLink.getAttribute('data-target');
+            const submenu = document.getElementById(targetId);
+            if (!submenu) return;
+
+            const isCollapsed = submenu.classList.contains('collapsed');
+
+            const allSubmenus = document.querySelectorAll('.sidebar-submenu');
+            allSubmenus.forEach(menu => {
+                if (menu.id !== targetId && !menu.classList.contains('collapsed')) {
+                    menu.classList.add('collapsed');
+                    const prevLink = menu.previousElementSibling;
+                    if (prevLink) prevLink.classList.add('collapsed');
+                }
+            });
+
+            if (isCollapsed) {
+                submenu.classList.remove('collapsed');
+                toggleLink.classList.remove('collapsed');
+            } else {
+                submenu.classList.add('collapsed');
+                toggleLink.classList.add('collapsed');
+            }
+        });
+
+        // Search – unchanged
+        (function initSearch() {
+            const searchInput = document.getElementById('sidebarSearch');
+            let searchTimeout;
+
+            searchInput.addEventListener('input', function (e) {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    const searchTerm = e.target.value.toLowerCase();
+                    const allLinks = document.querySelectorAll('.sidebar-nav-link, .sidebar-submenu-link');
+
+                    allLinks.forEach(link => {
+                        const text = link.textContent.toLowerCase();
+                        const parent = link.closest('.sidebar-nav-item, .sidebar-submenu-item');
+                        if (parent) {
+                            parent.style.display = text.includes(searchTerm) ? '' : 'none';
+                        }
+                    });
+                }, 150);
+            });
+        })();
+
+        // Active link – unchanged
+        (function setActiveLink() {
+            const currentUrl = window.location.href;
+            const allLinks = document.querySelectorAll('.sidebar-nav-link, .sidebar-submenu-link');
+
+            for (let link of allLinks) {
+                if (link.href === currentUrl) {
+                    link.classList.add('active');
+
+                    const parentSubmenu = link.closest('.sidebar-submenu');
+                    if (parentSubmenu) {
+                        parentSubmenu.classList.remove('collapsed');
+                        const parentLink = parentSubmenu.previousElementSibling;
+                        if (parentLink) parentLink.classList.remove('collapsed');
+                    }
+                    break;
+                }
+            }
+        })();
+    </script>
+    @await RenderSectionAsync("Scripts", required: false)
+
+    <script>
+        // ── PMS TAB STATE: Save scroll + form data before tab navigation ──────
+        // pmsTabSaveState() is called synchronously inside every tab onclick,
+        // guaranteeing it runs before window.location.href changes.
+        function pmsTabSaveState() {
+            try {
+                var key = 'pms_state:' + window.location.pathname + window.location.search;
+                var state = {};
+
+                // Scroll — .content-area is the scrollable div in this layout
+                var ca = document.querySelector('.content-area');
+                state.scroll = ca ? ca.scrollTop : (window.scrollY || 0);
+
+                // All form inputs
+                state.form = {};
+                document.querySelectorAll('input, textarea, select').forEach(function (el) {
+                    var k = el.name || el.id;
+                    if (!k) return;
+                    if (el.type === 'password' || el.type === 'file'   ||
+                        el.type === 'submit'   || el.type === 'button' ||
+                        el.type === 'hidden'   || el.type === 'image') return;
+                    if (el.type === 'checkbox' || el.type === 'radio') {
+                        state.form[k] = el.checked;
+                    } else {
+                        state.form[k] = el.value;
+                    }
+                });
+
+                sessionStorage.setItem(key, JSON.stringify(state));
+            } catch (e) { /* silent fail */ }
+        }
+
+        // ── Restore state after page loads ───────────────────────────────────
+        (function pmsTabRestoreState() {
+            try {
+                var key = 'pms_state:' + window.location.pathname + window.location.search;
+                var raw = sessionStorage.getItem(key);
+                if (!raw) return;
+                var state = JSON.parse(raw);
+
+                function doRestore() {
+                    // Restore form values
+                    if (state.form) {
+                        document.querySelectorAll('input, textarea, select').forEach(function (el) {
+                            var k = el.name || el.id;
+                            if (!k || !(k in state.form)) return;
+                            if (el.type === 'password' || el.type === 'file'   ||
+                                el.type === 'submit'   || el.type === 'button' ||
+                                el.type === 'hidden'   || el.type === 'image') return;
+                            if (el.type === 'checkbox' || el.type === 'radio') {
+                                el.checked = !!state.form[k];
+                            } else {
+                                el.value = state.form[k];
+                            }
+                        });
+                    }
+
+                    // Restore scroll — double rAF waits for full layout paint
+                    if (state.scroll && state.scroll > 0) {
+                        requestAnimationFrame(function () {
+                            requestAnimationFrame(function () {
+                                var ca = document.querySelector('.content-area');
+                                if (ca) ca.scrollTop = state.scroll;
+                                else window.scrollTo(0, state.scroll);
+                            });
+                        });
+                    }
+                }
+
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', doRestore);
+                } else {
+                    doRestore();
+                }
+            } catch (e) { /* silent fail */ }
+        })();
+
+        // ── Also save before sidebar link navigations ─────────────────────────
+        document.addEventListener('click', function (e) {
+            var link = e.target.closest('.sidebar-nav-link, .sidebar-submenu-link');
+            if (link && link.href && !link.href.includes('#')) {
+                pmsTabSaveState();
+            }
+        }, true);
+    </script>
+</body>
+</html>

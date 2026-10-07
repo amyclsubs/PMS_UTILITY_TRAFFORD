@@ -1,0 +1,333 @@
+﻿@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AMAAN Utility Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .login-root {
+            display: flex;
+            height: 100vh;
+            width: 100%;
+        }
+
+        .login-left {
+            flex: 0 0 50%;
+            background-color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .login-left-inner {
+            max-width: 80%;
+            text-align: center;
+        }
+
+            .login-left-inner img {
+                max-width: 75%;
+                height: auto;
+            }
+
+        .login-right {
+            flex: 0 0 50%;
+            background-color: #A9A9A9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 80px;
+            box-sizing: border-box;
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 480px;
+        }
+
+        .login-header-main {
+            font-size: 32px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 10px;
+        }
+
+        .login-header-sub {
+            font-size: 16px;
+            color: #ffffff;
+            font-weight: 600;
+            margin-bottom: 32px;
+        }
+
+        .form-group {
+            margin-bottom: 22px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 15px;
+            color: #ffffff;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .login-input {
+            width: 100%;
+            padding: 11px 14px;
+            border-radius: 5px;
+            border: 1px solid #cbd2d9;
+            font-size: 16px;
+            color: #111827;
+            box-sizing: border-box;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+            .login-input:focus {
+                outline: none;
+                border-color: #2563eb;
+                box-shadow: 0 0 0 1px rgba(37,99,235,0.35);
+            }
+
+        .remember-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 26px;
+            font-size: 14px;
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+            .remember-row input[type="checkbox"] {
+                width: 16px;
+                height: 16px;
+            }
+
+        .btn-login {
+            width: 100%;
+            padding: 12px 0;
+            background-color: #2563eb;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+            .btn-login:hover {
+                background-color: #1d4ed8;
+                box-shadow: 0 3px 8px rgba(37,99,235,0.35);
+            }
+        /* DB Settings button */
+        .btn-db-settings {
+            display: block;
+            width: 100%;
+            padding: 11px 0;
+            margin-top: 12px;
+            background-color: transparent;
+            color: #ffffff;
+            border: 2px solid rgba(255,255,255,0.6);
+            border-radius: 5px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+            box-sizing: border-box;
+            transition: background-color 0.15s ease, border-color 0.15s ease;
+        }
+
+            .btn-db-settings:hover {
+                background-color: rgba(255,255,255,0.15);
+                border-color: #ffffff;
+                color: #ffffff;
+            }
+
+        .login-error {
+            background-color: #fee2e2;
+            color: #b91c1c;
+            font-size: 14px;
+            border-left: 4px solid #f97373;
+            padding: 9px 12px;
+            border-radius: 4px;
+            margin-bottom: 18px;
+        }
+
+        .copyright {
+            margin-top: 28px;
+            font-size: 12px;
+            color: #ffffff;
+            font-weight: 600;
+            text-align: center;
+        }
+        /* DB Fail Popup */
+        .db-fail-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.55);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+
+            .db-fail-overlay.active {
+                display: flex;
+            }
+
+        .db-fail-modal {
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 36px 32px 28px;
+            max-width: 420px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+        }
+
+        .db-fail-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        .db-fail-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #b91c1c;
+            margin-bottom: 8px;
+        }
+
+        .db-fail-msg {
+            font-size: 14px;
+            color: #4b5563;
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+
+        .btn-go-db {
+            display: inline-block;
+            padding: 11px 32px;
+            background-color: #2563eb;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background-color 0.15s ease;
+        }
+
+            .btn-go-db:hover {
+                background-color: #1d4ed8;
+            }
+
+        @@media (max-width: 900px) {
+            .login-root {
+                flex-direction: column;
+            }
+
+            .login-left {
+                flex: 0 0 40%;
+                padding: 20px 0;
+            }
+
+            .login-right {
+                flex: 1;
+                padding: 30px 20px;
+            }
+
+            .login-left-inner img {
+                max-width: 55%;
+            }
+        }
+
+        @@media (max-width: 600px) {
+            .login-left {
+                display: none;
+            }
+
+            .login-right {
+                flex: 1 0 auto;
+                padding: 30px 20px;
+            }
+
+            .login-card {
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- DB Connection Failed Popup -->
+    <div class="db-fail-overlay" id="dbFailOverlay">
+        <div class="db-fail-modal">
+            <div class="db-fail-icon">⚠️</div>
+            <div class="db-fail-title">Database Connection Failed</div>
+            <div class="db-fail-msg">
+                Could not connect to the database automatically.<br />
+                Please configure your database settings to continue.
+            </div>
+            <a href="@Url.Action("Index", "DatabaseLogin")" class="btn-go-db">Go to Database Settings</a>
+        </div>
+    </div>
+
+    <div class="login-root">
+        <div class="login-left">
+            <div class="login-left-inner">
+                <img src="~/images/amaan-pms.png" alt="AMAAN Parking and Control Systems" />
+            </div>
+        </div>
+
+        <div class="login-right">
+            <div class="login-card">
+                <div class="login-header-main">Welcome TO UTILITY</div>
+                <div class="login-header-sub">Please sign in to your account to continue</div>
+
+                @if (ViewBag.LoginError != null)
+                {
+                    <div class="login-error">@ViewBag.LoginError</div>
+                }
+
+                <form method="post" autocomplete="off">
+                    <div class="form-group">
+                        <label class="form-label" for="loginId">Username</label>
+                        <input class="login-input" id="loginId" type="text" name="loginId" required />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="password">Password</label>
+                        <input class="login-input" id="password" type="password" name="password" required />
+                    </div>
+                    <div class="remember-row">
+                        <input type="checkbox" id="rememberMe" name="rememberMe" />
+                        <label for="rememberMe">Remember me</label>
+                    </div>
+                    <button class="btn-login" type="submit">Log In</button>
+                    <a href="@Url.Action("Index", "DatabaseLogin")" class="btn-db-settings">⚙️ Go to Database Settings</a>
+                    <div class="copyright">&copy; 2025 Amaan Parking and Control Systems</div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    @if (ViewBag.DbConnectFailed == true)
+    {
+        <script>
+            document.getElementById('dbFailOverlay').classList.add('active');
+        </script>
+    }
+
+</body>
+</html>

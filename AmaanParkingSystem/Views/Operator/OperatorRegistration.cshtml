@@ -1,0 +1,198 @@
+﻿@model AmaanParkingSystem.Models.OperatorModel
+@using AmaanParkingSystem.Models
+@{
+    ViewData["Title"] = "Operator Registration";
+    var operators = ViewBag.Operators as List<AmaanParkingSystem.Models.OperatorModel> ?? new List<AmaanParkingSystem.Models.OperatorModel>();
+    var isEditMode = Model.id > 0;
+}
+
+<div class="container-fluid">
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- OPERATOR FORM — hidden for OPERATOR role (read-only) -->
+    @if (ViewBag.CanWrite == true)
+    {
+        <div class="card mb-3">
+            <div class="card-header @(isEditMode ? "bg-warning text-dark" : "bg-primary text-white")">
+                <h6 class="mb-0 @(isEditMode ? "" : "text-white")">
+                    <i class="fas @(isEditMode ? "fa-edit" : "fa-plus")"></i>
+                    @(isEditMode ? $"Edit Operator ID: {Model.id}" : "Add New Operator")
+                </h6>
+            </div>
+            <div class="card-body p-3">
+                <form asp-action="SaveOperator" method="post" class="row g-2">
+                    @if (isEditMode)
+                    {
+                        <input type="hidden" asp-for="id" />
+                    }
+                    else
+                    {
+                        <input type="hidden" name="id" value="0" />
+                    }
+
+                    <div class="col-md-2">
+                        <label class="form-label fw-bold small">Type</label>
+                        <input type="text" name="operator_type" value="@Model.operator_type"
+                               class="form-control form-control-sm" required maxlength="50" />
+                    </div>
+
+                    <div class="col-md-2">
+                        <label class="form-label fw-bold small">Login ID</label>
+                        <input type="text" name="operator_login_id" value="@Model.operator_login_id"
+                               class="form-control form-control-sm" required />
+                    </div>
+
+                    <div class="col-md-2">
+                        <label class="form-label fw-bold small">Name</label>
+                        <input type="text" name="operator_name" value="@Model.operator_name"
+                               class="form-control form-control-sm" required />
+                    </div>
+
+                    <div class="col-md-2">
+                        <label class="form-label fw-bold small">Mobile</label>
+                        <input type="text" name="operator_mobile" value="@Model.operator_mobile"
+                               class="form-control form-control-sm" required />
+                    </div>
+
+                    <div class="col-md-2">
+                        <label class="form-label fw-bold small">@(isEditMode ? "New Password" : "Password")</label>
+                        <input type="password" name="operator_password" class="form-control form-control-sm"
+                               placeholder="@(isEditMode ? "Leave blank" : "Enter password")"
+                               @(isEditMode ? "" : "required") />
+                    </div>
+
+                    <div class="col-md-1">
+                        <label class="form-label fw-bold small">Login</label>
+                        <select name="operator_login_status" class="form-select form-select-sm">
+                            <option value="1" selected="@(Model.operator_login_status == "1")">Active</option>
+                            <option value="0" selected="@(Model.operator_login_status == "0")">Inactive</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-1">
+                        <label class="form-label fw-bold small">Status</label>
+                        <select name="operator_status" class="form-select form-select-sm">
+                            <option value="1" selected="@(Model.operator_status == "1")">Active</option>
+                            <option value="0" selected="@(Model.operator_status == "0")">Inactive</option>
+                        </select>
+                    </div>
+
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-sm @(isEditMode ? "btn-warning" : "btn-primary")">
+                            <i class="fas fa-save"></i> @(isEditMode ? "Update" : "Add")
+                        </button>
+                        @if (isEditMode)
+                        {
+                            <a href="@Url.Action("OperatorRegistration")" class="btn btn-sm btn-secondary">Cancel</a>
+                        }
+                    </div>
+                </form>
+            </div>
+        </div>
+    }
+
+    <!-- OPERATORS LIST -->
+    <div class="card">
+        <div class="card-header bg-success text-white">
+            <h6 class="mb-0"><i class="fas fa-list"></i> Operators (@operators.Count)</h6>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm table-striped table-hover mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th style="width:50px">ID</th>
+                        <th style="width:100px">Type</th>
+                        <th style="width:120px">Login ID</th>
+                        <th>Name</th>
+                        <th style="width:110px">Mobile</th>
+                        <th style="width:70px" class="text-center">Login</th>
+                        <th style="width:70px" class="text-center">Status</th>
+                        <th style="width:80px">Created</th>
+                        @if (ViewBag.CanWrite == true)
+                        {
+                            <th style="width:60px" class="text-center">Action</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (operators.Any())
+                    {
+                        @foreach (var op in operators)
+                        {
+                            <tr>
+                                <td><strong>@op.id</strong></td>
+                                <td><span class="badge bg-info text-white small">@op.operator_type</span></td>
+                                <td>@op.operator_login_id</td>
+                                <td>@op.operator_name</td>
+                                <td>@op.operator_mobile</td>
+                                <td class="text-center">
+                                    <span class="badge @(op.operator_login_status == "1" ? "bg-success" : "bg-danger") small">
+                                        @(op.operator_login_status == "1" ? "Active" : "Inactive")
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge @(op.operator_status == "1" ? "bg-success" : "bg-secondary") small">
+                                        @(op.operator_status == "1" ? "Active" : "Inactive")
+                                    </span>
+                                </td>
+                                <td class="small">@(op.created_on?.ToString("dd-MM-yy") ?? "")</td>
+                                @if (ViewBag.CanWrite == true)
+                                {
+                                    <td class="text-center">
+                                        <a href="@Url.Action("OperatorRegistration", new { editId = op.id })"
+                                           class="btn btn-sm btn-outline-warning" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="@(ViewBag.CanWrite == true ? 9 : 8)" class="text-center py-4 text-muted">
+                                <i class="fas fa-users fa-2x mb-2 opacity-50"></i><br />
+                                No operators found.
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    .form-control-sm, .form-select-sm {
+        font-size: 0.875rem;
+        padding: 0.25rem 0.5rem;
+    }
+
+    .table-sm td, .table-sm th {
+        padding: 0.4rem;
+        font-size: 0.875rem;
+    }
+
+    .badge.small {
+        font-size: 0.75rem;
+    }
+
+    .card-header h6 {
+        font-size: 0.95rem;
+    }
+</style>

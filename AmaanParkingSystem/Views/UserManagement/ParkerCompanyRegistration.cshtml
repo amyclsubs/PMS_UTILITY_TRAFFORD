@@ -1,0 +1,1149 @@
+﻿@model AmaanParkingSystem.Models.UserManagement.ParkerCompanyModel
+@{
+    ViewData["Title"] = "Parker Company Registration";
+    var companyList = ViewBag.CompanyList as List<AmaanParkingSystem.Models.UserManagement.ParkerCompanyModel> ?? new List<AmaanParkingSystem.Models.UserManagement.ParkerCompanyModel>();
+    var isEdit = ViewBag.IsEdit ?? false;
+
+    // Find duplicate Emails and Contact Numbers
+    var duplicateEmails = companyList
+        .Where(c => !string.IsNullOrEmpty(c.sub_co_car_parkers_email))
+        .GroupBy(c => c.sub_co_car_parkers_email)
+        .Where(g => g.Count() > 1)
+        .Select(g => g.Key)
+        .ToHashSet();
+
+    var duplicateContacts = companyList
+        .Where(c => !string.IsNullOrEmpty(c.sub_co_car_parkers_contact_number))
+        .GroupBy(c => c.sub_co_car_parkers_contact_number)
+        .Where(g => g.Count() > 1)
+        .Select(g => g.Key)
+        .ToHashSet();
+}
+
+<div class="container-fluid mt-4">
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="card shadow mb-4" id="companyForm">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-@(Model.id > 0 ? "edit" : "plus-circle")"></i>
+                @(Model.id > 0 ? "Edit" : "Add New") Parker Company
+            </h5>
+        </div>
+        <div class="card-body p-2">
+            <form asp-action="AddOrEditParkerCompany" method="post">
+                <input type="hidden" asp-for="id" />
+                <input type="hidden" asp-for="car_parkers_company_name" id="companyNameHidden" />
+
+                <!-- Row 1: Main Company Info with Reduced Widths -->
+                <div class="row g-2 mb-1">
+                    <div class="col-md-1">
+                        <label class="form-label mb-0">Site <small class="text-success">(Auto)</small></label>
+                        <input asp-for="customer_id" id="customerSiteField" class="form-control bg-light" readonly required />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label mb-0">Parent Company *</label>
+                        <select id="parentCompanyDropdown" asp-items="ViewBag.ParentCompanies" class="form-select" required>
+                            <option value="">--Select Company--</option>
+                        </select>
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label mb-0">Co ID <small class="text-success">(Auto)</small></label>
+                        <input asp-for="car_parkers_company_id" id="companyIdField" class="form-control bg-light" readonly required />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label mb-0">Card Type *</label>
+                        <select asp-for="applicable_card_type" asp-items="ViewBag.CardTypes" id="cardTypeDropdown" class="form-select" required>
+                            <option value="">--Select--</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label mb-0">Sub Co ID <small class="text-success">(Auto)</small></label>
+                        <input asp-for="car_parkers_sub_co_id" id="subCompanyIdField" class="form-control bg-light" readonly />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label mb-0">Sub Co Name <small class="text-success">(Auto)</small></label>
+                        <input asp-for="car_parkers_sub_co_name" id="subCompanyNameField" class="form-control bg-light" readonly />
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label mb-0">Suffix</label>
+                        <input type="text" id="suffixField" class="form-control" placeholder="01" maxlength="50" />
+                    </div>
+                </div>
+
+                <!-- Row 2: Contact Info -->
+                <div class="row g-2 mb-1">
+                    <div class="col-md-2">
+                        <label class="form-label mb-0">Contact Person</label>
+                        <input asp-for="sub_co_car_parkers_contact_person" class="form-control" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label mb-0">Email</label>
+                        <input asp-for="sub_co_car_parkers_email" type="email" class="form-control" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label mb-0">Contact Number</label>
+                        <input asp-for="sub_co_car_parkers_contact_number" class="form-control" id="contactNumberInput" />
+                        <small class="text-danger" id="contactNumberError" style="display:none; font-weight:bold;">
+                            <i class="fas fa-exclamation-triangle"></i> Contact number already exists!
+                        </small>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label mb-0">Address</label>
+                        <input asp-for="sub_co_car_parkers_address" class="form-control" />
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label mb-0">PIN</label>
+                        <input asp-for="sub_co_car_parkers_pin" class="form-control" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label mb-0">VAT Number</label>
+                        <input asp-for="sub_co_car_parkers_vat" class="form-control" />
+                    </div>
+                </div>
+
+                <!-- Row 3: Password, Checkbox, Card Limit, Status and Submit -->
+                <div class="row g-2 mb-1">
+                    <div class="col-md-2">
+                        <label class="form-label mb-0">Password</label>
+                        <div class="input-group input-group-sm">
+                            <input asp-for="card_parkers_company_password" type="password" id="passwordField" class="form-control form-control-sm" placeholder="Password" />
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="togglePassword()">
+                                <i class="fas fa-eye" id="toggleIcon"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label mb-0">Negative Bal Allowed</label>
+                        <div class="form-check mt-2">
+                            <input type="checkbox" name="NegBalAllowed" id="negBalCheckbox" class="form-check-input" value="on">
+                            <input type="hidden" name="NegBalAllowed_hidden" value="off" />
+                            <label class="form-check-label" for="negBalCheckbox">Allow</label>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label mb-0">Card Limit</label>
+                        <input type="number" name="CardLimitInput" id="cardLimitInput" class="form-control" placeholder="e.g. 50" min="0" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label mb-0">Status *</label>
+                        <select asp-for="car_parkers_status" class="form-select" required>
+                            <option value="">--Select--</option>
+                            <option value="1">Active</option>
+                            <option value="0">Inactive</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        @if (ViewBag.CanWrite == true)
+                        {
+                            <button type="submit" class="btn btn-success w-100">
+                                <i class="fas fa-save"></i> @(Model.id > 0 ? "Update" : "Add")
+                            </button>
+                        }
+                        @if (Model.id > 0)
+                        {
+                            <a asp-action="ParkerCompanyRegistration" class="btn btn-secondary ms-1">
+                                <i class="fas fa-times"></i>
+                            </a>
+                        }
+                    </div>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+    <!-- Company List Table - ALL 24 COLUMNS -->
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white d-flex align-items-center justify-content-between">
+            <h5 class="mb-0"><i class="fas fa-list"></i> Parker Companies List</h5>
+            <div class="d-flex gap-2 align-items-center">
+                <!-- Card Type Filter Dropdown -->
+                <select id="cardTypeFilter" class="form-select form-select-sm" style="max-width: 180px;" onchange="applyCardTypeFilter()" asp-items="ViewBag.CardTypes">
+                    <option value="">All Card Types</option>
+                </select>
+
+                <!-- Search Box -->
+                <input id="companySearchInput" type="text" class="form-control form-control-sm" placeholder="Search..." style="max-width: 250px;" />
+
+                <!-- Export Button -->
+                <button type="button"
+                        class="btn btn-success fw-bold px-4"
+                        id="exportExcelBtn">
+                    <i class="fas fa-file-excel me-2"></i>
+                    EXPORT TO EXCEL
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-scroll-wrapper">
+                <table id="companyListTable" class="table table-bordered table-sm table-hover table-sticky-head mb-0">
+                    <thead class="table-primary sticky-top">
+                        <tr>
+                            <th>ID</th>
+                            <th>Customer ID</th>
+                            <th>Company ID</th>
+                            <th>
+                                Company Name
+                                <a href="@Url.Action("ParkerCompanyRegistration", new { sortColumn = "companyname", sortOrder = (ViewBag.SortColumn == "companyname" && ViewBag.SortOrder == "asc" ? "desc" : "asc"), filterCardType = ViewBag.FilterCardType })"
+                                   class="text-white ms-1" title="Sort">
+                                    <i class="fas fa-sort@(ViewBag.SortColumn == "companyname" ? (ViewBag.SortOrder == "asc" ? "-up" : "-down") : "")"></i>
+                                </a>
+                            </th>
+                            <th>Sub Co ID</th>
+                            <th>
+                                Sub Co Name
+                                <a href="@Url.Action("ParkerCompanyRegistration", new { sortColumn = "subconame", sortOrder = (ViewBag.SortColumn == "subconame" && ViewBag.SortOrder == "asc" ? "desc" : "asc"), filterCardType = ViewBag.FilterCardType })"
+                                   class="text-white ms-1" title="Sort">
+                                    <i class="fas fa-sort@(ViewBag.SortColumn == "subconame" ? (ViewBag.SortOrder == "asc" ? "-up" : "-down") : "")"></i>
+                                </a>
+                            </th>
+                            <th>Card Type</th>
+                            <th>Contact Person</th>
+                            <th>Email</th>
+                            <th>Contact Number</th>
+                            <th>Address</th>
+                            <th>PIN</th>
+                            <th>VAT</th>
+                            <th>Status</th>
+                            <th>Created By</th>
+                            <th>Created On</th>
+                            <th>Updated By</th>
+                            <th>Updated On</th>
+                            <th onclick="sortTable(18)" style="cursor:pointer;" title="Click to sort">
+                                Total Paid <i class="fas fa-sort"></i>
+                            </th>
+                            <th onclick="sortTable(19)" style="cursor:pointer;" title="Click to sort">
+                                Total Deducted <i class="fas fa-sort"></i>
+                            </th>
+                            <th onclick="sortTable(20)" style="cursor:pointer;" title="Click to sort">
+                                Balance <i class="fas fa-sort"></i>
+                            </th>
+                            <th>Total Cards</th>
+                            <th>Card Limit</th>
+                            <th>Password</th>
+                            <th>Neg Bal Allowed</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var c in companyList)
+                        {
+                            <tr>
+                                <td>@c.id</td>
+                                <td>@c.customer_id</td>
+                                <td><strong class="text-primary">@c.car_parkers_company_id</strong></td>
+                                <td>@c.car_parkers_company_name</td>
+                                <td><strong class="text-success">@c.car_parkers_sub_co_id</strong></td>
+                                <td>@c.car_parkers_sub_co_name</td>
+                                <td>
+                                    @{
+                                        var cardTypeText = c.applicable_card_type;
+                                        var badgeClass = "badge badge-custom";
+                                        var badgeStyle = "";
+
+                                        switch (cardTypeText?.ToUpper())
+                                        {
+                                            case "CASH_CARD":
+                                            case "CASH CARD":
+                                                badgeStyle = "background-color: #4CAF50; color: white; font-weight: bold;"; // Green
+                                                break;
+                                            case "DAILY_ACCESS":
+                                            case "DAILY ACCESS":
+                                                badgeStyle = "background-color: #2196F3; color: white; font-weight: bold;"; // Blue
+                                                break;
+                                            case "FOC_PER_UNIT":
+                                            case "FOC PER UNIT":
+                                            case "SEASONAL":
+                                                badgeStyle = "background-color: #FF9800; color: white; font-weight: bold;"; // Orange
+                                                break;
+                                            case "PARKING_OWNER":
+                                            case "PARKING OWNER":
+                                            case "VIP":
+                                                badgeStyle = "background-color: #9C27B0; color: white; font-weight: bold;"; // Purple
+                                                break;
+                                            case "TEMPORARY":
+                                                badgeStyle = "background-color: #00BCD4; color: white; font-weight: bold;"; // Cyan
+                                                break;
+                                            default:
+                                                badgeStyle = "background-color: #9E9E9E; color: white; font-weight: bold;"; // Grey (fallback)
+                                                break;
+                                        }
+                                    }
+                                    <span class="@badgeClass" style="@badgeStyle">@cardTypeText</span>
+                                </td>
+                                <td>@c.sub_co_car_parkers_contact_person</td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(c.sub_co_car_parkers_email) && duplicateEmails.Contains(c.sub_co_car_parkers_email))
+                                    {
+                                        <strong style="color: red; font-weight: bold;">@c.sub_co_car_parkers_email</strong>
+                                    }
+                                    else
+                                    {
+                                        @c.sub_co_car_parkers_email
+                                    }
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(c.sub_co_car_parkers_contact_number) && duplicateContacts.Contains(c.sub_co_car_parkers_contact_number))
+                                    {
+                                        <strong style="color: red; font-weight: bold;">@c.sub_co_car_parkers_contact_number</strong>
+                                    }
+                                    else
+                                    {
+                                        @c.sub_co_car_parkers_contact_number
+                                    }
+                                </td>
+                                <td>@c.sub_co_car_parkers_address</td>
+                                <td>@c.sub_co_car_parkers_pin</td>
+                                <td>@c.sub_co_car_parkers_vat</td>
+                                <td style="text-align: center; vertical-align: middle;">
+                                    @if (c.car_parkers_status == "1")
+                                    {
+                                        <span style="background-color: #28a745; color: white; font-weight: bold; padding: 3px 6px; font-size: 9px; border-radius: 3px; display: inline-block; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.3px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                                            ACTIVE
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span style="background-color: #dc3545; color: white; font-weight: bold; padding: 3px 6px; font-size: 9px; border-radius: 3px; display: inline-block; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.3px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                                            INACTIVE
+                                        </span>
+                                    }
+                                </td>
+                                <td>@c.created_by</td>
+                                <td>@(c.created_on?.ToString("dd-MMM-yyyy HH:mm"))</td>
+                                <td>@c.updated_by</td>
+                                <td>@(c.updated_on?.ToString("dd-MMM-yyyy HH:mm"))</td>
+                                <td><span class="text-success">@(c.Total_Paid_Amount?.ToString("N2") ?? "0.00")</span></td>
+                                <td><span class="text-danger">@(c.Total_Deducted_Amount?.ToString("N2") ?? "0.00")</span></td>
+                                <td><strong class="text-primary">@(c.Balance_Amount?.ToString("N2") ?? "0.00")</strong></td>
+                                <td>@(c.Total_Cards_Under_Sub_Co ?? "0")</td>
+                                <td>@(c.Total_Card_Limit_Under_Sub_Co ?? "0")</td>
+                                <td style="max-width: 200px; word-wrap: break-word; white-space: normal; text-align: center; vertical-align: middle;">
+                                    @if (!string.IsNullOrEmpty(c.card_parkers_company_password))
+                                    {
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <span class="password-display" data-password="@c.card_parkers_company_password" style="word-wrap: break-word; white-space: normal; flex: 1; font-size: 12px; font-weight: 500; color: #333; text-align: left;">****</span>
+                                            <button type="button" class="btn btn-sm btn-link p-0 ms-2 flex-shrink-0" onclick="toggleTablePassword(this)" style="font-size: 14px;">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span>-</span>
+                                    }
+                                </td>
+                                <td>
+                                    @{
+                                        string negText;
+                                        if (!c.Neg_Balance_allowed.HasValue)
+                                        {
+                                            negText = "Null";
+                                        }
+                                        else if (c.Neg_Balance_allowed.Value == 1)
+                                        {
+                                            negText = "Allowed";
+                                        }
+                                        else if (c.Neg_Balance_allowed.Value == 0)
+                                        {
+                                            negText = "Not Allowed";
+                                        }
+                                        else
+                                        {
+                                            negText = c.Neg_Balance_allowed.Value.ToString();
+                                        }
+                                    }
+                                    @negText
+                                </td>
+                                <td style="white-space: nowrap;">
+                                    <a href="@Url.Action("EditParkerCompany", "ParkerCompany", new { id = c.id, sortColumn = ViewBag.SortColumn, sortOrder = ViewBag.SortOrder, filterCardType = ViewBag.FilterCardType })" class="btn btn-primary btn-sm @(ViewBag.CanWrite == true ? "" : "d-none")">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 px-3 py-2 border-top bg-light">
+                <div class="text-muted small" id="pageInfo">
+                    Showing 0 records
+                </div>
+
+                <nav>
+                    <ul class="pagination pagination-sm mb-0" id="pagination"></ul>
+                </nav>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<style>
+    /* ===== REALTIME REPORT STYLE TABLE ===== */
+
+    .table-scroll-wrapper {
+        overflow-x: auto;
+        overflow-y: auto;
+        max-height: 650px;
+        position: relative;
+    }
+
+    .table-sticky-head thead th {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        background: #cfe2ff !important;
+        font-size: 13px;
+        font-weight: 700;
+        padding: 10px;
+    }
+
+    .pagination {
+        margin-bottom: 0 !important;
+    }
+
+    #pagination .page-link {
+        cursor: pointer;
+    }
+
+    #companySearchInput {
+        min-width: 260px;
+    }
+
+    #exportExcelBtn {
+        min-width: 220px;
+        font-size: 14px;
+    }
+
+    .table-scroll-wrapper::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
+
+    .table-scroll-wrapper::-webkit-scrollbar-thumb {
+        background: #b5b5b5;
+        border-radius: 10px;
+    }
+
+    /* Remove all frozen/disabled styling */
+    .form-control,
+    .form-select {
+        background-color: #fff !important;
+        cursor: text;
+    }
+
+        /* Only auto-generated fields remain readonly */
+        .form-control[readonly] {
+            background-color: #f8f9fa !important;
+            cursor: not-allowed;
+        }
+
+    /* Remove green border from editable fields */
+    .border-success {
+        border-color: #ced4da !important;
+    }
+
+    /* Remove green text from labels */
+    .text-success {
+        color: #6c757d !important;
+        font-size: 0.85em;
+    }
+
+    /* FORCE NO HORIZONTAL SCROLL */
+    html, body {
+        overflow-x: hidden !important;
+    }
+
+    .container-fluid {
+        overflow-x: hidden !important;
+    }
+
+    /* Table styles */
+    .table-responsive {
+        max-height: 600px;
+        overflow-x: auto !important;
+        overflow-y: auto;
+    }
+
+    /* Make table fit width and allow wrapping */
+    .table {
+        width: 100% !important;
+        table-layout: fixed !important;
+    }
+
+        .table th, .table td {
+            white-space: normal !important;
+            word-wrap: break-word;
+            font-size: 10px;
+            padding: 4px;
+            overflow: hidden !important;
+        }
+
+    /* Fix badge overflow issue */
+    .badge {
+        display: inline-block;
+        max-width: 100%;
+        white-space: normal !important;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        font-size: 9px;
+        padding: 2px 4px;
+        line-height: 1.2;
+    }
+
+    .sticky-top {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background-color: #cfe2ff !important;
+    }
+
+    /* Header controls */
+    .gap-2 {
+        gap: 0.4rem !important;
+    }
+
+    .form-control-sm, .form-select-sm {
+        font-size: 12px !important;
+        padding: 4px 8px !important;
+    }
+    /* Custom badge styling for card types */
+    .badge-custom {
+        padding: 6px 12px !important;
+        font-size: 11px !important;
+        font-weight: bold !important;
+        border-radius: 4px !important;
+        display: inline-block;
+        min-width: 110px !important;
+        text-align: center;
+        white-space: nowrap;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    /* Make Card Type column wider (7th column) */
+    .table th:nth-child(7),
+    .table td:nth-child(7) {
+        min-width: 130px !important;
+        width: 130px !important;
+    }
+    /* Password column styling - Better readability */
+    .table th:nth-child(23),
+    .table td:nth-child(23) {
+        max-width: 200px !important;
+        min-width: 120px !important;
+        word-wrap: break-word !important;
+        white-space: normal !important;
+        overflow-wrap: break-word !important;
+        text-align: center !important;
+        vertical-align: middle !important;
+    }
+
+    .password-display {
+        display: inline-block;
+        word-break: break-word;
+        max-width: 170px;
+        font-size: 12px !important;
+        font-weight: 500 !important;
+        color: #333 !important;
+        line-height: 1.4 !important;
+        letter-spacing: 0.3px !important;
+    }
+
+    /* Status column styling - Centered */
+    .table th:nth-child(14),
+    .table td:nth-child(14) {
+        min-width: 120px !important;
+        text-align: center !important;
+        vertical-align: middle !important;
+    }
+</style>
+
+<script>
+    // Preserve card type filter selection on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        var selectedCardType = '@ViewBag.FilterCardType';
+        if (selectedCardType) {
+            document.getElementById('cardTypeFilter').value = selectedCardType;
+        }
+    });
+    // Toggle password visibility in edit form
+    function togglePassword() {
+        var passwordField = document.getElementById('passwordField');
+        var toggleIcon = document.getElementById('toggleIcon');
+
+        if (passwordField.type === 'password') {
+            passwordField.type = 'text';
+            toggleIcon.classList.remove('fa-eye');
+            toggleIcon.classList.add('fa-eye-slash');
+        } else {
+            passwordField.type = 'password';
+            toggleIcon.classList.remove('fa-eye-slash');
+            toggleIcon.classList.add('fa-eye');
+        }
+    }
+
+    // Toggle password visibility in table
+    function toggleTablePassword(button) {
+        var passwordSpan = button.previousElementSibling;
+        var icon = button.querySelector('i');
+        var actualPassword = passwordSpan.getAttribute('data-password');
+
+        if (passwordSpan.textContent === '****') {
+            passwordSpan.textContent = actualPassword;
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        } else {
+            passwordSpan.textContent = '****';
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        }
+    }
+
+</script>
+
+<script type="text/javascript">
+    var parentCompanyName = '';
+    var companyId = '';
+    var customerSite = '';
+    var currentShortCode = '';
+    var isEditMode = @((ViewBag.IsEdit == true) ? "true" : "false");
+
+    console.log('Page loaded - isEditMode:', isEditMode);
+    console.log('Model ID:', @Model.id);
+
+    // Export to Excel functionality
+    document.getElementById('exportExcelBtn').addEventListener('click', function() {
+        var filterCardType = document.getElementById('cardTypeFilter').value;
+        var sortColumn = '@ViewBag.SortColumn';
+        var sortOrder = '@ViewBag.SortOrder';
+
+        var exportUrl = '/ParkerCompany/ExportParkerCompaniesToExcel?';
+        var params = [];
+
+        if (filterCardType) {
+            params.push('filterCardType=' + encodeURIComponent(filterCardType));
+        }
+
+        if (sortColumn) {
+            params.push('sortColumn=' + encodeURIComponent(sortColumn));
+            params.push('sortOrder=' + encodeURIComponent(sortOrder));
+        }
+
+        exportUrl += params.join('&');
+        window.location.href = exportUrl;
+    });
+
+    // Card Type Filter Function
+    function applyCardTypeFilter() {
+        var selectedCardType = document.getElementById('cardTypeFilter').value;
+        var currentUrl = new URL(window.location.href);
+
+        if (selectedCardType) {
+            currentUrl.searchParams.set('filterCardType', selectedCardType);
+        } else {
+            currentUrl.searchParams.delete('filterCardType');
+        }
+
+        // Preserve existing sort parameters
+        var sortColumn = '@ViewBag.SortColumn';
+        var sortOrder = '@ViewBag.SortOrder';
+
+        if (sortColumn) {
+            currentUrl.searchParams.set('sortColumn', sortColumn);
+            currentUrl.searchParams.set('sortOrder', sortOrder);
+        }
+
+        window.location.href = currentUrl.toString();
+    }
+
+    // When parent company is selected
+    document.getElementById('parentCompanyDropdown').addEventListener('change', function() {
+        var selectedOption = this.options[this.selectedIndex];
+        companyId = selectedOption.value;
+        parentCompanyName = selectedOption.text;
+        customerSite = '';
+
+        if (companyId) {
+            document.getElementById('companyIdField').value = companyId;
+            document.getElementById('customerSiteField').value = customerSite;
+            document.getElementById('companyNameHidden').value = parentCompanyName;
+            generateSubCompanyDetails();
+        } else {
+            document.getElementById('companyIdField').value = '';
+            document.getElementById('customerSiteField').value = '';
+            document.getElementById('companyNameHidden').value = '';
+            document.getElementById('subCompanyIdField').value = '';
+            document.getElementById('subCompanyNameField').value = '';
+        }
+    });
+
+    // When card type is selected
+    document.getElementById('cardTypeDropdown').addEventListener('change', function() {
+        var cardType = this.value;
+
+        if (cardType) {
+            // Fetch shortcode from server
+            fetch('/ParkerCompany/GetCardTypeShortCode?cardType=' + encodeURIComponent(cardType))
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
+                    currentShortCode = data.shortCode;
+                    generateSubCompanyDetails();
+                })
+                .catch(function(error) {
+                    console.error('Error fetching shortcode:', error);
+                });
+        } else {
+            currentShortCode = '';
+            if (!isEditMode) {
+                document.getElementById('subCompanyIdField').value = '';
+                document.getElementById('subCompanyNameField').value = '';
+            }
+        }
+    });
+
+    // When suffix is changed
+    document.getElementById('suffixField').addEventListener('input', function() {
+        updateSubCompanyName();
+    });
+
+    function generateSubCompanyDetails() {
+        var cardType = document.getElementById('cardTypeDropdown').value;
+
+        if (companyId && cardType && parentCompanyName && currentShortCode) {
+            // Check if sub company already exists and get next counter
+            fetch('/ParkerCompany/CheckSubCompanyExists?companyId=' + companyId + '&cardType=' + encodeURIComponent(cardType))
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
+                    var baseSubCompanyId = companyId + '_' + currentShortCode;
+
+                    // Sub Company ID: Auto-incremental (only for new entries)
+                    if (!isEditMode) {
+                        if (data.exists) {
+                            var nextCounter = String(data.nextCounter).padStart(2, '0');
+                            var subCompanyId = baseSubCompanyId + '_' + nextCounter;
+                            document.getElementById('subCompanyIdField').value = subCompanyId;
+                        } else {
+                            document.getElementById('subCompanyIdField').value = baseSubCompanyId + '_01';
+                        }
+                    }
+
+                    // Sub Company Name: With custom suffix (only update if no suffix in edit mode)
+                    if (!isEditMode) {
+                        updateSubCompanyName();
+                    }
+                })
+                .catch(function(error) {
+                    console.error('Error checking sub company:', error);
+                    if (!isEditMode) {
+                        var subCompanyId = companyId + '_' + currentShortCode + '_01';
+                        document.getElementById('subCompanyIdField').value = subCompanyId;
+                        updateSubCompanyName();
+                    }
+                });
+        } else {
+            if (!isEditMode) {
+                document.getElementById('subCompanyIdField').value = '';
+                document.getElementById('subCompanyNameField').value = '';
+            }
+        }
+    }
+
+    function updateSubCompanyName() {
+        var suffix = document.getElementById('suffixField').value.trim();
+
+        if (companyId && currentShortCode && parentCompanyName) {
+            var baseSubCompanyName = parentCompanyName + '_' + currentShortCode;
+
+            // Add custom suffix from textbox
+            if (suffix) {
+                var subCompanyName = baseSubCompanyName + '_' + suffix;
+                document.getElementById('subCompanyNameField').value = subCompanyName;
+            } else {
+                document.getElementById('subCompanyNameField').value = baseSubCompanyName;
+            }
+        }
+    }
+
+    // Pre-fill for edit mode
+    window.addEventListener('DOMContentLoaded', function() {
+        console.log('DOMContentLoaded - isEditMode:', isEditMode);
+
+        if (isEditMode) {
+            setTimeout(function() {
+                var companyIdField = document.getElementById('companyIdField').value;
+                var subCompanyNameValue = document.getElementById('subCompanyNameField').value;
+                var cardTypeValue = document.getElementById('cardTypeDropdown').value;
+
+                console.log('Edit Mode Values:');
+                console.log('- Company ID:', companyIdField);
+                console.log('- Sub Company Name:', subCompanyNameValue);
+                console.log('- Card Type:', cardTypeValue);
+
+                // Set the parent company dropdown
+                var parentDropdown = document.getElementById('parentCompanyDropdown');
+                if (companyIdField && parentDropdown) {
+                    for (var i = 0; i < parentDropdown.options.length; i++) {
+                        if (parentDropdown.options[i].value === companyIdField) {
+                            parentDropdown.selectedIndex = i;
+                            companyId = parentDropdown.options[i].value;
+                            parentCompanyName = parentDropdown.options[i].text;
+                            document.getElementById('companyNameHidden').value = parentCompanyName;
+                            break;
+                        }
+                    }
+                }
+
+                // Get shortcode for the card type and extract suffix
+                if (cardTypeValue) {
+                    fetch('/ParkerCompany/GetCardTypeShortCode?cardType=' + encodeURIComponent(cardTypeValue))
+                        .then(r => r.json())
+                        .then(data => {
+                            currentShortCode = data.shortCode;
+
+                            if (subCompanyNameValue && parentCompanyName && currentShortCode) {
+                                var baseName = parentCompanyName + '_' + currentShortCode;
+
+                                if (subCompanyNameValue.startsWith(baseName + '_')) {
+                                    var extractedSuffix = subCompanyNameValue.substring(baseName.length + 1);
+                                    document.getElementById('suffixField').value = extractedSuffix;
+                                }
+                            }
+                        });
+                }
+
+                var formCard = document.getElementById('companyForm');
+                // Pre-fill password field in edit mode
+                var passwordValue = '@Model.card_parkers_company_password';
+                if (passwordValue) {
+                    document.getElementById('passwordField').value = passwordValue;
+                }
+                    // Pre-fill Card Limit field in edit mode
+    var cardLimitValue = '@Model.Total_Card_Limit_Under_Sub_Co';
+    if (cardLimitValue && cardLimitValue !== '0') {
+        document.getElementById('cardLimitInput').value = cardLimitValue;
+    }
+
+                // Pre-fill Negative Balance checkbox
+                    var negBalValue = parseInt('@Model.Neg_Balance_allowed') || 0;
+    if (negBalValue === 1) {
+        document.getElementById('negBalCheckbox').checked = true;
+    }
+
+                if (formCard) {
+                    formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }, 200);
+        }
+    });
+
+    // Contact number validation
+    document.getElementById('contactNumberInput')?.addEventListener('blur', function() {
+        var contactNumber = this.value.trim();
+        var currentId = document.querySelector('[name="id"]')?.value || 0;
+        var errorElement = document.getElementById('contactNumberError');
+        var submitButton = document.querySelector('button[type="submit"]');
+
+        if (contactNumber) {
+            fetch('/ParkerCompany/CheckContactNumberExists?contactNumber=' + encodeURIComponent(contactNumber) + '&id=' + currentId)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.exists) {
+                        errorElement.style.display = 'block';
+                        this.style.borderColor = 'red';
+                        submitButton.disabled = true;
+                    } else {
+                        errorElement.style.display = 'none';
+                        this.style.borderColor = '';
+                        submitButton.disabled = false;
+                    }
+                })
+                .catch(err => {
+                    console.error('Error checking contact number:', err);
+                    submitButton.disabled = false;
+                });
+        } else {
+            errorElement.style.display = 'none';
+            this.style.borderColor = '';
+            submitButton.disabled = false;
+        }
+    });
+
+    document.getElementById('contactNumberInput')?.addEventListener('input', function() {
+        var errorElement = document.getElementById('contactNumberError');
+        errorElement.style.display = 'none';
+        this.style.borderColor = '';
+        document.querySelector('button[type="submit"]').disabled = false;
+    });
+
+    // Table sorting functionality (for numeric columns)
+    var sortDirections = {}; // Track sort direction for each column
+
+    function sortTable(columnIndex) {
+        var table = document.getElementById("companyListTable");
+        var tbody = table.querySelector("tbody");
+        var rows = Array.from(tbody.querySelectorAll("tr"));
+
+        // Toggle sort direction
+        if (!sortDirections[columnIndex]) {
+            sortDirections[columnIndex] = 'asc';
+        } else {
+            sortDirections[columnIndex] = sortDirections[columnIndex] === 'asc' ? 'desc' : 'asc';
+        }
+
+        var direction = sortDirections[columnIndex];
+
+        // Sort rows
+        rows.sort(function(a, b) {
+            var aCell = a.cells[columnIndex].textContent.trim();
+            var bCell = b.cells[columnIndex].textContent.trim();
+
+            // Remove commas and convert to number for numeric sorting
+            var aValue = parseFloat(aCell.replace(/,/g, ''));
+            var bValue = parseFloat(bCell.replace(/,/g, ''));
+
+            if (direction === 'asc') {
+                return aValue - bValue;
+            } else {
+                return bValue - aValue;
+            }
+        });
+
+        // Re-append sorted rows
+        rows.forEach(function(row) {
+            tbody.appendChild(row);
+        });
+
+        // Update sort icon
+        updateSortIcons(columnIndex, direction);
+    }
+
+    function updateSortIcons(activeColumn, direction) {
+        var headers = document.querySelectorAll("#companyListTable thead th");
+
+        headers.forEach(function(header, index) {
+            var icon = header.querySelector("i");
+            if (icon) {
+                if (index === activeColumn) {
+                    icon.className = direction === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
+                } else if (!icon.className.includes('fa-sort-up') && !icon.className.includes('fa-sort-down')) {
+                    icon.className = 'fas fa-sort';
+                }
+            }
+        });
+    }
+        /* =========================================
+       REALTIME REPORT STYLE PAGINATION
+    ========================================= */
+
+    var PAGE_SIZE = 50;
+    var currentPage = 1;
+    var allRows = [];
+    var filteredRows = [];
+
+    document.addEventListener('DOMContentLoaded', function () {
+
+        allRows = Array.from(document.querySelectorAll('#companyListTable tbody tr'));
+        filteredRows = [...allRows];
+
+        setupSearch();
+        renderTable();
+    });
+
+    function setupSearch() {
+
+        document.getElementById('companySearchInput')
+            .addEventListener('input', function () {
+
+                var query = this.value.toLowerCase().trim();
+
+                filteredRows = allRows.filter(function (row) {
+
+                    return row.innerText
+                        .toLowerCase()
+                        .includes(query);
+                });
+
+                currentPage = 1;
+                renderTable();
+            });
+
+        var cardFilter = document.getElementById('cardTypeFilter');
+
+        if (cardFilter) {
+
+            cardFilter.addEventListener('change', function () {
+
+                applyFilters();
+            });
+        }
+    }
+
+    function applyFilters() {
+
+        var query = document.getElementById('companySearchInput')
+            .value.toLowerCase().trim();
+
+        var selectedCard = '';
+
+        var cardFilter = document.getElementById('cardTypeFilter');
+
+        if (cardFilter) {
+            selectedCard = cardFilter.value.toLowerCase();
+        }
+
+        filteredRows = allRows.filter(function (row) {
+
+            var text = row.innerText.toLowerCase();
+
+            var matchesSearch = text.includes(query);
+
+            var matchesCard = true;
+
+            if (selectedCard) {
+                matchesCard = text.includes(selectedCard);
+            }
+
+            return matchesSearch && matchesCard;
+        });
+
+        currentPage = 1;
+
+        renderTable();
+    }
+
+    function renderTable() {
+
+        allRows.forEach(function (row) {
+            row.style.display = 'none';
+        });
+
+        var total = filteredRows.length;
+
+        var start = (currentPage - 1) * PAGE_SIZE;
+        var end = start + PAGE_SIZE;
+
+        filteredRows
+            .slice(start, end)
+            .forEach(function (row) {
+                row.style.display = '';
+            });
+
+        updatePageInfo(total, start, end);
+
+        buildPagination(total);
+
+        var wrapper = document.querySelector('.table-scroll-wrapper');
+
+        if (wrapper) {
+            wrapper.scrollTop = 0;
+        }
+    }
+
+    function updatePageInfo(total, start, end) {
+
+        var pageInfo = document.getElementById('pageInfo');
+
+        if (total === 0) {
+
+            pageInfo.innerText = 'No records found';
+            return;
+        }
+
+        pageInfo.innerText =
+            'Showing ' +
+            (start + 1) +
+            ' - ' +
+            Math.min(end, total) +
+            ' of ' +
+            total +
+            ' records';
+    }
+
+    function buildPagination(totalRecords) {
+
+        var totalPages =
+            Math.ceil(totalRecords / PAGE_SIZE);
+
+        var pagination =
+            document.getElementById('pagination');
+
+        pagination.innerHTML = '';
+
+        if (totalPages <= 1) return;
+
+        addPageButton('« Prev',
+            currentPage - 1,
+            currentPage === 1);
+
+        for (var i = 1; i <= totalPages; i++) {
+
+            addPageButton(
+                i,
+                i,
+                false,
+                i === currentPage
+            );
+        }
+
+        addPageButton(
+            'Next »',
+            currentPage + 1,
+            currentPage === totalPages
+        );
+    }
+
+    function addPageButton(text, page, disabled, active) {
+
+        var li = document.createElement('li');
+
+        li.className =
+            'page-item' +
+            (disabled ? ' disabled' : '') +
+            (active ? ' active' : '');
+
+        var a = document.createElement('a');
+
+        a.className = 'page-link';
+
+        a.innerHTML = text;
+
+        a.href = '#';
+
+        if (!disabled) {
+
+            a.addEventListener('click', function (e) {
+
+                e.preventDefault();
+
+                currentPage = page;
+
+                renderTable();
+            });
+        }
+
+        li.appendChild(a);
+
+        document.getElementById('pagination')
+            .appendChild(li);
+    }
+</script>
+
+
+
+
+
+
+
+

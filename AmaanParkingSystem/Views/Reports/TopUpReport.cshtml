@@ -1,0 +1,2063 @@
+﻿@{
+    ViewData["Title"] = "Top-Up Report";
+}
+
+<div class="container-fluid" style="padding-top: 10px;">
+
+    <div id="statusMessage" class="alert" style="display:none; margin-bottom: 20px;"></div>
+
+    <!-- TABS -->
+    <ul class="nav nav-tabs" id="topupTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="company-topup-tab" data-bs-toggle="tab" data-bs-target="#company-topup" type="button" role="tab">
+                <i class="fas fa-building"></i> Company TOP-UP
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="report-tab" data-bs-toggle="tab" data-bs-target="#report" type="button" role="tab">
+                <i class="fas fa-file-alt"></i> TOP-UP Report
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="topupTabsContent">
+        <!-- COMPANY TOP-UP TAB -->
+        <div class="tab-pane fade" id="company-topup" role="tabpanel">
+            <div class="card shadow-sm mt-3">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-building"></i> Company TOP-UP Management</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Left Column -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label"><strong>COMPANY NAME</strong></label>
+                                <select id="ct_subCompanyId" class="form-select">
+                                    <option value="">-- Select Company --</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label"><strong>COMPANY ID</strong></label>
+                                <input type="text" id="ct_companyId" class="form-control" readonly />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label"><strong>MOBILE NO</strong></label>
+                                <input type="text" id="ct_mobile" class="form-control" readonly />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label"><strong>CARD TYPE</strong></label>
+                                <input type="text" id="ct_cardType" class="form-control" readonly />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label"><strong>TOTAL CARDS</strong></label>
+                                <input type="text" id="ct_totalCards" class="form-control" readonly />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label"><strong>TOTAL CARD LIMIT</strong></label>
+                                <input type="text" id="ct_totalLimit" class="form-control" readonly />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label"><strong>TAG NO</strong></label>
+                                <input type="text" id="ct_tagNo" class="form-control" placeholder="Type tag number..." />
+                                <small class="text-muted">Type tag number to auto-fill company details</small>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label"><strong>KRA PIN</strong></label>
+                                <input type="text" id="ct_kraPin" class="form-control" readonly />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label"><strong>EMAIL</strong></label>
+                                <input type="text" id="ct_email" class="form-control" readonly />
+                            </div>
+                        </div>
+
+                        <!-- Right Column -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label"><strong>CURRENT BALANCE</strong></label>
+                                <input type="text" id="ct_balance" class="form-control" readonly />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label"><strong>TOP-UP AMOUNT</strong></label>
+                                <input type="number" id="ct_topUpAmount" class="form-control" placeholder="Enter amount" min="1" step="0.01" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label"><strong>FINAL BALANCE</strong></label>
+                                <input type="text" id="ct_finalBalance" class="form-control bg-light" readonly />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label"><strong>REMARK</strong></label>
+                                <input type="text" id="ct_remark" class="form-control" placeholder="Enter remark" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label"><strong>MPESA PHONE NUMBER</strong></label>
+                                <input type="tel" id="ct_mpesaPhone" class="form-control" placeholder="0700123456" maxlength="13" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label"><strong>Mode Of Payment</strong><span class="text-danger">*</span></label>
+                                <div style="max-width: 600px;">
+                                    <div class="d-flex gap-2 mb-3">
+                                        <div class="form-check payment-option-small flex-fill">
+                                            <input class="form-check-input" type="radio" name="ct_paymentMode" id="ct_mpesa" value="MPESA">
+                                            <label class="form-check-label payment-label-small" for="ct_mpesa">
+                                                <i class="fas fa-mobile-alt"></i> MPESA
+                                            </label>
+                                        </div>
+                                        <div class="form-check payment-option-small flex-fill">
+                                            <input class="form-check-input" type="radio" name="ct_paymentMode" id="ct_cash" value="CASH">
+                                            <label class="form-check-label payment-label-small" for="ct_cash">
+                                                <i class="fas fa-money-bill-wave"></i> CASH
+                                            </label>
+                                        </div>
+                                        <div class="form-check payment-option-small flex-fill">
+                                            <input class="form-check-input" type="radio" name="ct_paymentMode" id="ct_mpesavia" value="MPESA VIA PAYBILL">
+                                            <label class="form-check-label payment-label-small" for="ct_mpesavia">
+                                                <i class="fas fa-credit-card"></i> PAYBILL
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex gap-2 mb-2">
+                                        <button class="btn btn-success btn-custom flex-fill" onclick="confirmTopUp()">
+                                            <i class="fas fa-check-circle"></i> Confirm
+                                        </button>
+                                        <button class="btn btn-danger btn-custom flex-fill" onclick="cancelTopUp()">
+                                            <i class="fas fa-times-circle"></i> Cancel
+                                        </button>
+                                    </div>
+
+                                    <button class="btn btn-primary btn-custom w-100" onclick="sendRequest()">
+                                        <i class="fas fa-paper-plane"></i> Send Request
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- List Of Tags Section -->
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-header bg-dark text-white">
+                                    <h6 class="mb-0">List Of Tags</h6>
+                                </div>
+                                <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                                    <div id="tagListContainer">
+                                        <p class="text-muted text-center">Select a company to view tags</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TOP-UP REPORT TAB (Existing report) -->
+        <div class="tab-pane fade show active" id="report" role="tabpanel">
+            <!-- Filters Card -->
+            <div class="card shadow-sm mb-4 mt-3">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-filter"></i> Filters</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="form-label"><strong>Start Date</strong></label>
+                            <input type="text" id="startDate" class="form-control datepicker" placeholder="DD-MMM-YYYY" readonly />
+                            <input type="hidden" id="startDateHidden" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label"><strong>End Date</strong></label>
+                            <input type="text" id="endDate" class="form-control datepicker" placeholder="DD-MMM-YYYY" readonly />
+                            <input type="hidden" id="endDateHidden" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label"><strong>Sub Company</strong></label>
+                            <input list="subCompanyList" id="subCompanyInput" class="form-control" placeholder="Type to search sub company" />
+                            <datalist id="subCompanyList"></datalist>
+                            <input type="hidden" id="subCompany" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label"><strong>Payment Source</strong></label>
+                            <div class="dropdown">
+                                <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start" type="button" id="paymentSourceDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <span id="selectedSourcesLabel">All Sources</span>
+                                </button>
+                                <ul class="dropdown-menu w-100 p-2" id="paymentSourceList" aria-labelledby="paymentSourceDropdown" style="max-height: 300px; overflow-y: auto;">
+                                    <li>
+                                        <div class="form-check">
+                                            <input class="form-check-input payment-source-checkbox" type="checkbox" value="All" id="sourceAll" checked>
+                                            <label class="form-check-label" for="sourceAll">All Sources</label>
+                                        </div>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <button class="btn btn-primary" onclick="loadTopUpReport()">
+                                <i class="fas fa-search"></i> Search
+                            </button>
+                            <button class="btn btn-success" onclick="exportToExcel()">
+                                <i class="fas fa-file-excel"></i> Export to Excel
+                            </button>
+                            <button class="btn btn-secondary" onclick="resetFilters()">
+                                <i class="fas fa-redo"></i> Reset
+                            </button>
+                            <button class="btn btn-warning" onclick="openWaiverModal()">
+                                <i class="fas fa-hand-holding-usd"></i> Add Waiver/Discount
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <button class="btn btn-outline-primary btn-sm me-1" id="thisMonthBtn">This Month</button>
+                            <button class="btn btn-outline-primary btn-sm me-1" id="lastMonthBtn">Previous Month</button>
+                            <button class="btn btn-outline-secondary btn-sm me-1" id="thisYearBtn">This Year</button>
+                            <button class="btn btn-outline-secondary btn-sm" id="lastYearBtn">Previous Year</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="row mb-4" id="summaryCards" style="display:none;">
+                <div class="col-md-6">
+                    <div class="card bg-info text-white h-100">
+                        <div class="card-body text-center">
+                            <h6 class="card-title">Total Transactions</h6>
+                            <h2 class="mb-0" id="totalTransactions">0</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card bg-success text-white h-100">
+                        <div class="card-body text-center">
+                            <h6 class="card-title">Total Amount</h6>
+                            <h2 class="mb-0" id="totalAmount">KES 0.00</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Report Table -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="fas fa-table"></i> Top-Up Transactions</h5>
+                </div>
+                <div class="card-body">
+                    <div id="reportResult">
+                        <div class="text-center py-5">
+                            <i class="fas fa-info-circle fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">Click "Search" to load top-up transactions</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Existing Waiver Modal (keep as is) -->
+<div class="modal fade" id="waiverModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title"><i class="fas fa-hand-holding-usd"></i> Add Waiver / Discount</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="waiverForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label"><strong>COMPANY NAME</strong></label>
+                                <select id="wvr_subCompanyId" class="form-select" required>
+                                    <option value="">-- Select Company --</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label"><strong>COMPANY ID</strong></label>
+                                <input type="text" id="wvr_companyId" class="form-control" readonly />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label"><strong>MOBILE NO</strong></label>
+                                <input type="text" id="wvr_mobile" class="form-control" readonly />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label"><strong>CARD TYPE</strong></label>
+                                <input type="text" id="wvr_cardType" class="form-control" readonly />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label"><strong>TOTAL CARDS</strong></label>
+                                <input type="text" id="wvr_totalCards" class="form-control" readonly />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label"><strong>TOTAL CARD LIMIT</strong></label>
+                                <input type="text" id="wvr_totalLimit" class="form-control" readonly />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label"><strong>FINAL BALANCE</strong></label>
+                                <input type="text" id="wvr_finalBalance" class="form-control bg-light" readonly />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label"><strong>EMAIL</strong></label>
+                                <input type="text" id="wvr_email" class="form-control" readonly />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label"><strong>BALANCE</strong></label>
+                                <input type="text" id="wvr_balance" class="form-control" readonly />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label"><strong>Top-Up Amount</strong><span class="text-danger">*</span></label>
+                                <input type="number" id="wvr_topUpAmount" class="form-control" placeholder="Enter amount" required min="1" step="0.01" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label"><strong>REMARK</strong></label>
+                                <input type="text" id="wvr_remark" class="form-control" placeholder="Enter remark" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label"><strong>Mode Of Payment</strong><span class="text-danger">*</span></label>
+                                <div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="wvr_paymentMode" id="wvr_waiver" value="Waiver" checked>
+                                        <label class="form-check-label" for="wvr_waiver">WAIVER</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="wvr_paymentMode" id="wvr_discount" value="Discount">
+                                        <label class="form-check-label" for="wvr_discount">DISCOUNT</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-success" onclick="confirmWaiver()">
+                    <i class="fas fa-check"></i> Confirm
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- TOP-UP Confirmation Modal -->
+<div class="modal fade" id="topupConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fas fa-check-circle"></i> Confirm TOP-UP</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <h6 class="mb-3">Please verify the following details:</h6>
+                <table class="table table-bordered">
+                    <tr>
+                        <th width="40%">Company Name:</th>
+                        <td id="confirm_companyName"></td>
+                    </tr>
+                    <tr>
+                        <th>Company ID:</th>
+                        <td id="confirm_companyId"></td>
+                    </tr>
+                    <tr>
+                        <th>TOP-UP Amount:</th>
+                        <td id="confirm_amount" class="text-success fw-bold"></td>
+                    </tr>
+                    <tr>
+                        <th>Mode of Payment:</th>
+                        <td id="confirm_paymentMode" class="text-primary fw-bold"></td>
+                    </tr>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-success" onclick="processTopUp()">
+                    <i class="fas fa-check"></i> Confirm TOP-UP
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Error/Info Modal -->
+<div class="modal fade" id="messageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header" id="messageModalHeader">
+                <h5 class="modal-title" id="messageModalTitle">
+                    <i class="fas fa-info-circle"></i> Message
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="messageModalBody">
+                <!-- Message content -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title">
+                    <i class="fas fa-question-circle"></i> Confirmation
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="confirmModalBody">
+                <!-- Confirmation message -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmYesBtn">Yes</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Payment Tracking Modal -->
+<div class="modal fade" id="paymentTrackingModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white border-0">
+                <h5 class="modal-title"><i class="fas fa-mobile-alt"></i> M-Pesa Payment Tracking</h5>
+            </div>
+            <div class="modal-body p-4">
+                <!-- Progress Steps -->
+                <div class="payment-steps">
+                    <!-- Step 1: STK Push Sent -->
+                    <div class="payment-step" id="step-stk-push">
+                        <div class="step-icon">
+                            <i class="fas fa-paper-plane"></i>
+                        </div>
+                        <div class="step-content">
+                            <h6 class="step-title">STK Push Sent</h6>
+                            <p class="step-desc">Payment request sent to your phone</p>
+                        </div>
+                        <div class="step-status">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Awaiting Payment -->
+                    <div class="payment-step" id="step-awaiting">
+                        <div class="step-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="step-content">
+                            <h6 class="step-title">Awaiting Payment</h6>
+                            <p class="step-desc">Please enter your M-Pesa PIN</p>
+                        </div>
+                        <div class="step-status">
+                            <i class="fas fa-ellipsis-h"></i>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Verifying Payment -->
+                    <div class="payment-step" id="step-verifying">
+                        <div class="step-icon">
+                            <i class="fas fa-search"></i>
+                        </div>
+                        <div class="step-content">
+                            <h6 class="step-title">Verifying Payment</h6>
+                            <p class="step-desc">Checking transaction status</p>
+                        </div>
+                        <div class="step-status">
+                            <i class="fas fa-ellipsis-h"></i>
+                        </div>
+                    </div>
+
+                    <!-- Step 4: Processing Top-Up -->
+                    <div class="payment-step" id="step-processing">
+                        <div class="step-icon">
+                            <i class="fas fa-cog"></i>
+                        </div>
+                        <div class="step-content">
+                            <h6 class="step-title">Processing Top-Up</h6>
+                            <p class="step-desc">Adding balance to your account</p>
+                        </div>
+                        <div class="step-status">
+                            <i class="fas fa-ellipsis-h"></i>
+                        </div>
+                    </div>
+
+                    <!-- Step 5: Completed -->
+                    <div class="payment-step" id="step-completed">
+                        <div class="step-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="step-content">
+                            <h6 class="step-title">Top-Up Successful</h6>
+                            <p class="step-desc">Your account has been credited</p>
+                        </div>
+                        <div class="step-status">
+                            <i class="fas fa-ellipsis-h"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transaction Details -->
+                <div class="transaction-details mt-4" id="transactionDetails" style="display: none;">
+                    <div class="alert alert-success mb-0">
+                        <p class="mb-1"><strong>Amount:</strong> <span id="txnAmount"></span></p>
+                        <p class="mb-0"><strong>Transaction ID:</strong> <span id="txnId"></span></p>
+                    </div>
+                </div>
+
+                <!-- Error Message -->
+                <div class="alert alert-danger mt-3 mb-0" id="paymentError" style="display: none;">
+                    <i class="fas fa-exclamation-triangle"></i> <span id="errorMessage"></span>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" id="closeTrackingBtn" disabled>Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+    <style>
+        .datepicker {
+            cursor: pointer;
+            background-color: white !important;
+        }
+
+        .tag-item {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            background-color: #f8f9fa;
+            margin-bottom: 5px;
+            border-radius: 4px;
+        }
+
+            .tag-item:hover {
+                background-color: #e9ecef;
+            }
+
+        .payment-option-small {
+            margin-bottom: 0;
+        }
+
+            .payment-option-small input[type="radio"] {
+                display: none;
+            }
+
+        /* Fix payment mode button alignment - equal width */
+        .payment-option-small {
+            margin-bottom: 0;
+            flex: 1 1 0;
+            min-width: 0;
+        }
+
+        .payment-label-small {
+            display: block;
+            padding: 14px 10px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background-color: #fff;
+            font-weight: 600;
+            white-space: nowrap;
+            font-size: 16px;
+            min-height: 52px;
+            width: 100%;
+        }
+
+            .payment-label-small:hover {
+                border-color: #0d6efd;
+                background-color: #f8f9fa;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            }
+
+        .payment-option-small input[type="radio"]:checked + .payment-label-small {
+            background-color: #0d6efd;
+            color: white;
+            border-color: #0d6efd;
+            box-shadow: 0 4px 12px rgba(13, 110, 253, 0.4);
+        }
+
+        .payment-label-small i {
+            margin-right: 8px;
+            font-size: 18px;
+        }
+
+        /* Fix Confirm and Cancel button alignment - equal width */
+        .d-flex.gap-2.mb-2 {
+            display: flex !important;
+            gap: 0.5rem !important;
+        }
+
+            .d-flex.gap-2.mb-2 .btn-custom {
+                flex: 1 1 0;
+                min-width: 0;
+            }
+
+        /* Send Request button - full width */
+        .btn-custom.w-100 {
+            width: 100% !important;
+        }
+
+        /* Action button styles */
+        .btn-custom {
+            padding: 14px 20px;
+            font-size: 17px;
+            font-weight: 700;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            min-height: 52px;
+        }
+
+            .btn-custom:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+            }
+
+            .btn-custom i {
+                margin-right: 8px;
+                font-size: 18px;
+            }
+
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            border: none;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            border: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+            border: none;
+        }
+        /* Payment Tracking Modal Styles */
+        .payment-steps {
+            position: relative;
+        }
+
+        .payment-step {
+            display: flex;
+            align-items: center;
+            padding: 15px 0;
+            position: relative;
+        }
+
+            .payment-step:not(:last-child)::after {
+                content: '';
+                position: absolute;
+                left: 24px;
+                top: 60px;
+                width: 2px;
+                height: 40px;
+                background: #dee2e6;
+                z-index: 0;
+            }
+
+            .payment-step.active:not(:last-child)::after {
+                background: #0d6efd;
+            }
+
+            .payment-step.completed:not(:last-child)::after {
+                background: #28a745;
+            }
+
+        .step-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #e9ecef;
+            color: #6c757d;
+            font-size: 20px;
+            flex-shrink: 0;
+            z-index: 1;
+            transition: all 0.3s ease;
+        }
+
+        .payment-step.active .step-icon {
+            background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(13, 110, 253, 0.4);
+            animation: pulse 2s infinite;
+        }
+
+        .payment-step.completed .step-icon {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+        }
+
+        .payment-step.error .step-icon {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+        }
+
+        @@keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        .step-content {
+            flex-grow: 1;
+            padding-left: 15px;
+        }
+
+        .step-title {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: #212529;
+        }
+
+        .step-desc {
+            margin: 5px 0 0 0;
+            font-size: 13px;
+            color: #6c757d;
+        }
+
+        .payment-step.active .step-title {
+            color: #0d6efd;
+        }
+
+        .payment-step.completed .step-title {
+            color: #28a745;
+        }
+
+        .step-status {
+            width: 30px;
+            text-align: center;
+            font-size: 18px;
+        }
+
+        .payment-step .step-status {
+            color: #dee2e6;
+        }
+
+        .payment-step.active .step-status {
+            color: #0d6efd;
+        }
+
+        .payment-step.completed .step-status {
+            color: #28a745;
+        }
+
+            .payment-step.completed .step-status i {
+                animation: checkmark 0.5s ease;
+            }
+
+        @@keyframes checkmark {
+            0% {
+                transform: scale(0);
+            }
+
+            50% {
+                transform: scale(1.2);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .transaction-details {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        #messageModal .modal-body,
+        #confirmModal .modal-body {
+            font-size: 18px;
+            padding: 30px;
+        }
+
+        #messageModal .modal-title {
+            font-size: 22px;
+        }
+
+        #messageModal .btn {
+            padding: 10px 30px;
+            font-size: 16px;
+        }
+
+    </style>
+
+    <script>
+        let startDatePicker, endDatePicker;
+        let tagNoTimeout;
+        let tempSelectedPaymentMode = null;
+
+        document.addEventListener('DOMContentLoaded', function () {
+            initializeDatePickers();
+            loadSubCompanies();
+            loadPaymentSources();
+            setDefaultDates();
+            loadCompaniesForCompanyTopUp();
+
+            const subCompanyInput = document.getElementById('subCompanyInput');
+            const hiddenSubCompany = document.getElementById('subCompany');
+
+            subCompanyInput.addEventListener('change', function () {
+                const val = this.value;
+                const options = document.getElementById('subCompanyList').options;
+                let matchedId = '';
+
+                for (let i = 0; i < options.length; i++) {
+                    if (options[i].value === val) {
+                        matchedId = options[i].getAttribute('data-id') || '';
+                        break;
+                    }
+                }
+
+                hiddenSubCompany.value = matchedId;
+            });
+
+            document.getElementById('thisMonthBtn').addEventListener('click', setThisMonth);
+            document.getElementById('lastMonthBtn').addEventListener('click', setLastMonth);
+            document.getElementById('thisYearBtn').addEventListener('click', setThisYear);
+            document.getElementById('lastYearBtn').addEventListener('click', setLastYear);
+
+            // Company TOP-UP event handlers
+            const companySelect = document.getElementById('ct_subCompanyId');
+            const tagNoInput = document.getElementById('ct_tagNo');
+            const topUpAmountInput = document.getElementById('ct_topUpAmount');
+
+            if (companySelect) {
+                companySelect.addEventListener('change', loadCompanyDetailsForTopUp);
+            }
+
+            if (tagNoInput) {
+                tagNoInput.addEventListener('input', function() {
+                    clearTimeout(tagNoTimeout);
+                    tagNoTimeout = setTimeout(() => {
+                        loadCompanyDetailsByTagNo();
+                    }, 800);
+                });
+            }
+
+            if (topUpAmountInput) {
+                topUpAmountInput.addEventListener('input', calculateFinalBalanceTopUp);
+            }
+
+         // Payment mode confirmation on click
+        const paymentModeRadios = document.querySelectorAll('input[name="ct_paymentMode"]');
+        paymentModeRadios.forEach(radio => {
+            radio.addEventListener('change', function() {
+                const selectedMode = this.value;
+
+                // Show confirmation immediately when value changes
+                       showConfirm(`Are you sure you want to select "<strong>${selectedMode}</strong>" as the payment mode?`, () => {
+            tempSelectedPaymentMode = selectedMode;
+        });
+
+        // If user cancels or clicks outside, uncheck
+        const modalElement = document.getElementById('confirmModal');
+        modalElement.addEventListener('hidden.bs.modal', function onHidden() {
+            if (tempSelectedPaymentMode !== selectedMode) {
+                radio.checked = false;
+            }
+            modalElement.removeEventListener('hidden.bs.modal', onHidden);
+        });
+
+            });
+        });
+
+            // Waiver modal event handlers
+            setTimeout(function() {
+                const companySelect = document.getElementById('wvr_subCompanyId');
+                if (companySelect) {
+                    companySelect.addEventListener('change', loadCompanyDetailsForWaiver);
+                }
+
+                const topUpInput = document.getElementById('wvr_topUpAmount');
+                if (topUpInput) {
+                    topUpInput.addEventListener('input', calculateFinalBalance);
+                }
+            }, 500);
+        });
+                var closeTrackingBtn = document.getElementById('closeTrackingBtn');
+        if (closeTrackingBtn) {
+            closeTrackingBtn.addEventListener('click', function() {
+                var modalElement = document.getElementById('paymentTrackingModal');
+                if (modalElement) {
+                    var modal = bootstrap.Modal.getInstance(modalElement);
+                    if (modal) {
+                        modal.hide();
+                    }
+                }
+            });
+        }
+        function initializeDatePickers() {
+            startDatePicker = flatpickr("#startDate", {
+                dateFormat: "d-M-Y",
+                onChange: function (selectedDates) {
+                    if (selectedDates.length > 0) {
+                        const date = selectedDates[0];
+                        const year = date.getFullYear();
+                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                        const day = String(date.getDate()).padStart(2, '0');
+                        document.getElementById('startDateHidden').value = `${year}-${month}-${day}`;
+                    }
+                }
+            });
+
+            endDatePicker = flatpickr("#endDate", {
+                dateFormat: "d-M-Y",
+                onChange: function (selectedDates) {
+                    if (selectedDates.length > 0) {
+                        const date = selectedDates[0];
+                        const year = date.getFullYear();
+                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                        const day = String(date.getDate()).padStart(2, '0');
+                        document.getElementById('endDateHidden').value = `${year}-${month}-${day}`;
+                    }
+                }
+            });
+        }
+
+        function setDefaultDates() {
+            const today = new Date();
+            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+            startDatePicker.setDate(firstDay);
+            endDatePicker.setDate(today);
+        }
+
+        function setThisMonth() {
+            const today = new Date();
+            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+            startDatePicker.setDate(firstDay, true);
+            endDatePicker.setDate(today, true);
+            loadTopUpReport();
+        }
+
+        function setLastMonth() {
+            const today = new Date();
+            const firstDayLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+            const lastDayLastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+            startDatePicker.setDate(firstDayLastMonth, true);
+            endDatePicker.setDate(lastDayLastMonth, true);
+            loadTopUpReport();
+        }
+
+        function setThisYear() {
+            const today = new Date();
+            const firstDayYear = new Date(today.getFullYear(), 0, 1);
+            startDatePicker.setDate(firstDayYear, true);
+            endDatePicker.setDate(today, true);
+            loadTopUpReport();
+        }
+
+        function setLastYear() {
+            const today = new Date();
+            const lastYear = today.getFullYear() - 1;
+            const firstDayLastYear = new Date(lastYear, 0, 1);
+            const lastDayLastYear = new Date(lastYear, 11, 31);
+            startDatePicker.setDate(firstDayLastYear, true);
+            endDatePicker.setDate(lastDayLastYear, true);
+            loadTopUpReport();
+        }
+
+        function formatDateOnly(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            const day = String(date.getDate()).padStart(2, '0');
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const month = months[date.getMonth()];
+            const year = date.getFullYear();
+            return `${day}-${month}-${year}`;
+        }
+
+        async function loadSubCompanies() {
+            try {
+                const response = await fetch('/TopUpReport/GetSubCompanies');
+                const result = await response.json();
+
+                if (result.success) {
+                    const dataList = document.getElementById('subCompanyList');
+                    dataList.innerHTML = '';
+
+                    const emptyOption = document.createElement('option');
+                    emptyOption.value = '';
+                    emptyOption.textContent = 'All Companies';
+                    dataList.appendChild(emptyOption);
+
+                    result.data.forEach(company => {
+                        const option = document.createElement('option');
+                        option.value = `${company.car_parkers_sub_co_id} - ${company.car_parkers_sub_co_name}`;
+                        option.setAttribute('data-id', company.car_parkers_sub_co_id);
+                        dataList.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading sub companies:', error);
+            }
+        }
+
+        async function loadPaymentSources() {
+            try {
+                const response = await fetch('/TopUpReport/GetPaymentSources');
+                const result = await response.json();
+
+                if (result.success) {
+                    const list = document.getElementById('paymentSourceList');
+
+                    result.data.forEach(source => {
+                        const li = document.createElement('li');
+                        const div = document.createElement('div');
+                        div.className = 'form-check';
+
+                        const checkbox = document.createElement('input');
+                        checkbox.className = 'form-check-input payment-source-checkbox';
+                        checkbox.type = 'checkbox';
+                        checkbox.value = source.payment_source;
+                        checkbox.id = 'source_' + source.payment_source.replace(/[^a-zA-Z0-9]/g, '_');
+
+                        const label = document.createElement('label');
+                        label.className = 'form-check-label';
+                        label.htmlFor = checkbox.id;
+                        label.textContent = source.payment_source;
+
+                        div.appendChild(checkbox);
+                        div.appendChild(label);
+                        li.appendChild(div);
+                        list.appendChild(li);
+                    });
+
+                    setupPaymentSourceCheckboxes();
+                }
+            } catch (error) {
+                console.error('Error loading payment sources:', error);
+            }
+        }
+
+        function setupPaymentSourceCheckboxes() {
+            const allCheckbox = document.getElementById('sourceAll');
+            const otherCheckboxes = document.querySelectorAll('.payment-source-checkbox:not(#sourceAll)');
+            const label = document.getElementById('selectedSourcesLabel');
+
+            allCheckbox.addEventListener('change', function() {
+                if (this.checked) {
+                    otherCheckboxes.forEach(cb => cb.checked = false);
+                    label.textContent = 'All Sources';
+                }
+            });
+
+            otherCheckboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    if (this.checked) {
+                        allCheckbox.checked = false;
+                    }
+                    updateSelectedLabel();
+                });
+            });
+
+            function updateSelectedLabel() {
+                const checkedBoxes = Array.from(otherCheckboxes).filter(cb => cb.checked);
+
+                if (checkedBoxes.length === 0) {
+                    allCheckbox.checked = true;
+                    label.textContent = 'All Sources';
+                } else if (checkedBoxes.length === 1) {
+                    label.textContent = checkedBoxes[0].value;
+                } else {
+                    label.textContent = checkedBoxes.length + ' Sources Selected';
+                }
+            }
+        }
+
+        function getSelectedPaymentSources() {
+            const allCheckbox = document.getElementById('sourceAll');
+
+            if (allCheckbox.checked) {
+                return null;
+            }
+
+            const checkedBoxes = document.querySelectorAll('.payment-source-checkbox:not(#sourceAll):checked');
+            const selectedSources = Array.from(checkedBoxes).map(cb => cb.value);
+
+            return selectedSources.length > 0 ? selectedSources : null;
+        }
+
+        async function loadTopUpReport() {
+            const startDate = document.getElementById('startDateHidden').value;
+            const endDate = document.getElementById('endDateHidden').value;
+            const subCompany = document.getElementById('subCompany').value;
+            const selectedSources = getSelectedPaymentSources();
+
+            const resultDiv = document.getElementById('reportResult');
+            resultDiv.innerHTML = `<div class="text-center py-5"><i class="fas fa-spinner fa-spin fa-3x text-primary mb-3"></i><p>Loading transactions...</p></div>`;
+
+            try {
+                const params = new URLSearchParams();
+
+                if (startDate) params.append('startDate', startDate);
+                if (endDate) params.append('endDate', endDate);
+                if (subCompany) params.append('subCompanyId', subCompany);
+
+                if (selectedSources && selectedSources.length > 0) {
+                    selectedSources.forEach(source => {
+                        params.append('paymentSources', source);
+                    });
+                }
+
+                const response = await fetch(`/TopUpReport/GetTopUpTransactions?${params.toString()}`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                if (result.success) {
+                    displayReport(result.data);
+                } else {
+                    resultDiv.innerHTML = `<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> ${result.message || 'Error loading data'}</div>`;
+                    document.getElementById('summaryCards').style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                resultDiv.innerHTML = `<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> Error: ${error.message}</div>`;
+                document.getElementById('summaryCards').style.display = 'none';
+            }
+        }
+
+        function displayReport(data) {
+            document.getElementById('summaryCards').style.display = 'flex';
+            document.getElementById('totalTransactions').textContent = data.totalRecords || data.TotalRecords || 0;
+
+            const totalAmount = data.totalAmount || data.TotalAmount || 0;
+            document.getElementById('totalAmount').textContent =
+                `KES ${parseFloat(totalAmount).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+            const resultDiv = document.getElementById('reportResult');
+            const transactions = data.data || data.Data || [];
+
+            if (transactions.length === 0) {
+                resultDiv.innerHTML = '<div class="alert alert-warning"><i class="fas fa-info-circle"></i> No top-up transactions found for the selected criteria.</div>';
+                return;
+            }
+
+            let table = `
+                <div class="table-responsive">
+                    <table class="table table-striped table-bordered table-hover" id="topUpTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>#</th>
+                                <th>Transaction ID</th>
+                                <th>Payment Date</th>
+                                <th>Payment Time</th>
+                                <th>Sub Company ID</th>
+                                <th>Sub Company Name</th>
+                                <th>Payment Amount</th>
+                                <th>Payment Source</th>
+                                <th>Payment Mode</th>
+                                <th>Operator</th>
+                                <th>Status</th>
+                                <th>Created By</th>
+                                <th>Remark</th>
+                            </tr>
+                        </thead>
+                        <tbody>`;
+
+            let rowNumber = 1;
+            transactions.forEach(row => {
+                const paymentDate = formatDateOnly(row.payment_date);
+                const paymentTime = row.payment_time || '';
+                const amount = parseFloat(row.paidamount || 0).toFixed(2);
+
+                table += `<tr>
+                    <td>${rowNumber++}</td>
+                    <td>${row.transaction_id || '-'}</td>
+                    <td>${paymentDate}</td>
+                    <td>${paymentTime}</td>
+                    <td>${row.car_parkers_sub_co_id || '-'}</td>
+                    <td>${row.car_parkers_sub_co_name || '-'}</td>
+                    <td class="text-end"><strong>KES ${amount}</strong></td>
+                    <td>${row.payment_source_name || '-'}</td>
+                    <td>${row.payment_mode || '-'}</td>
+                    <td>${row.operator_name || '-'}</td>
+                    <td><span class="badge ${(row.transaction_status === 'Success' || row.transaction_status === 'Completed') ? 'bg-success' : 'bg-warning'}">${row.transaction_status || '-'}</span></td>
+                    <td>${row.created_by || '-'}</td>
+                    <td>${row.Remark || '-'}</td>
+                </tr>`;
+            });
+
+            table += '</tbody></table></div>';
+            resultDiv.innerHTML = table;
+        }
+
+        async function exportToExcel() {
+            const startDate = document.getElementById('startDateHidden').value;
+            const endDate = document.getElementById('endDateHidden').value;
+            const subCompanyId = document.getElementById('subCompany').value;
+            const subCompanyInput = document.getElementById('subCompanyInput');
+            const selectedSources = getSelectedPaymentSources();
+
+            try {
+                let subCompanyName = 'AllCompanies';
+                if (subCompanyId) {
+                    const fullText = subCompanyInput.value;
+                    subCompanyName = fullText.split('-')[1] || fullText;
+                    subCompanyName = subCompanyName.replace(/\s/g, '').replace(/[^a-zA-Z0-9]/g, '');
+                }
+
+                let dateRange = '';
+                if (startDate && endDate) {
+                    const startParts = startDate.split('-');
+                    const endParts = endDate.split('-');
+                    dateRange = `_${startParts[0]}${startParts[1]}${startParts[2]}_to_${endParts[0]}${endParts[1]}${endParts[2]}`;
+                }
+
+                showMessage('Generating Excel file...', 'info');
+
+                const response = await fetch('/TopUpReport/ExportToExcel', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        startDate: startDate || null,
+                        endDate: endDate || null,
+                        subCompanyId: subCompanyId || null,
+                        paymentSources: selectedSources
+                    })
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    const fileName = `TOPUP_Report${dateRange}_${subCompanyName}.xls`;
+                    a.download = fileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    showMessage('Excel file downloaded successfully!', 'success');
+                } else {
+                    showMessage('Error generating Excel file', 'danger');
+                }
+            } catch (error) {
+                showMessage('Error: ' + error.message, 'danger');
+            }
+        }
+
+        function resetFilters() {
+            setDefaultDates();
+            document.getElementById('subCompanyInput').value = '';
+            document.getElementById('subCompany').value = '';
+            document.getElementById('reportResult').innerHTML =
+                '<div class="text-center py-5"><i class="fas fa-info-circle fa-3x text-muted mb-3"></i><p class="text-muted">Click "Search" to load top-up transactions</p></div>';
+            document.getElementById('summaryCards').style.display = 'none';
+        }
+
+                function showMessage(message, type) {
+            // Show in modal instead of inline alert
+            showModal(message, type);
+
+            // Still update the inline alert for backwards compatibility
+            var alertDiv = $("#statusMessage");
+            alertDiv.removeClass().addClass("alert alert-" + type);
+            alertDiv.html(message);
+            alertDiv.fadeIn();
+            setTimeout(function () {
+                alertDiv.fadeOut();
+            }, 5000);
+        }
+
+        function openWaiverModal() {
+            loadCompaniesForWaiver();
+            document.getElementById('waiverForm').reset();
+            document.getElementById('wvr_companyId').value = '';
+            document.getElementById('wvr_mobile').value = '';
+            document.getElementById('wvr_cardType').value = '';
+            document.getElementById('wvr_totalCards').value = '';
+            document.getElementById('wvr_totalLimit').value = '';
+            document.getElementById('wvr_email').value = '';
+            document.getElementById('wvr_balance').value = '';
+            document.getElementById('wvr_finalBalance').value = '';
+
+            var modal = new bootstrap.Modal(document.getElementById('waiverModal'));
+            modal.show();
+        }
+
+        async function loadCompaniesForWaiver() {
+            try {
+                const response = await fetch('/TopUpReport/GetSubCompanies');
+                const result = await response.json();
+
+                if (result.success) {
+                    const select = document.getElementById('wvr_subCompanyId');
+                    select.innerHTML = '<option value="">-- Select Company --</option>';
+
+                    result.data.forEach(company => {
+                        const option = document.createElement('option');
+                        option.value = company.car_parkers_sub_co_id;
+                        option.textContent = company.car_parkers_sub_co_name;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading companies:', error);
+            }
+        }
+
+        async function loadCompanyDetailsForWaiver() {
+            const subCoId = document.getElementById('wvr_subCompanyId').value;
+
+            if (!subCoId) {
+                clearWaiverFields();
+                return;
+            }
+
+            try {
+                const response = await fetch(`/TopUpReport/GetCompanyDetailsForWaiver?subCoId=${subCoId}`);
+                const result = await response.json();
+
+                if (result.success && result.data) {
+                    const data = result.data;
+
+                    document.getElementById('wvr_companyId').value = data.car_parkers_sub_co_id || '';
+                    document.getElementById('wvr_mobile').value = data.sub_co_car_parkers_contact_number || '';
+                    document.getElementById('wvr_cardType').value = data.applicable_card_type || '';
+                    document.getElementById('wvr_totalCards').value = data.Total_Cards_Under_Sub_Co || '0';
+                    document.getElementById('wvr_totalLimit').value = 'KES ' + (data.Total_Card_Limit_Under_Sub_Co || '0');
+                    document.getElementById('wvr_email').value = data.sub_co_car_parkers_email || '';
+                    document.getElementById('wvr_balance').value = 'KES ' + (data.Balance_Amount || '0');
+
+                    calculateFinalBalance();
+                } else {
+                    showMessage(result.message || 'Company not found', 'warning');
+                }
+            } catch (error) {
+                console.error('Error loading company details:', error);
+                showMessage('Error loading company details', 'danger');
+            }
+        }
+
+        function calculateFinalBalance() {
+            const balanceText = document.getElementById('wvr_balance').value;
+            const topUpAmount = parseFloat(document.getElementById('wvr_topUpAmount').value) || 0;
+
+            const currentBalance = parseFloat(balanceText.replace('KES ', '').replace(/,/g, '')) || 0;
+            const finalBalance = currentBalance + topUpAmount;
+
+            document.getElementById('wvr_finalBalance').value = 'KES ' + finalBalance.toFixed(2);
+        }
+
+        function clearWaiverFields() {
+            document.getElementById('wvr_companyId').value = '';
+            document.getElementById('wvr_mobile').value = '';
+            document.getElementById('wvr_cardType').value = '';
+            document.getElementById('wvr_totalCards').value = '';
+            document.getElementById('wvr_totalLimit').value = '';
+            document.getElementById('wvr_email').value = '';
+            document.getElementById('wvr_balance').value = '';
+            document.getElementById('wvr_finalBalance').value = '';
+        }
+
+        async function confirmWaiver() {
+            const form = document.getElementById('waiverForm');
+
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            const subCompanyId = document.getElementById('wvr_subCompanyId').value;
+            const subCompanyName = document.getElementById('wvr_subCompanyId').selectedOptions[0].text;
+            const topUpAmount = parseFloat(document.getElementById('wvr_topUpAmount').value);
+            const remark = document.getElementById('wvr_remark').value;
+            const paymentMode = document.querySelector('input[name="wvr_paymentMode"]:checked').value;
+
+            if (!subCompanyId) {
+                showMessage('Please select a company', 'warning');
+                return;
+            }
+
+            if (topUpAmount <= 0) {
+                showMessage('Please enter a valid amount', 'warning');
+                return;
+            }
+
+            try {
+                showMessage('Processing...', 'info');
+
+                const response = await fetch('/TopUpReport/AddWaiverDiscount', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        subCompanyId: subCompanyId,
+                        subCompanyName: subCompanyName,
+                        topUpAmount: topUpAmount,
+                        remark: remark,
+                        paymentMode: paymentMode,
+                        operatorName: 'System',
+                        createdBy: 'Admin'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage(`${paymentMode} added successfully! ID: ${result.transactionId}`, 'success');
+
+                    var modal = bootstrap.Modal.getInstance(document.getElementById('waiverModal'));
+                    modal.hide();
+
+                    if (document.getElementById('startDateHidden').value) {
+                        loadTopUpReport();
+                    }
+                } else {
+                    showMessage(result.message || 'Error adding waiver/discount', 'danger');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage('Error: ' + error.message, 'danger');
+            }
+        }
+
+        // ===== COMPANY TOP-UP TAB FUNCTIONS =====
+        async function loadCompaniesForCompanyTopUp() {
+            try {
+                const response = await fetch('/TopUpReport/GetSubCompanies');
+                const result = await response.json();
+
+                if (result.success) {
+                    const select = document.getElementById('ct_subCompanyId');
+                    select.innerHTML = '<option value="">-- Select Company --</option>';
+
+                    result.data.forEach(company => {
+                        const option = document.createElement('option');
+                        option.value = company.car_parkers_sub_co_id;
+                        option.textContent = company.car_parkers_sub_co_name;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading companies:', error);
+            }
+        }
+
+        async function loadCompanyDetailsForTopUp() {
+            const subCoId = document.getElementById('ct_subCompanyId').value;
+
+            if (!subCoId) {
+                clearTopUpFields();
+                return;
+            }
+
+            try {
+                const response = await fetch(`/TopUpReport/GetCompanyDetailsForTopUp?subCoId=${subCoId}`);
+                const result = await response.json();
+
+                if (result.success && result.data) {
+                    const data = result.data;
+
+                    document.getElementById('ct_companyId').value = data.car_parkers_sub_co_id || '';
+                    document.getElementById('ct_mobile').value = data.sub_co_car_parkers_contact_number || '';
+                    document.getElementById('ct_cardType').value = data.applicable_card_type || '';
+                    document.getElementById('ct_totalCards').value = data.Total_Cards_Under_Sub_Co || '0';
+                    document.getElementById('ct_totalLimit').value = (data.Total_Card_Limit_Under_Sub_Co || '0');
+                    document.getElementById('ct_email').value = data.sub_co_car_parkers_email || '';
+                    document.getElementById('ct_balance').value = 'KES ' + (data.Balance_Amount || '0');
+                    document.getElementById('ct_kraPin').value = data.sub_co_car_parkers_pin || '';
+                    document.getElementById('ct_tagNo').value = result.tagNo || '';
+
+                    calculateFinalBalanceTopUp();
+                    loadCompanyTags(subCoId);
+                } else {
+                    showMessage(result.message || 'Company not found', 'warning');
+                }
+            } catch (error) {
+                console.error('Error loading company details:', error);
+                showMessage('Error loading company details', 'danger');
+            }
+        }
+
+        async function loadCompanyDetailsByTagNo() {
+            const tagNo = document.getElementById('ct_tagNo').value.trim();
+
+            if (!tagNo) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/TopUpReport/GetCompanyDetailsByTagNo?tagNo=${encodeURIComponent(tagNo)}`);
+                const result = await response.json();
+
+                if (result.success && result.data) {
+                    const data = result.data;
+
+                    document.getElementById('ct_companyId').value = data.car_parkers_sub_co_id || '';
+                    document.getElementById('ct_mobile').value = data.sub_co_car_parkers_contact_number || '';
+                    document.getElementById('ct_cardType').value = data.applicable_card_type || '';
+                    document.getElementById('ct_totalCards').value = data.Total_Cards_Under_Sub_Co || '0';
+                    document.getElementById('ct_totalLimit').value = 'KES ' + (data.Total_Card_Limit_Under_Sub_Co || '0');
+                    document.getElementById('ct_email').value = data.sub_co_car_parkers_email || '';
+                    document.getElementById('ct_balance').value = 'KES ' + (data.Balance_Amount || '0');
+                    document.getElementById('ct_kraPin').value = data.sub_co_car_parkers_pin || '';
+
+                    document.getElementById('ct_subCompanyId').value = result.subCoId || '';
+
+                    calculateFinalBalanceTopUp();
+                    loadCompanyTags(result.subCoId);
+
+                    showMessage('Company details loaded from tag', 'success');
+                } else {
+                    showMessage(result.message || 'Tag not found', 'warning');
+                }
+            } catch (error) {
+                console.error('Error loading company details by tag:', error);
+                showMessage('Error loading company details', 'danger');
+            }
+        }
+
+        function calculateFinalBalanceTopUp() {
+            const balanceText = document.getElementById('ct_balance').value;
+            const topUpAmount = parseFloat(document.getElementById('ct_topUpAmount').value) || 0;
+
+            const currentBalance = parseFloat(balanceText.replace('KES ', '').replace(/,/g, '')) || 0;
+            const finalBalance = currentBalance + topUpAmount;
+
+            document.getElementById('ct_finalBalance').value = 'KES ' + finalBalance.toFixed(2);
+        }
+
+        function clearTopUpFields() {
+            document.getElementById('ct_companyId').value = '';
+            document.getElementById('ct_mobile').value = '';
+            document.getElementById('ct_cardType').value = '';
+            document.getElementById('ct_totalCards').value = '';
+            document.getElementById('ct_totalLimit').value = '';
+            document.getElementById('ct_email').value = '';
+            document.getElementById('ct_balance').value = '';
+            document.getElementById('ct_finalBalance').value = '';
+            document.getElementById('ct_kraPin').value = '';
+            document.getElementById('ct_tagNo').value = '';
+            document.getElementById('ct_topUpAmount').value = '';
+            document.getElementById('ct_remark').value = '';
+            document.getElementById('tagListContainer').innerHTML = '<p class="text-muted text-center">Select a company to view tags</p>';
+
+            // Uncheck all payment mode radio buttons
+            const paymentModeRadios = document.querySelectorAll('input[name="ct_paymentMode"]');
+            paymentModeRadios.forEach(r => r.checked = false);
+            tempSelectedPaymentMode = null;
+        }
+
+                async function loadCompanyTags(subCoId) {
+            try {
+                const response = await fetch(`/TopUpReport/GetCompanyTags?subCoId=${subCoId}`);
+                const result = await response.json();
+
+                if (result.success && result.data && result.data.length > 0) {
+                    const container = document.getElementById('tagListContainer');
+                    let html = '';
+
+                    result.data.forEach((tag, index) => {
+                        html += `<div class="tag-item">
+                            <strong>${tag.cardname || 'N/A'}</strong> - ${tag.cardno || 'N/A'} | ${tag.car_plate_no || 'No Plate'}
+                        </div>`;
+                    });
+
+                    container.innerHTML = html;
+                } else {
+                    document.getElementById('tagListContainer').innerHTML = '<p class="text-muted text-center">No tags found for this company</p>';
+                }
+            } catch (error) {
+                console.error('Error loading tags:', error);
+                showMessage('Error loading tags', 'danger');
+            }
+        }
+
+        async function confirmTopUp() {
+            const subCompanyId = document.getElementById('ct_subCompanyId').value;
+            const subCompanyName = document.getElementById('ct_subCompanyId').selectedOptions[0]?.text || '';
+            const topUpAmount = parseFloat(document.getElementById('ct_topUpAmount').value);
+            const paymentModeElement = document.querySelector('input[name="ct_paymentMode"]:checked');
+
+            if (!subCompanyId) {
+                showMessage('Please select a company', 'warning');
+                return;
+            }
+
+            if (!topUpAmount || topUpAmount <= 0) {
+                showMessage('Please enter a valid top-up amount', 'warning');
+                return;
+            }
+
+            if (!paymentModeElement) {
+                showMessage('Please select a Mode of Payment', 'warning');
+                return;
+            }
+
+            const paymentMode = paymentModeElement.value;
+            const companyId = document.getElementById('ct_companyId').value;
+
+            // Show confirmation modal with details
+            document.getElementById('confirm_companyName').textContent = subCompanyName;
+            document.getElementById('confirm_companyId').textContent = companyId;
+            document.getElementById('confirm_amount').textContent = 'KES ' + topUpAmount.toFixed(2);
+            document.getElementById('confirm_paymentMode').textContent = paymentMode;
+
+            // Store data for final confirmation
+            window.topupData = {
+                subCompanyId: subCompanyId,
+                subCompanyName: subCompanyName,
+                topUpAmount: topUpAmount,
+                remark: document.getElementById('ct_remark').value,
+                paymentMode: paymentMode
+            };
+
+            // Show modal
+            var modal = new bootstrap.Modal(document.getElementById('topupConfirmModal'));
+            modal.show();
+        }
+
+        async function processTopUp() {
+            const data = window.topupData;
+
+            if (!data) {
+                showMessage('Error: No data to process', 'danger');
+                return;
+            }
+
+            try {
+                showMessage('Processing top-up...', 'info');
+
+                // Close confirmation modal
+                var modal = bootstrap.Modal.getInstance(document.getElementById('topupConfirmModal'));
+                modal.hide();
+
+                const response = await fetch('/TopUpReport/AddCompanyTopUp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        subCompanyId: data.subCompanyId,
+                        subCompanyName: data.subCompanyName,
+                        topUpAmount: data.topUpAmount,
+                        remark: data.remark,
+                        paymentMode: data.paymentMode,
+                        operatorName: 'System',
+                        createdBy: 'Admin'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage(`Top-up successful! Transaction ID: ${result.transactionId}`, 'success');
+                    clearTopUpFields();
+                    window.topupData = null;
+                } else {
+                    showMessage(result.message || 'Error processing top-up', 'danger');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage('Error: ' + error.message, 'danger');
+            }
+        }
+
+        function cancelTopUp() {
+            clearTopUpFields();
+            showMessage('Top-up cancelled', 'info');
+        }
+                async function sendRequest() {
+            const subCompanyId = document.getElementById('ct_subCompanyId').value;
+            const tagNumber = document.getElementById('ct_tagNo').value;
+            const topUpAmount = parseFloat(document.getElementById('ct_topUpAmount').value);
+                    const mpesaPhoneRaw = document.getElementById('ct_mpesaPhone').value;
+        const mpesaPhone = normalizePhoneNumber(mpesaPhoneRaw);
+            const paymentModeElement = document.querySelector('input[name="ct_paymentMode"]:checked');
+
+            // Validation
+            if (!subCompanyId) {
+                showMessage('Please select a company', 'warning');
+                return;
+            }
+
+            if (!tagNumber) {
+                showMessage('Please enter a tag number', 'warning');
+                return;
+            }
+
+            if (!topUpAmount || topUpAmount <= 0) {
+                showMessage('Please enter a valid top-up amount', 'warning');
+                return;
+            }
+
+            if (!paymentModeElement) {
+                showMessage('Please select a payment mode', 'warning');
+                return;
+            }
+
+            const paymentMode = paymentModeElement.value;
+
+            // Only MPESA requires STK Push
+            if (paymentMode !== 'MPESA') {
+                showMessage('Send Request is only available for MPESA payments. Use "Confirm" button for other payment modes.', 'warning');
+                return;
+            }
+
+                    if (!mpesaPhone || !mpesaPhone.match(/^254[0-9]{9}$/)) {
+            showMessage('Please enter a valid M-Pesa phone number (format: 0700123456 or 254700123456)', 'warning');
+            return;
+        }
+
+            try {
+                // Open tracking modal
+                var trackingModal = new bootstrap.Modal(document.getElementById('paymentTrackingModal'));
+                trackingModal.show();
+                resetPaymentSteps();
+                updatePaymentStep('step-stk-push', 'active');
+
+                showMessage('Sending M-Pesa STK Push request...', 'info');
+
+                // Step 1: Initiate STK Push
+                const stkResponse = await fetch('/TopUpReport/InitiateMpesaTopUp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        tagNumber: tagNumber,
+                        phoneNumber: mpesaPhone,
+                        amount: topUpAmount,
+                        paymentModeName: 'NEXTGEN R1 MPESA'
+                    })
+                });
+
+                const stkResult = await stkResponse.json();
+
+                if (!stkResult.success) {
+                    showPaymentError('Failed to send STK Push: ' + (stkResult.message || 'Unknown error'));
+                    showMessage('Failed to send STK Push: ' + (stkResult.message || 'Unknown error'), 'danger');
+                    return;
+                }
+
+                updatePaymentStep('step-stk-push', 'completed');
+                updatePaymentStep('step-awaiting', 'active');
+
+                showMessage('STK Push sent to ' + mpesaPhone + '. Please enter M-Pesa PIN on your phone.', 'success');
+
+                const checkoutRequestId = stkResult.checkoutRequestId;
+
+                // Step 2: Auto-check status (8 attempts, 9 seconds apart = 72 seconds total)
+                let maxAttempts = 8;
+                let attempt = 0;
+                let paymentSuccessful = false;
+                let failureReason = '';
+
+                while (attempt < maxAttempts && !paymentSuccessful) {
+                    attempt++;
+
+                    // Wait 9 seconds before checking
+                    await new Promise(resolve => setTimeout(resolve, 9000));
+
+                    updatePaymentStep('step-awaiting', 'completed');
+                    updatePaymentStep('step-verifying', 'active');
+                    updateStepDesc('step-verifying', 'Checking payment status... (Attempt ' + attempt + '/' + maxAttempts + ')');
+
+                    showMessage('Checking payment status... (Attempt ' + attempt + '/' + maxAttempts + ')', 'info');
+
+                    const statusResponse = await fetch('/TopUpReport/CheckMpesaStatus', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            checkoutRequestID: checkoutRequestId,
+                            paymentModeName: 'NEXTGEN R1 MPESA'
+                        })
+                    });
+
+                    const statusResult = await statusResponse.json();
+
+                    // Log for debugging
+                    console.log('Attempt ' + attempt + ' - ResultCode:', statusResult.resultCode, 'Message:', statusResult.resultDesc);
+
+                    if (statusResult.success && statusResult.resultCode === '0') {
+                        // Payment successful
+                        paymentSuccessful = true;
+                        break;
+                    } else if (statusResult.success && statusResult.resultCode) {
+                        // Only break on FINAL failure codes
+                        const finalFailureCodes = ['1', '1032', '1037', '2001', '1001', '1019'];
+
+                        if (finalFailureCodes.includes(statusResult.resultCode)) {
+                            failureReason = statusResult.resultDesc || 'Payment failed';
+                            break;
+                        }
+                        // Otherwise store last error but continue checking
+                        failureReason = statusResult.resultDesc || 'Payment pending';
+                    }
+                    // If resultCode is null/empty, continue checking (still pending)
+                }
+
+                // Step 3: Process result
+                if (paymentSuccessful) {
+                    updatePaymentStep('step-verifying', 'completed');
+                    updatePaymentStep('step-processing', 'active');
+
+                    showMessage('Payment successful! Processing top-up...', 'success');
+
+                    // Process the top-up in database
+                    const topUpResponse = await fetch('/TopUpReport/AddCompanyTopUp', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            subCompanyId: subCompanyId,
+                            subCompanyName: document.getElementById('ct_subCompanyId').selectedOptions[0]?.text || '',
+                            topUpAmount: topUpAmount,
+                            remark: document.getElementById('ct_remark').value,
+                            paymentMode: 'MPESA',
+                            operatorName: 'System',
+                            createdBy: 'Admin',
+                            checkoutRequestID: checkoutRequestId
+                        })
+                    });
+
+                    const topUpResult = await topUpResponse.json();
+
+                    if (topUpResult.success) {
+                        updatePaymentStep('step-processing', 'completed');
+                        updatePaymentStep('step-completed', 'completed');
+
+                        document.getElementById('txnAmount').textContent = 'KES ' + topUpAmount.toFixed(2);
+                        document.getElementById('txnId').textContent = topUpResult.transactionId;
+                        document.getElementById('transactionDetails').style.display = 'block';
+                        document.getElementById('closeTrackingBtn').disabled = false;
+
+                        // Fetch M-Pesa receipt (async)
+                        fetchMpesaReceipt(checkoutRequestId);
+
+                        showMessage('Top-up completed successfully! Transaction ID: ' + topUpResult.transactionId, 'success');
+                        clearTopUpFields();
+
+                        // Reload company details to show updated balance
+                        if (subCompanyId) {
+                            await loadCompanyDetailsForTopUp();
+                        }
+                    } else {
+                        showPaymentError('Payment received but failed to process top-up. Please contact support.');
+                        showMessage('Payment received but failed to process top-up. Please contact support.', 'danger');
+                    }
+                } else if (failureReason && failureReason !== 'Payment pending') {
+                    // Definite failure
+                    showPaymentError('Payment failed: ' + failureReason);
+                    showMessage('Payment failed: ' + failureReason, 'danger');
+                } else {
+                    // Still processing after all attempts
+                    showPaymentError('Payment is still being processed. Transaction ID: ' + checkoutRequestId + '. Please check your balance in a moment or contact support.');
+                    document.getElementById('txnReceipt').textContent = checkoutRequestId;
+                    document.getElementById('transactionDetails').style.display = 'block';
+                    document.getElementById('closeTrackingBtn').disabled = false;
+                    showMessage('Payment is still being processed. Transaction ID: ' + checkoutRequestId + '. Please check your balance shortly.', 'warning');
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                showPaymentError('Error: ' + error.message);
+                showMessage('Error: ' + error.message, 'danger');
+            }
+        }
+
+                // ============ NEW: Modal Helper Functions ============
+        function resetPaymentSteps() {
+            var steps = ['step-stk-push', 'step-awaiting', 'step-verifying', 'step-processing', 'step-completed'];
+            for (var i = 0; i < steps.length; i++) {
+                var step = document.getElementById(steps[i]);
+                if (step) {
+                    step.classList.remove('active', 'completed', 'error');
+                    var statusIcon = step.querySelector('.step-status i');
+                    if (statusIcon) {
+                        statusIcon.className = 'fas fa-ellipsis-h';
+                    }
+                }
+            }
+
+            var errorDiv = document.getElementById('paymentError');
+            var detailsDiv = document.getElementById('transactionDetails');
+            var closeBtn = document.getElementById('closeTrackingBtn');
+
+            if (errorDiv) errorDiv.style.display = 'none';
+            if (detailsDiv) detailsDiv.style.display = 'none';
+            if (closeBtn) closeBtn.disabled = true;
+        }
+
+        function updatePaymentStep(stepId, status) {
+            var step = document.getElementById(stepId);
+            if (!step) return;
+
+            step.classList.remove('active', 'completed', 'error');
+            step.classList.add(status);
+
+            var statusIcon = step.querySelector('.step-status i');
+            if (statusIcon) {
+                if (status === 'active') {
+                    statusIcon.className = 'fas fa-spinner fa-spin';
+                } else if (status === 'completed') {
+                    statusIcon.className = 'fas fa-check-circle';
+                } else if (status === 'error') {
+                    statusIcon.className = 'fas fa-times-circle';
+                }
+            }
+        }
+
+        function updateStepDesc(stepId, description) {
+            var step = document.getElementById(stepId);
+            if (!step) return;
+
+            var descElement = step.querySelector('.step-desc');
+            if (descElement) {
+                descElement.textContent = description;
+            }
+        }
+
+        function showPaymentError(message) {
+            var errorMsg = document.getElementById('errorMessage');
+            var errorDiv = document.getElementById('paymentError');
+            var closeBtn = document.getElementById('closeTrackingBtn');
+
+            if (errorMsg) errorMsg.textContent = message;
+            if (errorDiv) errorDiv.style.display = 'block';
+            if (closeBtn) closeBtn.disabled = false;
+
+            var activeStep = document.querySelector('.payment-step.active');
+            if (activeStep) {
+                activeStep.classList.remove('active');
+                activeStep.classList.add('error');
+            }
+        }
+
+        async function fetchMpesaReceipt(checkoutRequestId) {
+            try {
+                // Poll for receipt number (max 6 attempts, 5 seconds apart = 30 seconds)
+                for (var i = 0; i < 6; i++) {
+                    await new Promise(function(resolve) {
+                        setTimeout(resolve, 5000);
+                    });
+
+                    var response = await fetch('/TopUpReport/GetMpesaReceipt?checkoutRequestId=' + encodeURIComponent(checkoutRequestId));
+                    var result = await response.json();
+
+                    if (result.success && result.receiptNumber) {
+                        document.getElementById('txnReceipt').textContent = result.receiptNumber;
+                        return;
+                    }
+                }
+                document.getElementById('txnReceipt').textContent = 'Not available yet';
+            } catch (error) {
+                console.error('Error fetching receipt:', error);
+                document.getElementById('txnReceipt').textContent = 'Not available';
+            }
+        }
+                // Normalize phone number to 254XXXXXXXXX format
+        function normalizePhoneNumber(phone) {
+            if (!phone) return '';
+
+            // Remove all spaces, dashes, and other non-numeric characters
+            phone = phone.replace(/\D/g, '');
+
+            // If starts with 0, replace with 254
+            if (phone.startsWith('0')) {
+                phone = '254' + phone.substring(1);
+            }
+
+            // If starts with +254, remove the +
+            if (phone.startsWith('+254')) {
+                phone = phone.substring(1);
+            }
+
+            // If starts with 254, it's already correct
+            if (phone.startsWith('254')) {
+                return phone;
+            }
+
+            // If it's 9 digits (without country code), add 254
+            if (phone.length === 9) {
+                return '254' + phone;
+            }
+
+            return phone;
+        }
+                // Modal Helper Functions
+        function showModal(message, type = 'info') {
+            const modal = document.getElementById('messageModal');
+            const header = document.getElementById('messageModalHeader');
+            const title = document.getElementById('messageModalTitle');
+            const body = document.getElementById('messageModalBody');
+
+            // Set colors based on type
+            header.className = 'modal-header';
+            if (type === 'error' || type === 'danger') {
+                header.classList.add('bg-danger', 'text-white');
+                title.innerHTML = '<i class="fas fa-exclamation-circle"></i> Error';
+            } else if (type === 'warning') {
+                header.classList.add('bg-warning', 'text-dark');
+                title.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Warning';
+            } else if (type === 'success') {
+                header.classList.add('bg-success', 'text-white');
+                title.innerHTML = '<i class="fas fa-check-circle"></i> Success';
+            } else {
+                header.classList.add('bg-info', 'text-white');
+                title.innerHTML = '<i class="fas fa-info-circle"></i> Information';
+            }
+
+            body.innerHTML = '<p class="mb-0">' + message + '</p>';
+
+            const bsModal = new bootstrap.Modal(modal);
+            bsModal.show();
+        }
+
+        function showConfirm(message, onConfirm) {
+            const modal = document.getElementById('confirmModal');
+            const body = document.getElementById('confirmModalBody');
+            const yesBtn = document.getElementById('confirmYesBtn');
+
+            body.innerHTML = '<p class="mb-0">' + message + '</p>';
+
+            // Remove previous click handlers
+            const newYesBtn = yesBtn.cloneNode(true);
+            yesBtn.parentNode.replaceChild(newYesBtn, yesBtn);
+
+            newYesBtn.addEventListener('click', function() {
+                const bsModal = bootstrap.Modal.getInstance(modal);
+                bsModal.hide();
+                if (onConfirm) onConfirm();
+            });
+
+            const bsModal = new bootstrap.Modal(modal);
+            bsModal.show();
+        }
+
+    </script>
+}

@@ -1,0 +1,438 @@
+﻿@{
+    ViewData["Title"] = "Pay Station Cash Log";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    .kpi-card {
+        border-radius: 8px;
+        padding: 12px 14px;
+        color: #fff;
+        min-width: 120px;
+    }
+
+        .kpi-card .kpi-label {
+            font-size: 10px;
+            font-weight: 600;
+            opacity: .85;
+            text-transform: uppercase;
+            letter-spacing: .4px;
+        }
+
+        .kpi-card .kpi-value {
+            font-size: 18px;
+            font-weight: 700;
+            margin-top: 2px;
+        }
+
+    .badge-payment {
+        background: #198754;
+        color: #fff;
+    }
+
+    .badge-float {
+        background: #0d6efd;
+        color: #fff;
+    }
+
+    .badge-emptied {
+        background: #dc3545;
+        color: #fff;
+    }
+
+    .badge-validation {
+        background: #6f42c1;
+        color: #fff;
+    }
+
+    .badge-default {
+        background: #6c757d;
+        color: #fff;
+    }
+
+    .badge-cash {
+        background: #198754;
+        color: #fff;
+    }
+
+    .badge-mpesa {
+        background: #0d6efd;
+        color: #fff;
+    }
+
+    .badge-foc {
+        background: #fd7e14;
+        color: #fff;
+    }
+
+    .paystation-wrap {
+        overflow-x: hidden;
+    }
+
+        .paystation-wrap .card-body {
+            overflow-x: hidden;
+        }
+
+    #cashLogTable {
+        table-layout: fixed;
+        width: 100%;
+    }
+
+        #cashLogTable thead th {
+            background: #2c3e50;
+            color: #fff;
+            font-size: 10px;
+            padding: 6px 4px;
+            white-space: normal;
+            word-break: break-word;
+            line-height: 1.15;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            text-align: center;
+        }
+
+        #cashLogTable td {
+            font-size: 9px;
+            padding: 4px 3px;
+            vertical-align: middle;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        #cashLogTable .badge {
+            font-size: 8px;
+            padding: 2px 4px;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: inline-block;
+        }
+
+    .totals-row td {
+        font-weight: 700;
+        background: #2c3e50 !important;
+        color: #fff !important;
+        font-size: 10px;
+    }
+
+    .detail-label {
+        font-weight: 600;
+        color: #495057;
+        font-size: 12px;
+    }
+
+    .detail-value {
+        font-size: 13px;
+        word-break: break-word;
+    }
+
+    .section-head {
+        background: #f8f9fa;
+        font-weight: 700;
+        font-size: 13px;
+        padding: 6px 10px;
+        border-left: 4px solid #0d6efd;
+        margin: 10px 0 6px;
+    }
+
+    .page-link {
+        font-size: 12px;
+        padding: .2rem .45rem;
+    }
+
+    .table-responsive {
+        overflow-x: hidden !important;
+    }
+</style>
+
+<div class="card shadow-sm paystation-wrap">
+    <div class="card-header bg-dark text-white py-3">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <h5 class="mb-0"><i class="fas fa-cash-register me-2"></i>Pay Station Cash Log</h5>
+            <div class="btn-group flex-wrap">
+                <button class="btn btn-light btn-sm fw-bold" onclick="setQuick('today')">Today</button>
+                <button class="btn btn-light btn-sm fw-bold" onclick="setQuick('yesterday')">Yesterday</button>
+                <button class="btn btn-light btn-sm fw-bold" onclick="setQuick('lastweek')">Last Week</button>
+                <button class="btn btn-light btn-sm fw-bold" onclick="setQuick('lastmonth')">Last Month</button>
+                <button class="btn btn-light btn-sm fw-bold" onclick="setQuick('thismonth')">This Month</button>
+            </div>
+        </div>
+        <div class="row align-items-end g-2">
+            <div class="col-md-3">
+                <label class="small fw-bold">Start Date</label>
+                <input type="date" id="startDate" class="form-control form-control-sm" value="@DateTime.Now.ToString("yyyy-MM-dd")">
+            </div>
+            <div class="col-md-3">
+                <label class="small fw-bold">End Date</label>
+                <input type="date" id="endDate" class="form-control form-control-sm" value="@DateTime.Now.ToString("yyyy-MM-dd")">
+            </div>
+            <div class="col-md-3">
+                <label class="small fw-bold">Log Type</label>
+                <select id="logTypeFilter" class="form-select form-select-sm">
+                    <option value="">All Types</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex gap-2 align-items-end">
+                <button class="btn btn-primary btn-sm px-3" onclick="loadData()"><i class="fas fa-search me-1"></i>Search</button>
+                <button class="btn btn-success btn-sm px-3" onclick="exportData()"><i class="fas fa-file-excel me-1"></i>Export</button>
+                <button class="btn btn-secondary btn-sm px-3" onclick="clearData()">Clear</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="p-3 border-bottom d-none" id="kpiRow">
+        <div class="d-flex flex-wrap gap-2">
+            <div class="kpi-card" style="background:#2c3e50;"><div class="kpi-label">Records</div><div class="kpi-value" id="kpiRecords">0</div></div>
+            <div class="kpi-card" style="background:#198754;"><div class="kpi-label">Charged (KES)</div><div class="kpi-value" id="kpiCharged">0.00</div></div>
+            <div class="kpi-card" style="background:#0d6efd;"><div class="kpi-label">Cash Paid (KES)</div><div class="kpi-value" id="kpiCashPaid">0.00</div></div>
+            <div class="kpi-card" style="background:#dc3545;"><div class="kpi-label">Change Due (KES)</div><div class="kpi-value" id="kpiChange">0.00</div></div>
+            <div class="kpi-card" style="background:#6f42c1;"><div class="kpi-label">Float Total (KES)</div><div class="kpi-value" id="kpiFloat">0.00</div></div>
+            <div class="kpi-card" style="background:#fd7e14;"><div class="kpi-label">Emptied (KES)</div><div class="kpi-value" id="kpiEmptied">0.00</div></div>
+            <div class="kpi-card" style="background:#20c997;"><div class="kpi-label">Date Range</div><div class="kpi-value" style="font-size:12px;" id="kpiRange">-</div></div>
+        </div>
+    </div>
+
+    <div class="card-body p-0">
+        <div class="table-responsive" style="max-height:calc(100vh - 340px);min-height:200px;overflow-y:auto;">
+            <table class="table table-sm table-hover table-bordered mb-0" id="cashLogTable">
+                <colgroup>
+                    <col style="width:2.5%">
+                    <col style="width:6%">
+                    <col style="width:5.5%">
+                    <col style="width:6.5%">
+                    <col style="width:5.5%">
+                    <col style="width:4.5%">
+                    <col style="width:5.5%">
+                    <col style="width:4.5%">
+                    <col style="width:5%">
+                    <col style="width:4.5%">
+                    <col style="width:4.5%">
+                    <col style="width:4.5%">
+                    <col style="width:4.5%">
+                    <col style="width:4.5%">
+                    <col style="width:5.5%">
+                    <col style="width:4.5%">
+                    <col style="width:5.5%">
+                    <col style="width:4.5%">
+                    <col style="width:4.5%">
+                    <col style="width:4.5%">
+                    <col style="width:4.5%">
+                    <col style="width:3%">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Log Type</th>
+                        <th>Pay Source</th>
+                        <th>Created On</th>
+                        <th>Card Name</th>
+                        <th>Card No</th>
+                        <th>Entry Time</th>
+                        <th>Parked For</th>
+                        <th>Charged</th>
+                        <th>Pay Mode</th>
+                        <th>Cash Paid</th>
+                        <th>Change Due</th>
+                        <th>Recv Total</th>
+                        <th>Chg Total</th>
+                        <th>M-Pesa Ref</th>
+                        <th>Action Type</th>
+                        <th>Validated At</th>
+                        <th>Float Op</th>
+                        <th>Float Total</th>
+                        <th>Emptied Total</th>
+                        <th>Final Stacked</th>
+                        <th>View</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <tr><td colspan="22" class="text-center py-5 text-muted">Select date range and click Search</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center px-3 py-2 border-top flex-wrap gap-2" id="paginationWrapper" style="display:none!important;">
+            <div class="d-flex align-items-center gap-2">
+                <label class="mb-0 text-muted" style="font-size:13px;">Rows per page:</label>
+                <select id="pageSizeSelect" class="form-select form-select-sm" style="width:80px;" onchange="onPageSizeChange()">
+                    <option value="25">25</option>
+                    <option value="50" selected>50</option>
+                    <option value="100">100</option>
+                    <option value="200">200</option>
+                </select>
+            </div>
+            <nav><ul class="pagination pagination-sm mb-0" id="paginationControls"></ul></nav>
+            <span id="pageInfo" class="text-muted" style="font-size:13px;"></span>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="detailModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white py-2">
+                <h6 class="modal-title"><i class="fas fa-info-circle me-2"></i>Transaction Detail — ID: <span id="modalId"></span></h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            let allRows = [], filteredRows = [], currentPage = 1, pageSize = 50;
+
+            window.setQuick = function (type) {
+                const today = new Date(); let s, e;
+                if (type === 'today') { s = e = today; }
+                else if (type === 'yesterday') { s = new Date(today); s.setDate(today.getDate()-1); e = new Date(s); }
+                else if (type === 'thismonth') { s = new Date(today.getFullYear(), today.getMonth(), 1); e = today; }
+                else if (type === 'lastmonth') { s = new Date(today.getFullYear(), today.getMonth()-1, 1); e = new Date(today.getFullYear(), today.getMonth(), 0); }
+                else if (type === 'lastweek') { const day = today.getDay() || 7; s = new Date(today); s.setDate(today.getDate()-day-6); e = new Date(today); e.setDate(today.getDate()-day); }
+                const fmt = d => [d.getFullYear(), (d.getMonth()+1).toString().padStart(2,'0'), d.getDate().toString().padStart(2,'0')].join('-');
+                document.getElementById('startDate').value = fmt(s); document.getElementById('endDate').value = fmt(e); loadData();
+            };
+
+            window.loadData = function () {
+                document.getElementById('tableBody').innerHTML = '<tr><td colspan="22" class="text-center py-5"><i class="fas fa-spinner fa-spin fa-2x text-primary"></i><br>Loading...</td></tr>';
+                hidePagination(); document.getElementById('kpiRow').classList.add('d-none');
+                const body = new URLSearchParams({ filterType:'daterange', startDate:document.getElementById('startDate').value, endDate:document.getElementById('endDate').value });
+                fetch('/PayStationCashLog/GetData', { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body })
+                .then(r => r.json())
+                .then(res => {
+                    if (!res.success) { showError(res.message); return; }
+                    allRows = res.data || []; buildLogTypeFilter(); applyLogTypeFilter();
+                    document.getElementById('kpiRecords').textContent = res.recordCount;
+                    document.getElementById('kpiCharged').textContent = fmt2(res.totalCharged);
+                    document.getElementById('kpiCashPaid').textContent = fmt2(res.totalCashPaid);
+                    document.getElementById('kpiChange').textContent = fmt2(res.totalChangeDue);
+                    document.getElementById('kpiFloat').textContent = fmt2(res.totalFloat);
+                    document.getElementById('kpiEmptied').textContent = fmt2(res.totalEmptied);
+                    document.getElementById('kpiRange').textContent = res.dateRange;
+                    document.getElementById('kpiRow').classList.remove('d-none');
+                }).catch(() => showError('Network error'));
+            };
+
+            function buildLogTypeFilter() {
+                const distinct = [...new Set(allRows.map(r => r.log_type || 'Unknown'))].sort();
+                const sel = document.getElementById('logTypeFilter'), cur = sel.value;
+                sel.innerHTML = '<option value="">All Types</option>' + distinct.map(t => `<option value="${t}"${t===cur?' selected':''}>${t}</option>`).join('');
+            }
+            function applyLogTypeFilter() {
+                const val = document.getElementById('logTypeFilter').value;
+                filteredRows = val ? allRows.filter(r => (r.log_type || 'Unknown') === val) : allRows.slice();
+                currentPage = 1; renderPage();
+            }
+            document.getElementById('logTypeFilter').addEventListener('change', applyLogTypeFilter);
+
+            function renderPage() {
+                const tbody = document.getElementById('tableBody');
+                if (filteredRows.length === 0 && allRows.length > 0) { tbody.innerHTML = '<tr><td colspan="22" class="text-center py-4 text-muted">No records match the selected filter.</td></tr>'; updatePagination(); return; }
+                if (filteredRows.length === 0) { tbody.innerHTML = '<tr><td colspan="22" class="text-center py-5 text-danger fw-bold">No records found for this period.</td></tr>'; hidePagination(); return; }
+                const start = (currentPage - 1) * pageSize, pageData = filteredRows.slice(start, start + pageSize);
+                let html = pageData.map((item, idx) => {
+                    const gi = start + idx;
+                    return `<tr>
+                        <td class="text-primary fw-bold">${item.id}</td>
+                        <td><span class="badge ${logTypeBadge(item.log_type)}" title="${item.log_type || '--'}">${item.log_type || '--'}</span></td>
+                        <td title="${item.pay_source || '--'}">${item.pay_source || '--'}</td>
+                        <td title="${fmtDate(item.created_on)}">${fmtDate(item.created_on)}</td>
+                        <td title="${item.card_name || '--'}">${item.card_name || '--'}</td>
+                        <td title="${item.card_no || '--'}">${item.card_no || '--'}</td>
+                        <td title="${fmtDate(item.entry_time)}">${fmtDate(item.entry_time)}</td>
+                        <td title="${item.parked_for || '--'}">${item.parked_for || '--'}</td>
+                        <td class="text-end fw-bold">${fmtN(item.charged_kes)}</td>
+                        <td><span class="badge ${payModeBadge(item.payment_mode)}" title="${item.payment_mode || '--'}">${item.payment_mode || '--'}</span></td>
+                        <td class="text-end">${fmtN(item.cash_paid_kes)}</td>
+                        <td class="text-end text-danger">${fmtN(item.change_due_kes)}</td>
+                        <td class="text-end">${fmtN(item.recv_total_kes)}</td>
+                        <td class="text-end">${fmtN(item.change_total_kes)}</td>
+                        <td title="${item.mpesa_ref || '--'}">${item.mpesa_ref || '--'}</td>
+                        <td title="${item.action_type || '--'}">${item.action_type || '--'}</td>
+                        <td title="${fmtDate(item.validated_at)}">${fmtDate(item.validated_at)}</td>
+                        <td title="${item.float_operation || '--'}">${item.float_operation || '--'}</td>
+                        <td class="text-end">${fmtN(item.float_total_kes)}</td>
+                        <td class="text-end">${fmtN(item.emptied_total_kes)}</td>
+                        <td title="${item.FINAL_STACKED_NOTES || '--'}">${item.FINAL_STACKED_NOTES || '--'}</td>
+                        <td class="text-center"><button class="btn btn-outline-primary btn-sm py-0 px-1" onclick="showDetail(${gi})"><i class="fas fa-eye"></i></button></td>
+                    </tr>`;
+                }).join('');
+
+                const tCharged = filteredRows.reduce((s,r) => s + parseFloat(r.charged_kes || 0), 0),
+                      tCash = filteredRows.reduce((s,r) => s + parseFloat(r.cash_paid_kes || 0), 0),
+                      tChange = filteredRows.reduce((s,r) => s + parseFloat(r.change_due_kes || 0), 0),
+                      tRecv = filteredRows.reduce((s,r) => s + parseFloat(r.recv_total_kes || 0), 0),
+                      tChgTot = filteredRows.reduce((s,r) => s + parseFloat(r.change_total_kes || 0), 0),
+                      tFloat = filteredRows.reduce((s,r) => s + parseFloat(r.float_total_kes || 0), 0),
+                      tEmpty = filteredRows.reduce((s,r) => s + parseFloat(r.emptied_total_kes || 0), 0);
+
+                html += `<tr class="totals-row">
+                    <td colspan="8" class="text-end">Total (${filteredRows.length})</td>
+                    <td class="text-end">${tCharged.toFixed(2)}</td><td></td>
+                    <td class="text-end">${tCash.toFixed(2)}</td><td class="text-end">${tChange.toFixed(2)}</td>
+                    <td class="text-end">${tRecv.toFixed(2)}</td><td class="text-end">${tChgTot.toFixed(2)}</td>
+                    <td colspan="4"></td>
+                    <td class="text-end">${tFloat.toFixed(2)}</td><td class="text-end">${tEmpty.toFixed(2)}</td><td colspan="2"></td>
+                </tr>`;
+                tbody.innerHTML = html; showPagination(); updatePagination();
+            }
+
+            window.showDetail = function (idx) {
+                const item = filteredRows[idx]; if (!item) return;
+                document.getElementById('modalId').textContent = item.id;
+                document.getElementById('modalBody').innerHTML = buildDetailHtml(item);
+                new bootstrap.Modal(document.getElementById('detailModal')).show();
+            };
+
+            function buildDetailHtml(i) {
+                const row = (label, val) => `<div class="col-md-4 col-sm-6 mb-2"><div class="detail-label">${label}</div><div class="detail-value">${val || '--'}</div></div>`;
+                const sec = title => `<div class="col-12"><div class="section-head">${title}</div></div>`;
+                return `<div class="row">
+                    ${sec('Transaction')}${row('ID', i.id)}${row('Log Type', i.log_type)}${row('Pay Source', i.pay_source)}${row('Created On', fmtDate(i.created_on))}${row('Action Type', i.action_type)}${row('Checkout ID', i.checkout_id)}
+                    ${sec('Card / Parking')}${row('Card Name', i.card_name)}${row('Card No', i.card_no)}${row('Entry Time', fmtDate(i.entry_time))}${row('Parked For', i.parked_for)}
+                    ${sec('Payment')}${row('Charged (KES)', fmtN(i.charged_kes))}${row('Payment Mode', i.payment_mode)}${row('Cash Paid (KES)', fmtN(i.cash_paid_kes))}${row('Change Due (KES)', fmtN(i.change_due_kes))}${row('M-Pesa Ref', i.mpesa_ref)}${row('Validated At', fmtDate(i.validated_at))}
+                    ${sec('Notes Received')}${row('Notes Received', i.notes_received)}${row('Recv Breakdown', i.recv_breakdown)}${row('Recv Total (KES)', fmtN(i.recv_total_kes))}
+                    ${sec('Notes Dispensed')}${row('Notes Dispensed', i.notes_dispensed)}${row('Change Breakdown', i.change_breakdown)}${row('Change Total (KES)', fmtN(i.change_total_kes))}
+                    ${sec('Float')}${row('Float Operation', i.float_operation)}${row('Float Completed', fmtDate(i.float_completed_at))}${row('Float Notes Loaded', i.float_notes_loaded)}${row('Float Denomination', i.float_denomination)}${row('Float Total (KES)', fmtN(i.float_total_kes))}${row('Before Cassette Levels', i.before_float_cassette_levels)}${row('After Cassette Levels', i.after_float_cassette_levels)}
+                    ${sec('Emptied')}${row('Emptied Completed', fmtDate(i.emptied_completed_at))}${row('Emptied Notes', i.emptied_notes)}${row('Emptied Breakdown', i.emptied_breakdown)}${row('Emptied Total (KES)', fmtN(i.emptied_total_kes))}${row('Emptied Note Count', i.emptied_note_count)}
+                    ${sec('Stacked Notes')}${row('Final Stacked Notes', i.FINAL_STACKED_NOTES)}${row('Total Stacked Notes', i.TOTAL_STACKED_NOTES)}
+                </div>`;
+            }
+
+            window.onPageSizeChange = function () { pageSize = parseInt(document.getElementById('pageSizeSelect').value); currentPage = 1; renderPage(); };
+            function updatePagination() {
+                const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize)), ul = document.getElementById('paginationControls'); ul.innerHTML = '';
+                let pages = []; if (totalPages <= 7) for (let p=1;p<=totalPages;p++) pages.push(p); else { pages.push(1); if (currentPage > 3) pages.push('...'); for (let p=Math.max(2,currentPage-1); p<=Math.min(totalPages-1,currentPage+1); p++) pages.push(p); if (currentPage < totalPages-2) pages.push('...'); pages.push(totalPages); }
+                const prev = document.createElement('li'); prev.className = 'page-item' + (currentPage===1?' disabled':''); prev.innerHTML = '<a class="page-link" href="#">&laquo;</a>'; prev.addEventListener('click', e => { e.preventDefault(); if(currentPage>1){currentPage--;renderPage();}}); ul.appendChild(prev);
+                pages.forEach(p => { const li = document.createElement('li'); if (p==='...') { li.className='page-item disabled'; li.innerHTML='<span class="page-link">…</span>'; } else { li.className='page-item' + (p===currentPage?' active':''); li.innerHTML=`<a class="page-link" href="#">${p}</a>`; li.addEventListener('click', (function(pg){ return function(e){ e.preventDefault(); currentPage=pg; renderPage(); }; })(p)); } ul.appendChild(li); });
+                const next = document.createElement('li'); next.className = 'page-item' + (currentPage===totalPages?' disabled':''); next.innerHTML = '<a class="page-link" href="#">&raquo;</a>'; next.addEventListener('click', e => { e.preventDefault(); if(currentPage<totalPages){currentPage++;renderPage();}}); ul.appendChild(next);
+                const s = (currentPage-1)*pageSize+1, e = Math.min(currentPage*pageSize, filteredRows.length); document.getElementById('pageInfo').textContent = filteredRows.length===0 ? 'No records' : `Showing ${s}–${e} of ${filteredRows.length}`;
+            }
+            function showPagination() { const w = document.getElementById('paginationWrapper'); w.style.removeProperty('display'); w.style.display='flex'; }
+            function hidePagination() { document.getElementById('paginationWrapper').style.display='none'; }
+
+            window.exportData = function () {
+                const s = document.getElementById('startDate').value, e = document.getElementById('endDate').value;
+                window.location.href = `/PayStationCashLog/Export?filterType=daterange&startDate=${s}&endDate=${e}`;
+            };
+            window.clearData = function () {
+                allRows = []; filteredRows = [];
+                document.getElementById('tableBody').innerHTML = '<tr><td colspan="22" class="text-center py-5 text-muted">Select date range and click Search</td></tr>';
+                document.getElementById('kpiRow').classList.add('d-none'); document.getElementById('logTypeFilter').innerHTML = '<option value="">All Types</option>'; hidePagination();
+            };
+
+            function fmtDate(v) { if (!v) return '--'; const d = new Date(v), mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; return `${d.getDate().toString().padStart(2,'0')}-${mo[d.getMonth()]}-${d.getFullYear()} ${d.toLocaleTimeString('en-GB',{hour12:false})}`; }
+            function fmtN(v) { return v != null ? parseFloat(v).toFixed(2) : '--'; }
+            function fmt2(v) { return parseFloat(v || 0).toFixed(2); }
+            function showError(msg) { document.getElementById('tableBody').innerHTML = `<tr><td colspan="22" class="text-center py-5 text-danger"><i class="fas fa-exclamation-triangle me-2"></i>${msg}</td></tr>`; }
+            function logTypeBadge(t) { if (!t) return 'badge-default'; const tl = t.toLowerCase(); if (tl.includes('payment')) return 'badge-payment'; if (tl.includes('float')) return 'badge-float'; if (tl.includes('empt')) return 'badge-emptied'; if (tl.includes('valid')) return 'badge-validation'; return 'badge-default'; }
+            function payModeBadge(m) { if (!m) return 'badge-default'; const ml = m.toLowerCase(); if (ml.includes('cash')) return 'badge-cash'; if (ml.includes('mpesa') || ml.includes('m-pesa')) return 'badge-mpesa'; if (ml.includes('foc')) return 'badge-foc'; return 'badge-default'; }
+
+            document.addEventListener('DOMContentLoaded', () => setQuick('today'));
+        })();
+    </script>
+}

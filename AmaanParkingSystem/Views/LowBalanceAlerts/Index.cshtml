@@ -1,0 +1,847 @@
+﻿@{
+    ViewData["Title"] = "Low Balance Alerts";
+}
+
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="page-header">
+                <h2><i class="fas fa-exclamation-triangle"></i> Low Balance Alerts & Monitoring</h2>
+                <p class="text-muted">Monitor sub-company balances and send automated low balance notifications</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="statusMessage" class="alert" style="display:none; margin-bottom: 20px;"></div>
+
+    <!-- Control Panel Card -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0"><i class="fas fa-toggle-on"></i> Automatic Notification Control</h5>
+        </div>
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h6><strong>Automatic Low Balance Monitoring</strong></h6>
+                    <p class="text-muted mb-0">
+                        When enabled, the system automatically checks all sub-company balances every 6 hours
+                        and sends email notifications to companies with balance below the threshold.
+                    </p>
+                    <div class="mt-3">
+                        <div id="autoStatusDisplay" class="alert alert-secondary">
+                            <i class="fas fa-spinner fa-spin"></i> Loading status...
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 text-center">
+                    <div class="form-check form-switch d-flex justify-content-center align-items-center" style="font-size: 2rem;">
+                        <input class="form-check-input" type="checkbox" id="autoNotificationToggle"
+                               style="width: 80px; height: 40px; cursor: pointer;"
+                               onchange="toggleAutomaticNotifications(this.checked)">
+                    </div>
+                    <label class="form-label mt-2" for="autoNotificationToggle" style="font-size: 1.2rem;">
+                        <strong id="toggleLabel">Loading...</strong>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Balance Summary Card -->
+    <div class="card shadow-sm mb-4" id="balanceSummaryCard">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Balance Overview</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col">
+                    <div class="card bg-primary text-white h-100">
+                        <div class="card-body text-center">
+                            <h6 class="card-title">Total Companies</h6>
+                            <h2 class="mb-0" id="summaryTotalCompanies">-</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="card bg-danger text-white h-100">
+                        <div class="card-body text-center">
+                            <h6 class="card-title">Low Balance</h6>
+                            <h2 class="mb-0" id="summaryLowBalance">-</h2>
+                            <small id="summaryLowBalancePct">-</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="card bg-warning text-dark h-100">
+                        <div class="card-body text-center">
+                            <h6 class="card-title">Negative Balance</h6>
+                            <h2 class="mb-0" id="summaryNegativeBalance">-</h2>
+                            <small id="summaryNegativeBalancePct">-</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="card bg-success text-white h-100">
+                        <div class="card-body text-center">
+                            <h6 class="card-title">Healthy Balance</h6>
+                            <h2 class="mb-0" id="summaryHealthyBalance">-</h2>
+                            <small id="summaryHealthyBalancePct">-</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="card bg-secondary text-white h-100">
+                        <div class="card-body text-center">
+                            <h6 class="card-title">Zero Balance</h6>
+                            <h2 class="mb-0" id="summaryZeroBalance">-</h2>
+                            <small id="summaryZeroBalancePct">-</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="card bg-info text-white h-100">
+                        <div class="card-body text-center">
+                            <h6 class="card-title">Total Deposit</h6>
+                            <h2 class="mb-0" id="summaryTotalDeposit">-</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="card bg-dark text-white h-100">
+                        <div class="card-body text-center">
+                            <h6 class="card-title">To Be Collected</h6>
+                            <h2 class="mb-0" id="summaryToBeCollected">-</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manual Controls Card -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-warning text-dark">
+            <h5 class="mb-0"><i class="fas fa-list"></i> Low Balance Companies - Manual Email</h5>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> <strong>Instructions:</strong>
+                <ul class="mb-0 mt-2">
+                    <li>Below is the list of all sub-companies with balance below the threshold</li>
+                    <li>Select companies using checkboxes and click <strong>"Send to Selected"</strong> to send emails</li>
+                    <li>Click the <strong>"Send Email"</strong> button next to any company to send them a low balance notification</li>
+                    <li>You will be asked to confirm before sending the email</li>
+                    <li>Each company receives at most one notification per 24 hours to avoid spam</li>
+                </ul>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label class="form-label"><strong>Balance Threshold (KES)</strong></label>
+                    <input type="number" id="balanceThreshold" class="form-control form-control-lg" value="500" step="50" min="0" onchange="loadBalanceSummary()" />
+                    <small class="form-text text-muted">Companies below this balance will be shown</small>
+                </div>
+                <div class="col-md-8 d-flex align-items-end">
+                    <div>
+                        <button class="btn btn-info btn-lg me-2" onclick="viewLowBalanceCompanies()">
+                            <i class="fas fa-sync"></i> Refresh List
+                        </button>
+                        <button class="btn btn-secondary btn-lg" onclick="viewBalanceSummaryDetailed()">
+                            <i class="fas fa-chart-pie"></i> Detailed Summary
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <hr />
+            <div class="row mb-3">
+                <div class="col-md-6 mb-2">
+                    <label class="form-label"><strong>Email Subject (Optional)</strong></label>
+                    <input type="text" id="customSubject" class="form-control" placeholder="Enter custom subject..." />
+                </div>
+                <div class="col-md-6 mb-2">
+                    <label class="form-label"><strong>Attachment (Optional)</strong></label>
+                    <input type="file" id="emailAttachment" class="form-control" />
+                </div>
+                <div class="col-md-12 mb-3">
+                    <label class="form-label"><strong>Email Body (Optional)</strong></label>
+                    <textarea id="customBody" class="form-control" rows="3" placeholder="Enter custom message body..."></textarea>
+                </div>
+                <div class="col-md-12">
+                    <button class="btn btn-danger btn-lg me-2" onclick="handleSendToAll()">
+                        <i class="fas fa-paper-plane"></i> Send Notification to All
+                    </button>
+                    <button class="btn btn-success btn-lg" id="sendToSelectedBtn" onclick="handleSendToSelected()" disabled>
+                        <i class="fas fa-check-circle"></i> Send to Selected (<span id="selectedCount">0</span>)
+                    </button>
+                </div>
+            </div>
+            <hr />
+
+            <!-- NEW: FILTER SECTION -->
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label class="form-label"><strong>Search Companies</strong></label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-primary text-white"><i class="fas fa-search"></i></span>
+                        <input type="text" id="companySearchInput" class="form-control" placeholder="Search by Company Name, ID or Email..." onkeyup="filterCompanyTable()">
+                        <button class="btn btn-outline-secondary" type="button" onclick="clearSearch()"><i class="fas fa-times"></i> Clear</button>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label"><strong>Filter by Card Type</strong></label>
+                    <select id="cardTypeFilter" class="form-select" onchange="filterByCardType()">
+                        <option value="All">All Card Types</option>
+                    </select>
+                </div>
+
+                <div class="col-md-2 d-flex align-items-end">
+                    <small class="text-muted">Showing <span id="visibleRowCount">0</span> companies</small>
+                </div>
+            </div>
+
+            <div id="lowBalanceResult">
+                <div class="text-center">
+                    <button class="btn btn-primary btn-lg" onclick="viewLowBalanceCompanies()">
+                        <i class="fas fa-list"></i> Load Low Balance Companies
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Double Confirmation Modal -->
+<div class="modal fade" id="bulkConfirmModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content shadow-lg border-danger">
+            <div class="modal-header bg-danger text-white justify-content-center">
+                <h3 class="modal-title"><i class="fas fa-exclamation-triangle"></i> <span id="bulkModalTitle">Bulk Action</span></h3>
+            </div>
+            <div class="modal-body text-center p-5">
+                <h2 id="bulkModalMessage" class="mb-4">Are you sure?</h2>
+                <div class="d-grid gap-3 d-md-flex justify-content-md-center">
+                    <button type="button" id="bulkConfirmYes" class="btn btn-danger px-5 py-3" style="font-size: 1.5rem; font-weight: bold;">
+                        <i class="fas fa-check-circle"></i> YES, PROCEED
+                    </button>
+                    <button type="button" class="btn btn-secondary px-5 py-3" data-bs-dismiss="modal" style="font-size: 1.5rem; font-weight: bold;">
+                        <i class="fas fa-times-circle"></i> NO, CANCEL
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Individual Confirmation Modal -->
+<div class="modal fade" id="confirmEmailModal" tabindex="-1" aria-labelledby="confirmEmailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title" id="confirmEmailModalLabel"><i class="fas fa-envelope"></i> Confirm Send Email</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i> <strong>Are you sure?</strong>
+                </div>
+                <p><strong>Company:</strong> <span id="confirmCompanyName"></span></p>
+                <p><strong>Sub-Company ID:</strong> <span id="confirmSubCoId"></span></p>
+                <p><strong>Email:</strong> <span id="confirmEmail"></span></p>
+                <p><strong>Current Balance:</strong> <span id="confirmBalance" class="text-danger"></span></p>
+                <hr>
+                <p class="mb-0">A low balance notification email will be sent to this company.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-warning" onclick="confirmSendEmail()">Yes, Send Email</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        let pendingEmailData = null;
+        let allCompaniesData = [];
+        let currentCardTypeFilter = 'All';
+        let currentNameSortOrder = 'none'; // Three states: 'none', 'asc', 'desc'
+        let currentSortOrder = 'asc'; // For balance sorting
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAutomaticNotificationStatus();
+            loadCardTypes();
+        });
+
+        async function loadCardTypes() {
+            try {
+                const response = await fetch('/LowBalanceAlerts/GetCardTypes');
+                const result = await response.json();
+                if (result.success) {
+                    const dropdown = document.getElementById('cardTypeFilter');
+                    result.data.forEach(cardType => {
+                        const option = document.createElement('option');
+                        option.value = cardType;
+                        option.textContent = cardType;
+                        dropdown.appendChild(option);
+                    });
+                }
+            } catch (error) { console.error('Error loading card types:', error); }
+        }
+
+        async function loadAutomaticNotificationStatus() {
+            try {
+                const response = await fetch('/LowBalanceAlerts/GetAutomaticNotificationStatus');
+                const result = await response.json();
+                if (result.success) {
+                    const data = result.data;
+                    const toggle = document.getElementById('autoNotificationToggle');
+                    const label = document.getElementById('toggleLabel');
+                    const statusDisplay = document.getElementById('autoStatusDisplay');
+
+                    toggle.checked = data.isEnabled;
+                    label.textContent = data.isEnabled ? 'ENABLED' : 'DISABLED';
+                    label.className = data.isEnabled ? 'text-success' : 'text-danger';
+
+                    statusDisplay.className = `alert ${data.isEnabled ? 'alert-success' : 'alert-warning'}`;
+                    statusDisplay.innerHTML = `
+                        <div class="row">
+                            <div class="col-md-3"><strong>Status:</strong> <i class="fas ${data.isEnabled ? 'fa-check-circle' : 'fa-pause-circle'}"></i> ${data.isEnabled ? 'Running' : 'Stopped'}</div>
+                            <div class="col-md-3"><strong>Check Interval:</strong> ${data.checkInterval}</div>
+                            <div class="col-md-3"><strong>Low Balance Count:</strong> <span class="badge bg-danger">${data.lowBalanceCount}</span></div>
+                            <div class="col-md-3"><strong>Last Check:</strong> ${data.lastCheck}</div>
+                        </div>`;
+                    await loadBalanceSummary();
+                }
+            } catch (error) { console.error('Error loading status:', error); }
+        }
+
+                                        async function loadBalanceSummary() {
+            const threshold = document.getElementById('balanceThreshold').value;
+            const cardType = document.getElementById('cardTypeFilter') ? document.getElementById('cardTypeFilter').value : 'All';
+
+            try {
+                const response = await fetch(`/LowBalanceAlerts/GetBalanceSummary?threshold=${threshold}&cardType=${encodeURIComponent(cardType)}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    const data = result.data;
+
+                    document.getElementById('summaryTotalCompanies').textContent = data.TotalSubCompanies || 0;
+                    document.getElementById('summaryLowBalance').textContent = data.LowBalanceCount || 0;
+                    document.getElementById('summaryLowBalancePct').textContent = data.TotalSubCompanies > 0 ? `${((data.LowBalanceCount / data.TotalSubCompanies) * 100).toFixed(1)}%` : '0%';
+                    document.getElementById('summaryNegativeBalance').textContent = data.NegativeBalanceCount || 0;
+                    document.getElementById('summaryNegativeBalancePct').textContent = data.TotalSubCompanies > 0 ? `${((data.NegativeBalanceCount / data.TotalSubCompanies) * 100).toFixed(1)}%` : '0%';
+                    document.getElementById('summaryHealthyBalance').textContent = data.HealthyBalanceCount || 0;
+                    document.getElementById('summaryHealthyBalancePct').textContent = data.TotalSubCompanies > 0 ? `${((data.HealthyBalanceCount / data.TotalSubCompanies) * 100).toFixed(1)}%` : '0%';
+                    document.getElementById('summaryZeroBalance').textContent = data.ZeroBalanceCount || 0;
+                    document.getElementById('summaryZeroBalancePct').textContent = data.TotalSubCompanies > 0 ? `${((data.ZeroBalanceCount / data.TotalSubCompanies) * 100).toFixed(1)}%` : '0%';
+                    document.getElementById('summaryTotalDeposit').textContent = `KES ${parseFloat(data.TotalDeposit || 0).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                    document.getElementById('summaryToBeCollected').textContent = `KES ${parseFloat(data.ToBeCollected || 0).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                }
+            } catch (error) {
+                console.error('Error loading balance summary:', error);
+            }
+        }
+
+
+        async function toggleAutomaticNotifications(enabled) {
+            const label = document.getElementById('toggleLabel');
+            const statusDisplay = document.getElementById('autoStatusDisplay');
+            label.textContent = 'Processing...';
+            statusDisplay.className = 'alert alert-info';
+            statusDisplay.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+
+            try {
+                const response = await fetch('/LowBalanceAlerts/EnableAutomaticNotifications', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ enable: enabled })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showMessage(result.message, 'success');
+                    await loadAutomaticNotificationStatus();
+                } else {
+                    showMessage(result.message, 'danger');
+                    document.getElementById('autoNotificationToggle').checked = !enabled;
+                }
+            } catch (error) { showMessage('Error: ' + error.message, 'danger'); }
+        }
+
+        function handleSendToAll() {
+            const modal = new bootstrap.Modal(document.getElementById('bulkConfirmModal'));
+            const title = document.getElementById('bulkModalTitle');
+            const message = document.getElementById('bulkModalMessage');
+            const yesBtn = document.getElementById('bulkConfirmYes');
+
+            title.innerText = "Bulk Alert Confirmation";
+            message.innerText = "You are sending Email to All low balance Companies. Proceed?";
+
+            yesBtn.onclick = function() {
+                title.innerText = "Final Security Check";
+                message.innerHTML = "<span class='text-danger'>ARE YOU ABSOLUTELY SURE?</span><br/>Alerts will be sent to all filtered companies.";
+                yesBtn.onclick = function() {
+                    modal.hide();
+                    executeBulkSend();
+                };
+            };
+            modal.show();
+        }
+
+        function handleSendToSelected() {
+            const selectedIds = getSelectedCompanyIds();
+            if (selectedIds.length === 0) {
+                showMessage('Please select at least one company.', 'warning');
+                return;
+            }
+
+            const modal = new bootstrap.Modal(document.getElementById('bulkConfirmModal'));
+            const title = document.getElementById('bulkModalTitle');
+            const message = document.getElementById('bulkModalMessage');
+            const yesBtn = document.getElementById('bulkConfirmYes');
+
+            title.innerText = "Send to Selected Companies";
+            message.innerHTML = `You are about to send emails to <strong>${selectedIds.length}</strong> selected companies. Proceed?`;
+
+            yesBtn.onclick = function() {
+                title.innerText = "Final Confirmation";
+                message.innerHTML = `<span class='text-danger'>ARE YOU SURE?</span><br/>Emails will be sent to ${selectedIds.length} companies.`;
+                yesBtn.onclick = function() {
+                    modal.hide();
+                    executeSendToSelected(selectedIds);
+                };
+            };
+            modal.show();
+        }
+
+        async function executeSendToSelected(companyIds) {
+            const threshold = document.getElementById('balanceThreshold').value;
+            const subject = document.getElementById('customSubject').value;
+            const body = document.getElementById('customBody').value;
+            const fileInput = document.getElementById('emailAttachment');
+
+            const formData = new FormData();
+            formData.append('Threshold', threshold);
+            formData.append('Subject', subject);
+            formData.append('Body', body);
+
+            companyIds.forEach(id => formData.append('CompanyIds', id));
+
+            if (fileInput.files.length > 0) formData.append('Attachment', fileInput.files[0]);
+
+            showMessage(`<i class="fas fa-spinner fa-spin"></i> Sending emails to ${companyIds.length} selected companies...`, 'info');
+
+            try {
+                const response = await fetch('/LowBalanceAlerts/SendLowBalanceNotificationsToSelected', { method: 'POST', body: formData });
+                const data = await response.json();
+                showMessage(data.success ? `<i class="fas fa-check-circle"></i> ${data.message}` : `<i class="fas fa-times-circle"></i> ${data.message}`, data.success ? "success" : "danger");
+                if (data.success) {
+                    clearAllSelections();
+                    await viewLowBalanceCompanies();
+                }
+            } catch (error) { showMessage('Error: ' + error.message, 'danger'); }
+        }
+
+        async function executeBulkSend() {
+            const threshold = document.getElementById('balanceThreshold').value;
+            const subject = document.getElementById('customSubject').value;
+            const body = document.getElementById('customBody').value;
+            const fileInput = document.getElementById('emailAttachment');
+
+            const formData = new FormData();
+            formData.append('Threshold', threshold);
+            formData.append('Subject', subject);
+            formData.append('Body', body);
+            if (fileInput.files.length > 0) formData.append('Attachment', fileInput.files[0]);
+
+            showMessage('<i class="fas fa-spinner fa-spin"></i> Processing bulk notifications...', 'info');
+            try {
+                const response = await fetch('/LowBalanceAlerts/SendLowBalanceNotifications', { method: 'POST', body: formData });
+                const data = await response.json();
+                showMessage(data.success ? '<i class="fas fa-check-circle"></i> ' + data.message : '<i class="fas fa-times-circle"></i> ' + data.message, data.success ? "success" : "danger");
+                if (data.success) await viewLowBalanceCompanies();
+            } catch (error) { showMessage('Error: ' + error.message, 'danger'); }
+        }
+
+        function filterCompanyTable() {
+            const filter = document.getElementById('companySearchInput').value.toLowerCase();
+            const rows = document.getElementsByClassName('company-row');
+            let visibleCount = 0;
+
+            for (let i = 0; i < rows.length; i++) {
+                const text = rows[i].textContent.toLowerCase();
+                if (text.indexOf(filter) > -1) {
+                    rows[i].style.display = "";
+                    visibleCount++;
+                } else {
+                    rows[i].style.display = "none";
+                }
+            }
+            document.getElementById('visibleRowCount').textContent = visibleCount;
+        }
+
+        function clearSearch() {
+            document.getElementById('companySearchInput').value = '';
+            filterCompanyTable();
+        }
+
+        async function filterByCardType() {
+            currentCardTypeFilter = document.getElementById('cardTypeFilter').value;
+            await viewLowBalanceCompanies();
+        }
+
+        // Ã¢Å“â€¦ SORTING FUNCTIONS - MUST BE BEFORE viewLowBalanceCompanies()
+        function sortTableByName() {
+            const tbody = document.querySelector('#companyTable tbody');
+            if (!tbody) return;
+
+            const rows = Array.from(tbody.querySelectorAll('.company-row'));
+
+            // Three-state toggle: none Ã¢â€ â€™ asc Ã¢â€ â€™ desc Ã¢â€ â€™ none
+            if (currentNameSortOrder === 'none') {
+                currentNameSortOrder = 'asc';
+            } else if (currentNameSortOrder === 'asc') {
+                currentNameSortOrder = 'desc';
+            } else {
+                currentNameSortOrder = 'none';
+            }
+
+            // Update icon
+            const icon = document.getElementById('nameSortIcon');
+            if (icon) {
+                if (currentNameSortOrder === 'asc') {
+                    icon.className = 'fas fa-sort-up';
+                } else if (currentNameSortOrder === 'desc') {
+                    icon.className = 'fas fa-sort-down';
+                } else {
+                    icon.className = 'fas fa-sort';
+                }
+            }
+
+            // If 'none', restore original order
+            if (currentNameSortOrder === 'none') {
+                tbody.innerHTML = '';
+                rows.forEach(row => tbody.appendChild(row));
+            } else {
+                // Sort alphabetically
+                rows.sort((a, b) => {
+                    const nameA = a.getAttribute('data-company-name').toLowerCase();
+                    const nameB = b.getAttribute('data-company-name').toLowerCase();
+                    if (currentNameSortOrder === 'asc') {
+                        return nameA.localeCompare(nameB);
+                    } else {
+                        return nameB.localeCompare(nameA);
+                    }
+                });
+
+                tbody.innerHTML = '';
+                rows.forEach(row => tbody.appendChild(row));
+            }
+
+            updateVisibleCount();
+        }
+
+        function sortTableByBalance() {
+            const tbody = document.querySelector('#companyTable tbody');
+            if (!tbody) return;
+
+            const rows = Array.from(tbody.querySelectorAll('.company-row'));
+
+            // Toggle sort order
+            currentSortOrder = (currentSortOrder === 'asc') ? 'desc' : 'asc';
+
+            // Update icon
+            const icon = document.getElementById('balanceSortIcon');
+            if (icon) {
+                icon.className = currentSortOrder === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
+            }
+
+            rows.sort((a, b) => {
+                const balanceA = parseFloat(a.getAttribute('data-balance'));
+                const balanceB = parseFloat(b.getAttribute('data-balance'));
+                return currentSortOrder === 'asc' ? balanceA - balanceB : balanceB - balanceA;
+            });
+
+            tbody.innerHTML = '';
+            rows.forEach(row => tbody.appendChild(row));
+            updateVisibleCount();
+        }
+                // Ã¢Å“â€¦ NEW: Highlight duplicate contact numbers in red
+        function highlightDuplicateContactNumbers() {
+            const rows = document.querySelectorAll('.company-row');
+            const contactNumberMap = {};
+
+            // First pass: count occurrences of each contact number
+            rows.forEach(row => {
+                const contactCell = row.cells[4]; // Contact Number is 5th column (index 4)
+                const contactNumber = contactCell.textContent.trim();
+
+                // Skip N/A values
+                if (contactNumber && contactNumber !== 'N/A') {
+                    if (!contactNumberMap[contactNumber]) {
+                        contactNumberMap[contactNumber] = [];
+                    }
+                    contactNumberMap[contactNumber].push(contactCell);
+                }
+            });
+
+            // Second pass: highlight duplicates in red
+            Object.keys(contactNumberMap).forEach(number => {
+                if (contactNumberMap[number].length > 1) {
+                    // This number appears more than once - mark as duplicate
+                    contactNumberMap[number].forEach(cell => {
+                        cell.style.color = 'red';
+                        cell.style.fontWeight = 'bold';
+                        cell.title = `Ã¢Å¡ Ã¯Â¸Â Duplicate: ${contactNumberMap[number].length} companies share this number`;
+                    });
+                }
+            });
+        }
+                async function exportLowBalanceReport() {
+            const threshold = document.getElementById('balanceThreshold').value;
+            const cardType = document.getElementById('cardTypeFilter').value;
+            showMessage('<i class="fas fa-spinner fa-spin"></i> Generating Excel report...', 'info');
+
+            try {
+                const url = `/LowBalanceAlerts/ExportLowBalanceReport?threshold=${threshold}&cardType=${cardType}`;
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `LowBalanceReport_${new Date().toISOString().slice(0,10)}.xlsx`;
+                link.click();
+                showMessage('<i class="fas fa-check-circle"></i> Export started!', 'success');
+            } catch (error) {
+                showMessage('Export failed: ' + error.message, 'danger');
+            }
+        }
+
+                async function viewLowBalanceCompanies() {
+            const threshold = document.getElementById('balanceThreshold').value;
+            const resultDiv = document.getElementById('lowBalanceResult');
+
+            resultDiv.innerHTML = '<div class="alert alert-info"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+
+            try {
+                const response = await fetch(`/LowBalanceAlerts/GetLowBalanceSubCompanies?threshold=${threshold}&cardType=${currentCardTypeFilter}`);
+                const result = await response.json();
+
+                if (result.success && result.data.length > 0) {
+                    allCompaniesData = result.data;
+                    currentNameSortOrder = 'none'; // Reset sorting when data refreshes
+
+                    let table = `<div class="card"><div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0">Low Balance Companies (${result.data.length})</h5>
+                                    <div>
+                                        <button class="btn btn-light btn-sm" onclick="selectAllCompanies()"><i class="fas fa-check-square"></i> Select All</button>
+                                        <button class="btn btn-light btn-sm" onclick="clearAllSelections()"><i class="fas fa-square"></i> Clear All</button>
+                                        <button class="btn btn-success btn-sm ms-2" onclick="exportLowBalanceReport()"> <i class="fas fa-file-excel"></i> Export Report</button>
+                                    </div>
+                                </div>
+                                <div class="card-body p-0"><div class="table-responsive"><table class="table table-striped table-bordered mb-0" id="companyTable">
+                                <thead class="table-warning"><tr>
+                                    <th><input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll(this)"></th>
+                                    <th>ID</th>
+                                    <th id="subCompanyHeader" style="cursor: pointer;">Sub Company <i class="fas fa-sort" id="nameSortIcon"></i></th>
+                                    <th>Contact Person</th>
+                                    <th>Contact Number</th>
+                                    <th>Email</th>
+                                    <th id="balanceHeader" style="cursor: pointer;">Balance <i class="fas fa-sort" id="balanceSortIcon"></i></th>
+                                    <th id="negBalanceHeader" style="cursor: pointer;">Neg Balance Allowed<i class="fas fa-sort ms-1" id="negBalanceSortIcon"></i></th>
+                                    <th>Last Notified</th>
+                                    <th>Action</th>
+                                </tr></thead><tbody>`;
+
+                            result.data.forEach(c => {
+            const companyId = c.id ?? 0;
+            const subCoId = c.carparkerssubcoid ?? 'N/A';
+            const companyName = c.carparkerssubconame ?? 'N/A';
+            const contactPerson = c.subcocarparkerscontactperson ?? 'N/A';
+            const contactNumber = c.subcocarparkerscontactnumber ?? 'N/A';
+            const email = c.subcocarparkersemail ?? 'N/A';
+            const balance = Number(c.currentbalance ?? 0);
+            const negAllowed = c.negBalanceallowed === true || c.negBalanceallowed === 1 || c.negBalanceallowed === '1';
+
+            let lastNotified = 'Never';
+            if (c.lastNotifiedDate) {
+                try {
+                    const date = new Date(c.lastNotifiedDate);
+                    if (!isNaN(date.getTime())) {
+                        const day = String(date.getDate()).padStart(2, '0');
+                        const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+                        const month = monthNames[date.getMonth()];
+                        const year = date.getFullYear();
+                        let hours = date.getHours();
+                        const minutes = String(date.getMinutes()).padStart(2, '0');
+                        const seconds = String(date.getSeconds()).padStart(2, '0');
+                        const ampm = hours >= 12 ? 'PM' : 'AM';
+                        hours = hours % 12;
+                        hours = hours ? hours : 12;
+                        const hoursStr = String(hours).padStart(2, '0');
+                        lastNotified = `${day}-${month}-${year} ${hoursStr}:${minutes}:${seconds} ${ampm}`;
+                    }
+                } catch (e) {
+                    console.error('Error parsing date:', e);
+                }
+            }
+
+            table += `
+                <tr class="company-row" data-balance="${balance}" data-company-name="${companyName}">
+                    <td><input type="checkbox" class="company-checkbox" value="${companyId}" onchange="updateSelectedCount()"></td>
+                    <td>${subCoId}</td>
+                    <td><strong>${companyName}</strong></td>
+                    <td>${contactPerson}</td>
+                    <td>${contactNumber}</td>
+                    <td>${email}</td>
+                    <td class="text-danger font-weight-bold">KES ${balance.toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td style="text-align:center; font-weight:bold;">
+                        <span class="badge ${negAllowed ? 'bg-success text-white' : 'bg-danger text-white'}">
+                            ${negAllowed ? 'Allowed' : 'Not Allowed'}
+                        </span>
+                    </td>
+                    <td>${lastNotified}</td>
+                    <td>
+                        <button class="btn btn-warning btn-sm" onclick="showConfirmEmailModal(${companyId}, '${subCoId}', '${String(companyName).replace(/'/g, "\\'")}', '${String(email).replace(/'/g, "\\'")}', ${balance})">
+                            <i class="fas fa-envelope"></i> Send
+                        </button>
+                    </td>
+                </tr>`;
+        });
+
+                            resultDiv.innerHTML = table + '</tbody></table></div></div></div>';
+        document.getElementById('visibleRowCount').textContent = result.data.length;
+
+        // Attach click events to headers using addEventListener
+        document.getElementById('subCompanyHeader').addEventListener('click', sortTableByName);
+        document.getElementById('balanceHeader').addEventListener('click', sortTableByBalance);
+
+        // Ã¢Å“â€¦ NEW: Highlight duplicate contact numbers
+        highlightDuplicateContactNumbers();
+
+                } else {
+                    resultDiv.innerHTML = '<div class="alert alert-success">No low balance companies found.</div>';
+                }
+                await loadBalanceSummary();
+                await loadAutomaticNotificationStatus();
+            } catch (error) {
+                console.error('Error loading companies:', error);
+                resultDiv.innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
+            }
+        }
+
+        // SELECTION FUNCTIONS
+        function toggleSelectAll(checkbox) {
+            const checkboxes = document.querySelectorAll('.company-checkbox');
+            checkboxes.forEach(cb => {
+                if (cb.closest('.company-row').style.display !== 'none') {
+                    cb.checked = checkbox.checked;
+                }
+            });
+            updateSelectedCount();
+        }
+
+        function selectAllCompanies() {
+            document.getElementById('selectAllCheckbox').checked = true;
+            toggleSelectAll(document.getElementById('selectAllCheckbox'));
+        }
+
+        function clearAllSelections() {
+            document.getElementById('selectAllCheckbox').checked = false;
+            toggleSelectAll(document.getElementById('selectAllCheckbox'));
+        }
+
+        function updateSelectedCount() {
+            const selectedIds = getSelectedCompanyIds();
+            document.getElementById('selectedCount').textContent = selectedIds.length;
+            document.getElementById('sendToSelectedBtn').disabled = selectedIds.length === 0;
+        }
+
+        function getSelectedCompanyIds() {
+            const checkboxes = document.querySelectorAll('.company-checkbox:checked');
+            return Array.from(checkboxes).map(cb => parseInt(cb.value));
+        }
+
+        function updateVisibleCount() {
+            const visibleRows = document.querySelectorAll('.company-row[style=""]').length;
+            document.getElementById('visibleRowCount').textContent = visibleRows;
+        }
+
+        function showConfirmEmailModal(id, subCoId, companyName, email, balance) {
+            pendingEmailData = { id, subCoId, companyName, email, balance };
+            document.getElementById('confirmSubCoId').textContent = subCoId;
+            document.getElementById('confirmCompanyName').textContent = companyName;
+            document.getElementById('confirmEmail').textContent = email;
+            document.getElementById('confirmBalance').textContent = `KES ${parseFloat(balance).toFixed(2)}`;
+            new bootstrap.Modal(document.getElementById('confirmEmailModal')).show();
+        }
+
+        async function confirmSendEmail() {
+            if (!pendingEmailData) return;
+            bootstrap.Modal.getInstance(document.getElementById('confirmEmailModal')).hide();
+
+            const threshold = document.getElementById('balanceThreshold').value;
+            const subject = document.getElementById('customSubject').value;
+            const body = document.getElementById('customBody').value;
+            const fileInput = document.getElementById('emailAttachment');
+
+            const formData = new FormData();
+            formData.append('SubCompanyId', pendingEmailData.id);
+            formData.append('Threshold', threshold);
+            formData.append('Subject', subject);
+            formData.append('Body', body);
+            if (fileInput.files.length > 0) formData.append('Attachment', fileInput.files[0]);
+
+            showMessage(`<i class="fas fa-spinner fa-spin"></i> Sending individual email to ${pendingEmailData.companyName}...`, 'info');
+
+            try {
+                const response = await fetch('/LowBalanceAlerts/SendLowBalanceNotificationToCompany', { method: 'POST', body: formData });
+                const data = await response.json();
+                if (data.success) {
+                    showMessage(`<i class="fas fa-check-circle"></i> Success: Email sent to ${pendingEmailData.companyName}`, 'success');
+                    await viewLowBalanceCompanies();
+                } else {
+                    showMessage(`<i class="fas fa-times-circle"></i> Error: ${data.message}`, 'danger');
+                }
+            } catch (error) { showMessage(`Connection Error: ${error.message}`, 'danger'); } finally { pendingEmailData = null; }
+        }
+
+                        async function viewBalanceSummaryDetailed() {
+            const threshold = document.getElementById('balanceThreshold').value;
+            const cardType = document.getElementById('cardTypeFilter') ? document.getElementById('cardTypeFilter').value : 'All';
+            const resultDiv = document.getElementById('lowBalanceResult');
+            resultDiv.innerHTML = `<div class="alert alert-info"><i class="fas fa-spinner fa-spin"></i> Loading summary...</div>`;
+
+            try {
+                const response = await fetch(`/LowBalanceAlerts/GetBalanceSummary?threshold=${threshold}&cardType=${encodeURIComponent(cardType)}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    const data = result.data;
+                    resultDiv.innerHTML = `
+                        <div class="card">
+                            <div class="card-header bg-primary text-white"><h5>Balance Analysis</h5></div>
+                            <div class="card-body">
+                                <div class="row text-center">
+                                    <div class="col"><h6>Total</h6><h2>${data.TotalSubCompanies || 0}</h2></div>
+                                    <div class="col text-danger"><h6>Low</h6><h2>${data.LowBalanceCount || 0}</h2></div>
+                                    <div class="col text-warning"><h6>Negative</h6><h2>${data.NegativeBalanceCount || 0}</h2></div>
+                                    <div class="col text-secondary"><h6>Zero</h6><h2>${data.ZeroBalanceCount || 0}</h2></div>
+                                    <div class="col text-success"><h6>Healthy</h6><h2>${data.HealthyBalanceCount || 0}</h2></div>
+                                    <div class="col text-info"><h6>Deposit</h6><h2>KES ${parseFloat(data.TotalDeposit || 0).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h2></div>
+                                    <div class="col text-dark"><h6>Collected</h6><h2>KES ${parseFloat(data.ToBeCollected || 0).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h2></div>
+                                </div>
+                            </div>
+                        </div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
+            }
+        }
+
+        function showMessage(message, type) {
+            var alertDiv = $('#statusMessage');
+            alertDiv.removeClass().addClass('alert alert-' + type).html(message).fadeIn();
+            setTimeout(function() { alertDiv.fadeOut(); }, 5000);
+        }
+    </script>
+}

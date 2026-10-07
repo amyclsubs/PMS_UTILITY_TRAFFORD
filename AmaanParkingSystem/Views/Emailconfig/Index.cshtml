@@ -1,0 +1,715 @@
+﻿@{
+    ViewData["Title"] = "Email Configuration";
+}
+
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="page-header">
+                <h2><i class="fas fa-envelope-open-text"></i> Email Configuration &amp; Reports</h2>
+                <p class="text-muted">Manage SMTP settings, email recipients, and automated reports</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="statusMessage" class="alert" style="display:none; margin-bottom: 20px;"></div>
+
+    <ul class="nav nav-tabs" id="emailConfigTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="smtp-tab" data-bs-toggle="tab" data-bs-target="#smtp-config" type="button">
+                <i class="fas fa-cog"></i> SMTP Configuration
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="recipients-tab" data-bs-toggle="tab" data-bs-target="#recipients-config" type="button">
+                <i class="fas fa-users"></i> Recipients &amp; Reports
+            </button>
+        </li>
+        <!-- ✅ NEW TAB -->
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="realtime-tab" data-bs-toggle="tab" data-bs-target="#realtime-config" type="button">
+                <i class="fas fa-car"></i> Real-Time Reports
+                <span class="badge bg-success ms-1" style="font-size:10px;">NEW</span>
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content border border-top-0 p-4" id="emailConfigTabsContent">
+
+        <!-- ════════════════════════════════════════════════════════════════════
+             SMTP Configuration Tab  (unchanged)
+             ════════════════════════════════════════════════════════════════════ -->
+        <div class="tab-pane fade show active" id="smtp-config" role="tabpanel">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-cog"></i> SMTP Settings</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="smtpConfigForm">
+                                <input type="hidden" id="smtp_id" />
+                                <div class="mb-3">
+                                    <label class="form-label">SMTP Server</label>
+                                    <input type="text" class="form-control" id="smtp_server" placeholder="smtp.gmail.com" required />
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">SMTP Port</label>
+                                    <input type="number" class="form-control" id="smtp_port" value="587" required />
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">SMTP Username</label>
+                                    <input type="text" class="form-control" id="smtp_username" placeholder="your-email@gmail.com" required />
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">SMTP Password</label>
+                                    <input type="password" class="form-control" id="smtp_password" placeholder="App Password" required />
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">From Email</label>
+                                    <input type="email" class="form-control" id="from_email" placeholder="noreply@amaanpms.com" required />
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">From Name</label>
+                                    <input type="text" class="form-control" id="from_name" value="Amaan PMS Reports" required />
+                                </div>
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="enable_ssl" checked />
+                                    <label class="form-check-label" for="enable_ssl">Enable SSL/TLS</label>
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Save Configuration
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0"><i class="fas fa-paper-plane"></i> Test Email</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="testEmailForm">
+                                <div class="mb-3">
+                                    <label class="form-label">Test Email Address</label>
+                                    <input type="email" class="form-control" id="testEmail" placeholder="test@example.com" required />
+                                    <small class="text-muted">Send a test email to verify SMTP configuration</small>
+                                </div>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-paper-plane"></i> Send Test Email
+                                </button>
+                            </form>
+                            <div class="alert alert-info mt-3 mb-0">
+                                <strong><i class="fas fa-info-circle"></i> Note:</strong>
+                                <ul class="mb-0 mt-2">
+                                    <li>Make sure SMTP settings are saved before testing</li>
+                                    <li>Check your spam/junk folder if email doesn't arrive</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Email Stats Card -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Email Send Statistics</h5>
+                                <button class="btn btn-sm btn-outline-light" onclick="loadEmailStats()">
+                                    <i class="fas fa-sync-alt"></i> Refresh
+                                </button>
+                            </div>
+                            <div class="card-body" id="emailStatsBody">
+                                <div class="text-center text-muted py-3">
+                                    <i class="fas fa-spinner fa-spin"></i> Loading stats...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ════════════════════════════════════════════════════════════════════
+             Recipients & Reports Tab  (existing — with Real-Time column added)
+             ════════════════════════════════════════════════════════════════════ -->
+        <div class="tab-pane fade" id="recipients-config" role="tabpanel">
+
+            <!-- Report selection checkboxes -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-file-alt"></i> Select Reports to Send</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-2">
+                            <div class="form-check">
+                                <input class="form-check-input report-checkbox" type="checkbox" id="report_daily_exited" checked />
+                                <label class="form-check-label" for="report_daily_exited"><strong>Daily Exited Cars</strong></label>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-check">
+                                <input class="form-check-input report-checkbox" type="checkbox" id="report_daily_transactions" checked />
+                                <label class="form-check-label" for="report_daily_transactions"><strong>Daily Transactions</strong></label>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-check">
+                                <input class="form-check-input report-checkbox" type="checkbox" id="report_monthly_exited" />
+                                <label class="form-check-label" for="report_monthly_exited"><strong>Monthly Exited Cars</strong></label>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-check">
+                                <input class="form-check-input report-checkbox" type="checkbox" id="report_monthly_transactions" />
+                                <label class="form-check-label" for="report_monthly_transactions"><strong>Monthly Transactions</strong></label>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-check">
+                                <input class="form-check-input report-checkbox" type="checkbox" id="report_foc" />
+                                <label class="form-check-label" for="report_foc">
+                                    <strong>FOC Report</strong>
+                                    <span class="badge bg-warning text-dark ms-1" style="font-size:10px;">NEW</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-check">
+                                <input class="form-check-input report-checkbox" type="checkbox" id="report_low_balance" />
+                                <label class="form-check-label" for="report_low_balance">
+                                    <strong>Low Balance Report</strong>
+                                    <span class="badge bg-warning text-dark ms-1" style="font-size:10px;">NEW</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sites Table -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-users"></i> Recipients &amp; Email Preferences</h5>
+                    <button class="btn btn-light btn-sm" onclick="selectAllSites()">
+                        <i class="fas fa-check-square"></i> Select All
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-bordered" id="siteMastersTable">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th width="50"><input type="checkbox" id="selectAllCheckbox" onchange="toggleAllSites(this)" /></th>
+                                    <th>Type</th>
+                                    <th>Site Name</th>
+                                    <th>Client Name</th>
+                                    <th>Email</th>
+                                    <th width="70" class="text-center">Daily<br />Exited</th>
+                                    <th width="70" class="text-center">Daily<br />Trans</th>
+                                    <th width="70" class="text-center">Monthly<br />Exited</th>
+                                    <th width="70" class="text-center">Monthly<br />Trans</th>
+                                    <th width="70" class="text-center table-warning">FOC<br />Report</th>
+                                    <th width="80" class="text-center table-warning">Low<br />Balance</th>
+                                    <!-- ✅ NEW column -->
+                                    <th width="80" class="text-center table-success">Real-Time<br />Report</th>
+                                </tr>
+                            </thead>
+                            <tbody id="siteMastersBody">
+                                <tr>
+                                    <td colspan="12" class="text-center">
+                                        <div class="spinner-border text-primary" role="status"></div>
+                                        <p class="mt-2">Loading sites...</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-3">
+                        <button class="btn btn-success btn-lg" onclick="sendCustomReports()">
+                            <i class="fas fa-paper-plane"></i> Send Selected Reports to Selected Sites
+                        </button>
+                        <small class="text-muted d-block mt-2">
+                            <i class="fas fa-info-circle"></i> Only checked reports will be sent to selected sites
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ════════════════════════════════════════════════════════════════════
+             ✅ NEW: Real-Time Reports Tab
+             ════════════════════════════════════════════════════════════════════ -->
+        <div class="tab-pane fade" id="realtime-config" role="tabpanel">
+
+            <!-- Info card -->
+            <div class="alert alert-info d-flex align-items-start gap-3 mb-4">
+                <i class="fas fa-info-circle fa-2x mt-1"></i>
+                <div>
+                    <strong>About Real-Time Reports</strong><br />
+                    These reports show the <strong>current state of the parking</strong> at the time of sending:
+                    <ul class="mb-0 mt-1">
+                        <li><strong>Currently Parked</strong> — vehicles inside for ≤ 24 hours</li>
+                        <li><strong>Overdue Cars</strong> — vehicles inside for &gt; 24 hours (highlighted in red)</li>
+                    </ul>
+                    The scheduler automatically sends both at <strong>3:00 AM</strong> every night.
+                    Use this panel to send them <strong>manually at any time</strong>.
+                </div>
+            </div>
+
+            <!-- Scheduled status -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header" style="background:#1a3c5e;color:white;">
+                    <h5 class="mb-0"><i class="fas fa-clock"></i> Scheduled Send Status</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3 text-center">
+                        <div class="col-md-3">
+                            <div class="p-3 rounded" style="background:#e8f5e9;border:1px solid #a5d6a7;">
+                                <div style="font-size:2rem;font-weight:bold;color:#2e7d32;" id="rt_parked_count">—</div>
+                                <small class="text-muted">Currently Parked</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3 rounded" style="background:#fce4ec;border:1px solid #f48fb1;">
+                                <div style="font-size:2rem;font-weight:bold;color:#c62828;" id="rt_overdue_count">—</div>
+                                <small class="text-muted">Overdue (&gt;24h)</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3 rounded" style="background:#e3f2fd;border:1px solid #90caf9;">
+                                <div style="font-size:1.1rem;font-weight:bold;color:#1565c0;">03:00 AM</div>
+                                <small class="text-muted">Scheduled Daily Send</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3 rounded" style="background:#f3e5f5;border:1px solid #ce93d8;">
+                                <div style="font-size:1.1rem;font-weight:bold;color:#6a1b9a;" id="rt_sites_count">—</div>
+                                <small class="text-muted">Sites with RT enabled</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3 text-center">
+                        <button class="btn btn-outline-primary btn-sm" onclick="loadRealTimeStats()">
+                            <i class="fas fa-sync-alt"></i> Refresh Stats
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Manual send panel -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-paper-plane"></i> Send Real-Time Reports Now</h5>
+                    <button class="btn btn-light btn-sm" onclick="selectAllRtSites()">
+                        <i class="fas fa-check-square"></i> Select All
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-bordered" id="rtSitesTable">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th width="50"><input type="checkbox" id="rtSelectAllCheckbox" onchange="toggleAllRtSites(this)" /></th>
+                                    <th>Type</th>
+                                    <th>Site Name</th>
+                                    <th>Client Name</th>
+                                    <th>Email</th>
+                                    <th width="100" class="text-center">Auto-Send<br />(3 AM)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rtSitesBody">
+                                <tr>
+                                    <td colspan="6" class="text-center">
+                                        <div class="spinner-border text-primary" role="status"></div>
+                                        <p class="mt-2">Loading...</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="mt-3 d-flex align-items-center gap-3 flex-wrap">
+                        <button class="btn btn-success btn-lg" onclick="sendRealTimeReports()" id="sendRtBtn">
+                            <i class="fas fa-car"></i> Send Real-Time Reports to Selected Sites
+                        </button>
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle"></i>
+                            Sends <strong>Currently Parked</strong> + <strong>Overdue Cars</strong> Excel files right now.
+                            Does not affect the 3 AM scheduled send.
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /tab-content -->
+</div>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        var allSites = [];
+
+        document.addEventListener('DOMContentLoaded', function () {
+            loadSmtpConfig();
+            loadSiteMasters();
+            loadEmailStats();
+
+            // Load RT stats when tab is clicked
+            document.getElementById('realtime-tab').addEventListener('shown.bs.tab', function () {
+                loadRealTimeStats();
+            });
+        });
+
+        // ════════════════════════════════
+        // SMTP
+        // ════════════════════════════════
+        function loadSmtpConfig() {
+            $.get("/EmailConfig/GetSmtpConfig")
+                .done(function (r) {
+                    if (r.success && r.data) {
+                        $("#smtp_id").val(r.data.id);
+                        $("#smtp_server").val(r.data.smtp_server);
+                        $("#smtp_port").val(r.data.smtp_port);
+                        $("#smtp_username").val(r.data.smtp_username);
+                        $("#smtp_password").val(r.data.smtp_password);
+                        $("#from_email").val(r.data.from_email);
+                        $("#from_name").val(r.data.from_name);
+                        $("#enable_ssl").prop('checked', r.data.enable_ssl);
+                    }
+                });
+        }
+
+        $("#smtpConfigForm").on("submit", function (e) {
+            e.preventDefault();
+            var data = {
+                Id: parseInt($("#smtp_id").val()) || 0,
+                SmtpServer: $("#smtp_server").val(),
+                SmtpPort: parseInt($("#smtp_port").val()),
+                SmtpUsername: $("#smtp_username").val(),
+                SmtpPassword: $("#smtp_password").val(),
+                FromEmail: $("#from_email").val(),
+                FromName: $("#from_name").val(),
+                EnableSsl: $("#enable_ssl").is(':checked')
+            };
+            $.ajax({
+                url: "/EmailConfig/UpdateSmtpConfig", type: "POST",
+                contentType: "application/json", data: JSON.stringify(data),
+                success: function (r) { showMessage(r.message, r.success ? 'success' : 'danger'); if (r.success) loadSmtpConfig(); }
+            });
+        });
+
+        $("#testEmailForm").on("submit", function (e) {
+            e.preventDefault();
+            $.ajax({
+                url: "/EmailConfig/TestEmailConnection", type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({ TestEmail: $("#testEmail").val() }),
+                success: function (r) { showMessage(r.message, r.success ? 'success' : 'danger'); }
+            });
+        });
+
+        // ════════════════════════════════
+        // SITE MASTERS (existing tab)
+        // ════════════════════════════════
+        function loadSiteMasters() {
+            $.get("/EmailConfig/GetSiteMasters")
+                .done(function (r) {
+                    if (r.success && r.data) {
+                        allSites = r.data;
+                        renderSitesTable();
+                        renderRtSitesTable();   // also populate RT tab
+                    } else {
+                        $("#siteMastersBody").html('<tr><td colspan="12" class="text-center text-danger">Error loading sites</td></tr>');
+                    }
+                });
+        }
+
+        function renderSitesTable() {
+            var tbody = $("#siteMastersBody");
+            tbody.empty();
+
+            if (!allSites.length) {
+                tbody.html('<tr><td colspan="12" class="text-center">No sites found</td></tr>');
+                return;
+            }
+
+            allSites.forEach(function (site) {
+                var isAdmin  = (site.site_type || '').toLowerCase() === "admin";
+                var rowCls   = isAdmin ? "table-warning" : "";
+                var typeIcon = isAdmin
+                    ? '<i class="fas fa-crown text-warning"></i>'
+                    : '<i class="fas fa-building text-primary"></i>';
+                var siteId   = site.site_id;
+                var siteName = site.site_name || '';
+
+                function prefChk(pref, checked, extraCls) {
+                    return '<input type="checkbox" class="pref-checkbox' + (extraCls ? ' ' + extraCls : '') + '" ' +
+                           'data-site-id="' + siteId + '" data-pref="' + pref + '" ' +
+                           (checked ? 'checked' : '') + ' onchange="updatePreference(this)" />';
+                }
+
+                var row =
+                    '<tr class="' + rowCls + '">' +
+                    '<td class="text-center"><input type="checkbox" class="site-checkbox" data-site-name="' + siteName + '" /></td>' +
+                    '<td>' + typeIcon + ' ' + (site.site_type || 'SITE').toUpperCase() + '</td>' +
+                    '<td>' + (site.site_name   || '-') + '</td>' +
+                    '<td>' + (site.client_name  || '-') + '</td>' +
+                    '<td>' + (site.client_email || '-') + '</td>' +
+                    '<td class="text-center">' + prefChk('daily_exited',         site.receive_daily_exited)         + '</td>' +
+                    '<td class="text-center">' + prefChk('daily_transactions',   site.receive_daily_transactions)   + '</td>' +
+                    '<td class="text-center">' + prefChk('monthly_exited',       site.receive_monthly_exited)       + '</td>' +
+                    '<td class="text-center">' + prefChk('monthly_transactions', site.receive_monthly_transactions) + '</td>' +
+                    '<td class="text-center table-warning">' + prefChk('foc_report',         site.receive_foc_report)         + '</td>' +
+                    '<td class="text-center table-warning">' + prefChk('low_balance',         site.receive_low_balance)        + '</td>' +
+                    '<td class="text-center table-success">' + prefChk('realtime_report',     site.receive_realtime_report)    + '</td>' +
+                    '</tr>';
+
+                tbody.append(row);
+            });
+        }
+
+        function updatePreference(checkbox) {
+            var siteId = parseInt($(checkbox).data('site-id'));
+
+            function isChk(pref) {
+                return $('.pref-checkbox[data-site-id="' + siteId + '"][data-pref="' + pref + '"]').is(':checked');
+            }
+
+            var data = {
+                SiteId:                    siteId,
+                ReceiveDailyExited:         isChk('daily_exited'),
+                ReceiveDailyTransactions:   isChk('daily_transactions'),
+                ReceiveMonthlyExited:       isChk('monthly_exited'),
+                ReceiveMonthlyTransactions: isChk('monthly_transactions'),
+                ReceiveFocReport:           isChk('foc_report'),
+                ReceiveLowBalance:          isChk('low_balance'),
+                ReceiveRealtimeReport:      isChk('realtime_report')   // ✅ NEW
+            };
+
+            $.ajax({
+                url: "/EmailConfig/UpdateSitePreferences", type: "POST",
+                contentType: "application/json", data: JSON.stringify(data),
+                success: function (r) {
+                    if (r.success) showMessage("Preferences updated", 'success');
+                    // Re-render RT tab to keep auto-send badges in sync
+                    renderRtSitesTable();
+                }
+            });
+        }
+
+        function toggleAllSites(cb) { $(".site-checkbox").prop('checked', cb.checked); }
+        function selectAllSites()   { $(".site-checkbox").prop('checked', true); }
+
+        function sendCustomReports() {
+            var names = [];
+            $(".site-checkbox:checked").each(function () {
+                var n = $(this).attr('data-site-name');
+                if (n) names.push(n);
+            });
+
+            if (!names.length) { showMessage("Please select at least one site", 'warning'); return; }
+
+            var data = {
+                SiteNames:                 names,
+                IncludeDailyExited:         $("#report_daily_exited").is(':checked'),
+                IncludeDailyTransactions:   $("#report_daily_transactions").is(':checked'),
+                IncludeMonthlyExited:       $("#report_monthly_exited").is(':checked'),
+                IncludeMonthlyTransactions: $("#report_monthly_transactions").is(':checked'),
+                IncludeFocReport:           $("#report_foc").is(':checked'),
+                IncludeLowBalance:          $("#report_low_balance").is(':checked')
+            };
+
+            if (!data.IncludeDailyExited && !data.IncludeDailyTransactions &&
+                !data.IncludeMonthlyExited && !data.IncludeMonthlyTransactions &&
+                !data.IncludeFocReport && !data.IncludeLowBalance) {
+                showMessage("Please select at least one report", 'warning');
+                return;
+            }
+
+            showMessage("Sending reports… Please wait", 'info');
+            $.ajax({
+                url: "/EmailConfig/SendCustomReports", type: "POST",
+                contentType: "application/json", data: JSON.stringify(data),
+                success: function (r) { showMessage(r.message, r.success ? 'success' : 'danger'); },
+                error:   function ()  { showMessage("Error sending reports", 'danger'); }
+            });
+        }
+
+        // ════════════════════════════════
+        // REAL-TIME TAB
+        // ════════════════════════════════
+        function renderRtSitesTable() {
+            var tbody = $("#rtSitesBody");
+            tbody.empty();
+
+            var validSites = allSites.filter(function (s) { return s.client_email && s.client_email !== '-'; });
+
+            if (!validSites.length) {
+                tbody.html('<tr><td colspan="6" class="text-center">No sites with email configured</td></tr>');
+                return;
+            }
+
+            validSites.forEach(function (site) {
+                var isAdmin  = (site.site_type || '').toLowerCase() === "admin";
+                var rowCls   = isAdmin ? "table-warning" : "";
+                var typeIcon = isAdmin
+                    ? '<i class="fas fa-crown text-warning"></i>'
+                    : '<i class="fas fa-building text-primary"></i>';
+                var siteName = site.site_name || '';
+
+                var autoBadge = site.receive_realtime_report
+                    ? '<span class="badge bg-success"><i class="fas fa-check"></i> Enabled</span>'
+                    : '<span class="badge bg-secondary">Disabled</span>';
+
+                var row =
+                    '<tr class="' + rowCls + '">' +
+                    '<td class="text-center"><input type="checkbox" class="rt-site-checkbox" data-site-name="' + siteName + '"' +
+                        (site.receive_realtime_report ? ' checked' : '') + ' /></td>' +
+                    '<td>' + typeIcon + ' ' + (site.site_type || 'SITE').toUpperCase() + '</td>' +
+                    '<td>' + (site.site_name   || '-') + '</td>' +
+                    '<td>' + (site.client_name  || '-') + '</td>' +
+                    '<td>' + (site.client_email || '-') + '</td>' +
+                    '<td class="text-center">' + autoBadge + '</td>' +
+                    '</tr>';
+
+                tbody.append(row);
+            });
+        }
+
+        function toggleAllRtSites(cb) { $(".rt-site-checkbox").prop('checked', cb.checked); }
+        function selectAllRtSites()   { $(".rt-site-checkbox").prop('checked', true); }
+
+                function loadRealTimeStats() {
+            $("#rt_parked_count").text("…");
+            $("#rt_overdue_count").text("…");
+
+            // Call both endpoints in parallel — same as what the report service does
+            var req1 = $.post("/RealTimeReport/GetCurrentEntries");  // today's parked cars
+            var req2 = $.post("/RealTimeReport/GetPastEntries");     // overdue (past days)
+
+            $.when(req1, req2).done(function (res1, res2) {
+                // jQuery $.when returns [data, status, xhr] for each
+                var r1 = res1[0];  // GetCurrentEntries result
+                var r2 = res2[0];  // GetPastEntries result
+
+                var parkedCount  = (r1 && r1.success) ? (r1.data ? r1.data.length : 0) : 0;
+                var overdueCount = (r2 && r2.success) ? (r2.data ? r2.data.length : 0) : 0;
+
+                $("#rt_parked_count").text(parkedCount);
+                $("#rt_overdue_count").text(overdueCount > 0
+                    ? overdueCount
+                    : '<span style="color:#c62828;">' + overdueCount + '</span>');
+
+                // Use .html() for the red zero case
+                if (overdueCount > 0) {
+                    $("#rt_overdue_count")
+                        .css("color", "#c62828")
+                        .text(overdueCount);
+                } else {
+                    $("#rt_overdue_count")
+                        .css("color", "#888")
+                        .text(overdueCount);
+                }
+            }).fail(function () {
+                $("#rt_parked_count").text("Err");
+                $("#rt_overdue_count").text("Err");
+            });
+
+            // Count sites with RT auto-send enabled (from already-loaded allSites)
+            var rtEnabled = allSites.filter(function (s) { return s.receive_realtime_report; }).length;
+            $("#rt_sites_count").text(rtEnabled + " site(s)");
+        }
+
+        function sendRealTimeReports() {
+            var names = [];
+            $(".rt-site-checkbox:checked").each(function () {
+                var n = $(this).attr('data-site-name');
+                if (n) names.push(n);
+            });
+
+            if (!names.length) { showMessage("Please select at least one site", 'warning'); return; }
+
+            var btn = $("#sendRtBtn");
+            btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Sending…');
+            showMessage("Generating and sending Real-Time reports… please wait.", 'info');
+
+            $.ajax({
+                url: "/EmailConfig/SendRealTimeReports", type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({ SiteNames: names }),
+                success: function (r) {
+                    showMessage(r.message, r.success ? 'success' : 'danger');
+                    btn.prop('disabled', false).html('<i class="fas fa-car"></i> Send Real-Time Reports to Selected Sites');
+                },
+                error: function () {
+                    showMessage("Error sending real-time reports", 'danger');
+                    btn.prop('disabled', false).html('<i class="fas fa-car"></i> Send Real-Time Reports to Selected Sites');
+                }
+            });
+        }
+
+        // ════════════════════════════════
+        // UTILITY
+        // ════════════════════════════════
+        function showMessage(msg, type) {
+            var el = $("#statusMessage");
+            el.removeClass().addClass('alert alert-' + type).html(msg).fadeIn();
+            setTimeout(function () { el.fadeOut(); }, 6000);
+        }
+        function loadEmailStats() {
+            $("#emailStatsBody").html('<div class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin"></i> Loading...</div>');
+            $.get("/EmailConfig/GetEmailStats", function (res) {
+                if (!res.success) {
+                    $("#emailStatsBody").html('<div class="alert alert-danger">Failed: ' + res.message + '</div>');
+                    return;
+                }
+                        var raw = res.data;
+        // Dapper dynamic returns lowercase keys — normalize here
+        var d = {
+            todayCount:    raw.todaycount    ?? raw.TodayCount    ?? 0,
+            last7DaysCount:raw.last7dayscount?? raw.Last7DaysCount?? 0,
+            thisMonthCount:raw.thismonthcount?? raw.ThisMonthCount?? 0,
+            totalSent:     raw.totalsent     ?? raw.TotalSent     ?? 0,
+            successCount:  raw.successcount  ?? raw.SuccessCount  ?? 0,
+            failedCount:   raw.failedcount   ?? raw.FailedCount   ?? 0,
+        };
+        var pct = d.totalSent > 0 ? Math.round(d.successCount / d.totalSent * 100) : 0;
+        var barColor = pct >= 90 ? 'success' : pct >= 70 ? 'warning' : 'danger';
+                $("#emailStatsBody").html(
+                    '<div class="row g-3 mb-3">' +
+                        '<div class="col-6 col-md-3"><div class="border rounded p-3 text-center bg-light">' +
+                            '<div class="fs-1 fw-bold text-primary">' + d.todayCount + '</div>' +
+                            '<div class="text-muted small">Today</div></div></div>' +
+                        '<div class="col-6 col-md-3"><div class="border rounded p-3 text-center bg-light">' +
+                            '<div class="fs-1 fw-bold text-info">' + d.last7DaysCount + '</div>' +
+                            '<div class="text-muted small">Last 7 Days</div></div></div>' +
+                        '<div class="col-6 col-md-3"><div class="border rounded p-3 text-center bg-light">' +
+                            '<div class="fs-1 fw-bold text-warning">' + d.thisMonthCount + '</div>' +
+                            '<div class="text-muted small">This Month</div></div></div>' +
+                        '<div class="col-6 col-md-3"><div class="border rounded p-3 text-center bg-light">' +
+                            '<div class="fs-1 fw-bold text-dark">' + d.totalSent + '</div>' +
+                            '<div class="text-muted small">All Time</div></div></div>' +
+                    '</div>' +
+                    '<div class="d-flex justify-content-between mb-1">' +
+                        '<span class="small fw-semibold">Delivery Rate</span>' +
+                        '<span class="small text-' + barColor + '">' + pct + '%</span>' +
+                    '</div>' +
+                    '<div class="progress mb-1" style="height:10px;">' +
+                        '<div class="progress-bar bg-' + barColor + '" style="width:' + pct + '%"></div>' +
+                    '</div>' +
+                    '<div class="d-flex justify-content-between">' +
+                        '<small class="text-success"><i class="fas fa-check-circle"></i> ' + d.successCount + ' Sent</small>' +
+                        '<small class="text-danger"><i class="fas fa-times-circle"></i> ' + d.failedCount + ' Failed</small>' +
+                    '</div>'
+                );
+            }).fail(function () {
+                $("#emailStatsBody").html('<div class="alert alert-danger">Could not reach /EmailConfig/GetEmailStats</div>');
+            });
+        }
+    </script>
+}

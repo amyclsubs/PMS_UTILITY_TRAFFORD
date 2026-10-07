@@ -1,0 +1,353 @@
+﻿@{
+    ViewData["Title"] = "Yearly Entry & Exit";
+}
+
+<div class="page-header">
+    <h2>Yearly Entry &amp; Exit Report</h2>
+    <p>Month-wise entry and exit summary for the selected year.</p>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header">
+        <h5><i class="fas fa-calendar me-2"></i>Filter</h5>
+    </div>
+    <div class="card-body">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label" for="year">Year</label>
+                <input type="number" id="year" class="form-control" value="@DateTime.Now.Year" />
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-primary w-100" id="btnLoad">
+                    <i class="fas fa-search me-1"></i>Load Report
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="fas fa-table me-2"></i>Yearly Entry &amp; Exit Report</h5>
+        <span id="reportSubtitle" class="text-muted small"></span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-bordered table-sm mb-0" id="tblReport">
+                <thead id="tblHead" class="table-dark"></thead>
+                <tbody id="tblBody">
+                    <tr><td class="text-center text-muted p-4" colspan="20">Enter a year and click Load Report.</td></tr>
+                </tbody>
+                <tfoot id="tblFoot"></tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* ── Table wrapper ── */
+    #tblReport {
+        border-collapse: collapse;
+        font-size: .82rem;
+    }
+
+    /* ── Headers ── */
+    .rpt-lbl-hdr {
+        background: #212529 !important;
+        color: #fff !important;
+        vertical-align: middle !important;
+        text-align: center;
+        padding: 6px 10px;
+        border-right: 3px solid #ffc107 !important;
+    }
+
+    .rpt-ct-hdr {
+        background: #343a40 !important;
+        color: #fff !important;
+        font-size: .72rem;
+        letter-spacing: .04em;
+        text-align: center;
+        padding: 5px 4px;
+        border-right: 3px solid #ffc107 !important;
+    }
+
+        .rpt-ct-hdr.sub-hdr {
+            font-size: .70rem;
+            font-weight: normal;
+            padding: 4px 6px;
+            border-right: 1px solid #555 !important;
+        }
+
+            .rpt-ct-hdr.sub-hdr:last-of-type,
+            .rpt-ct-hdr.sub-last {
+                border-right: 3px solid #ffc107 !important;
+            }
+
+    .rpt-all-hdr {
+        background: #1a252f !important;
+        color: #ffc107 !important;
+        font-size: .72rem;
+        text-align: center;
+        padding: 5px 4px;
+        border-right: 1px solid #444 !important;
+    }
+
+        .rpt-all-hdr.sub-hdr {
+            font-weight: normal;
+            font-size: .70rem;
+            padding: 4px 6px;
+            border-right: 1px solid #444 !important;
+        }
+
+    /* ── Body cells ── */
+    #tblReport tbody td,
+    #tblReport tfoot td {
+        padding: 4px 8px;
+        vertical-align: middle;
+    }
+
+    .rpt-period-cell {
+        font-weight: 600;
+        white-space: nowrap;
+        background: #f8f9fa;
+        border-right: 3px solid #ffc107 !important;
+        padding: 4px 10px;
+    }
+
+    .rpt-in {
+        color: #0d6efd;
+        text-align: right;
+    }
+
+    .rpt-out {
+        color: #dc3545;
+        text-align: right;
+    }
+
+    .rpt-rem-pos {
+        color: #198754;
+        background: #d1e7dd;
+        font-weight: 600;
+        text-align: right;
+        border-right: 3px solid #ffc107 !important;
+    }
+
+    .rpt-rem-neg {
+        color: #dc3545;
+        background: #f8d7da;
+        font-weight: 600;
+        text-align: right;
+        border-right: 3px solid #ffc107 !important;
+    }
+
+    .rpt-rem-zero {
+        color: #6c757d;
+        text-align: right;
+        border-right: 3px solid #ffc107 !important;
+    }
+
+    .rpt-all-in {
+        color: #0a58ca;
+        font-weight: 600;
+        text-align: right;
+        background: #eef3ff;
+    }
+
+    .rpt-all-out {
+        color: #b02a37;
+        font-weight: 600;
+        text-align: right;
+        background: #fff5f5;
+    }
+
+    .rpt-all-rem-pos {
+        color: #198754;
+        font-weight: 700;
+        text-align: right;
+        background: #c3e6cb;
+    }
+
+    .rpt-all-rem-neg {
+        color: #dc3545;
+        font-weight: 700;
+        text-align: right;
+        background: #f5c6cb;
+    }
+
+    .rpt-all-rem-zero {
+        color: #6c757d;
+        font-weight: 700;
+        text-align: right;
+        background: #e9ecef;
+    }
+
+    /* ── Summary rows ── */
+    .rpt-total-row td {
+        background: #dee2e6 !important;
+        font-weight: 700;
+        border-top: 2px solid #adb5bd;
+    }
+
+    .rpt-avg-row td {
+        background: #f8f9fa !important;
+        font-style: italic;
+        color: #495057;
+        border-top: 1px dashed #ced4da;
+    }
+
+    /* ── Alternating row stripes ── */
+    #tblReport tbody tr:nth-child(even) td {
+        background-color: #f9fbff;
+    }
+
+    #tblReport tbody tr:hover td {
+        background-color: #fffbe6 !important;
+    }
+
+    /* ── Outer border ── */
+    #tblReport {
+        border: 2px solid #343a40;
+    }
+
+    thead th, tfoot td {
+        white-space: nowrap;
+    }
+
+    /* ── Sticky header ── */
+    #tblReport thead tr th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+    }
+
+    .table-responsive {
+        max-height: 72vh;
+        overflow-y: auto;
+    }
+</style>
+
+@section Scripts {
+    <script>
+        (function () {
+            'use strict';
+            var CARD_TYPES = ['Temporary', 'SEASONAL', 'VIP', 'DAILY_ACCESS', 'CASH_CARD'];
+
+            document.getElementById('btnLoad').addEventListener('click', load);
+            document.addEventListener('DOMContentLoaded', load);
+
+            function load() {
+                var year  = document.getElementById('year').value;
+                var token = (document.querySelector('input[name="__RequestVerificationToken"]') || {}).value || '';
+                setLoading(true);
+                fetch('/AccessReport/GetYearlyEntryExit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': token },
+                    body: 'year=' + encodeURIComponent(year)
+                })
+                .then(function(r){ return r.json(); })
+                .then(function(res){
+                    setLoading(false);
+                    if (!res.success) { showError(res.message); return; }
+                    render(res);
+                })
+                .catch(function(e){ setLoading(false); showError(e.message); });
+            }
+
+            function render(res) {
+                var cardTypes = res.cardTypes || CARD_TYPES;
+                var rows      = res.rows      || [];
+                var totals    = res.totals    || {};
+                var averages  = res.averages  || {};
+
+                document.getElementById('reportSubtitle').textContent = 'Year: ' + document.getElementById('year').value;
+
+                // ── HEADER ROW 1: period | [card groups] | All Total ──────────────
+                var h1 = '<tr>' +
+                    '<th rowspan="2" class="rpt-lbl-hdr align-middle" style="min-width:70px">Month</th>';
+                cardTypes.forEach(function(ct, idx){
+                    h1 += '<th colspan="3" class="rpt-ct-hdr">' + esc(ct) + '</th>';
+                });
+                h1 += '<th colspan="3" class="rpt-all-hdr">All Total</th></tr>';
+
+                // ── HEADER ROW 2: IN OUT REM per group ────────────────────────────
+                var h2 = '<tr>';
+                cardTypes.forEach(function(ct, idx){
+                    h2 += '<th class="rpt-ct-hdr sub-hdr">IN</th>';
+                    h2 += '<th class="rpt-ct-hdr sub-hdr">OUT</th>';
+                    h2 += '<th class="rpt-ct-hdr sub-last">REM</th>';
+                });
+                h2 += '<th class="rpt-all-hdr sub-hdr">IN</th>';
+                h2 += '<th class="rpt-all-hdr sub-hdr">OUT</th>';
+                h2 += '<th class="rpt-all-hdr sub-hdr">REM</th></tr>';
+
+                document.getElementById('tblHead').innerHTML = h1 + h2;
+
+                // ── BODY ──────────────────────────────────────────────────────────
+                var html = '';
+                if (rows.length === 0) {
+                    var cols = 1 + cardTypes.length * 3 + 3;
+                    html = '<tr><td colspan="' + cols + '" class="text-center text-muted p-4">No records found.</td></tr>';
+                } else {
+                    rows.forEach(function(row){
+                        html += '<tr><td class="rpt-period-cell">' + esc(row.periodLabel) + '</td>';
+                        cardTypes.forEach(function(ct){
+                            var b = (row.cardBuckets && row.cardBuckets[ct]) || { totalIn:0, totalOut:0, totalRemain:0 };
+                            html += '<td class="rpt-in">'  + (b.totalIn  || 0) + '</td>';
+                            html += '<td class="rpt-out">' + (b.totalOut || 0) + '</td>';
+                            html += remCell(b.totalRemain, false);
+                        });
+                        html += '<td class="rpt-all-in">'  + (row.allTotalIn  || 0) + '</td>';
+                        html += '<td class="rpt-all-out">' + (row.allTotalOut || 0) + '</td>';
+                        html += allRemCell(row.allTotalRemain);
+                        html += '</tr>';
+                    });
+                }
+                document.getElementById('tblBody').innerHTML = html;
+
+                // ── FOOTER ────────────────────────────────────────────────────────
+                document.getElementById('tblFoot').innerHTML =
+                    summaryRow('TOTAL',    cardTypes, totals,   'rpt-total-row') +
+                    summaryRow('Avrage Per Mor', cardTypes, averages, 'rpt-avg-row');
+            }
+
+            function summaryRow(label, cardTypes, data, rowCls) {
+                var cb  = (data && data.cardBuckets) || {};
+                var row = '<tr class="' + rowCls + '"><td class="rpt-period-cell">' + label + '</td>';
+                cardTypes.forEach(function(ct){
+                    var b = cb[ct] || { totalIn:0, totalOut:0, totalRemain:0 };
+                    row += '<td class="rpt-in">'  + (b.totalIn  || 0) + '</td>';
+                    row += '<td class="rpt-out">' + (b.totalOut || 0) + '</td>';
+                    row += remCell(b.totalRemain, false);
+                });
+                row += '<td class="rpt-all-in">'  + (data.allTotalIn  || 0) + '</td>';
+                row += '<td class="rpt-all-out">' + (data.allTotalOut || 0) + '</td>';
+                row += allRemCell(data.allTotalRemain);
+                return row + '</tr>';
+            }
+            function remCell(v, isAll) {
+                var val = v || 0;
+                if (val > 0) return '<td class="rpt-rem-pos">' + val + '</td>';
+                if (val < 0) return '<td class="rpt-rem-neg">' + val + '</td>';
+                return '<td class="rpt-rem-zero">0</td>';
+            }
+            function allRemCell(v) {
+                var val = v || 0;
+                if (val > 0) return '<td class="rpt-all-rem-pos">' + val + '</td>';
+                if (val < 0) return '<td class="rpt-all-rem-neg">' + val + '</td>';
+                return '<td class="rpt-all-rem-zero">0</td>';
+            }
+            function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+            function showError(msg) {
+                document.getElementById('tblBody').innerHTML =
+                    '<tr><td colspan="20" class="text-center text-danger p-4">⚠ Error: ' + esc(msg) + '</td></tr>';
+            }
+            function setLoading(v) {
+                var btn = document.getElementById('btnLoad');
+                btn.disabled = v;
+                btn.innerHTML = v
+                    ? '<span class="spinner-border spinner-border-sm me-1"></span>Loading...'
+                    : '<i class="fas fa-search me-1"></i>Load Report';
+            }
+        })();
+    </script>
+}

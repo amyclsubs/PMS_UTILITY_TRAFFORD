@@ -1,0 +1,679 @@
+﻿@{
+    ViewData["Title"] = "Parking Duration Analysis";
+}
+
+<style>
+    .pd-filter-card, .pd-chart-card, .pd-table-card, .pd-kpi {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: .75rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    }
+
+    .pd-filter-card {
+        padding: 1rem 1.25rem;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        gap: .75rem;
+        margin-bottom: 1rem;
+    }
+
+    .pd-filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: .25rem;
+    }
+
+    .pd-filter-label {
+        font-size: .72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        color: #64748b;
+    }
+
+    .pd-filter-input {
+        height: 38px;
+        padding: 0 .75rem;
+        border: 1px solid #d1d5db;
+        border-radius: .5rem;
+        font-size: .875rem;
+        background: #f9fafb;
+        color: #111827;
+        outline: none;
+    }
+
+        .pd-filter-input:focus {
+            border-color: #0369a1;
+            box-shadow: 0 0 0 3px rgba(3,105,161,.12);
+        }
+
+    .pd-quick-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .5rem;
+        margin: .25rem 0 .75rem;
+    }
+
+    .pd-btn {
+        height: 36px;
+        padding: 0 1rem;
+        border-radius: .5rem;
+        font-size: .82rem;
+        font-weight: 600;
+        border: 1px solid transparent;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        transition: .15s;
+    }
+
+        .pd-btn:active {
+            transform: scale(.98);
+        }
+
+    .pd-btn-primary {
+        background: #0369a1;
+        color: #fff;
+    }
+
+        .pd-btn-primary:hover {
+            background: #0284c7;
+        }
+
+    .pd-btn-success {
+        background: #15803d;
+        color: #fff;
+    }
+
+        .pd-btn-success:hover {
+            background: #16a34a;
+        }
+
+    .pd-btn-ghost {
+        background: #f1f5f9;
+        color: #334155;
+        border-color: #e2e8f0;
+    }
+
+        .pd-btn-ghost:hover {
+            background: #e2e8f0;
+        }
+
+    .pd-kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: .75rem;
+        margin-bottom: 1rem;
+    }
+
+    .pd-kpi {
+        padding: 1rem 1.1rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+        .pd-kpi::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--kpi-color, #64748b);
+        }
+
+    .pd-kpi-label {
+        font-size: .68rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        color: #64748b;
+        margin-bottom: .35rem;
+    }
+
+    .pd-kpi-value {
+        font-size: 1.6rem;
+        font-weight: 800;
+        line-height: 1;
+        color: var(--kpi-color, #1e293b);
+        font-variant-numeric: tabular-nums;
+    }
+
+    .pd-table-card {
+        overflow: hidden;
+    }
+
+    .pd-table-header {
+        padding: .85rem 1.1rem;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: .5rem;
+    }
+
+    .pd-table-title {
+        font-size: .95rem;
+        font-weight: 700;
+        color: #1e293b;
+    }
+
+    .pd-table-sub {
+        font-size: .72rem;
+        color: #64748b;
+    }
+
+    .pd-table-scroll {
+        overflow-x: auto;
+        max-height: 62vh;
+        overflow-y: auto;
+    }
+
+    table.pd-tbl {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 1200px;
+        font-size: .82rem;
+    }
+
+        table.pd-tbl thead th {
+            background: #f1f5f9;
+            color: #475569;
+            font-size: .68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            padding: .55rem .75rem;
+            text-align: left;
+            white-space: nowrap;
+            border-bottom: 2px solid #e2e8f0;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
+
+            table.pd-tbl thead th.r {
+                text-align: right;
+            }
+
+        table.pd-tbl tbody tr {
+            border-bottom: 1px solid #f1f5f9;
+            transition: background .1s;
+        }
+
+            table.pd-tbl tbody tr:hover {
+                background: #f8fafc;
+            }
+
+        table.pd-tbl tbody td {
+            padding: .5rem .75rem;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
+            table.pd-tbl tbody td.r {
+                text-align: right;
+                font-variant-numeric: tabular-nums;
+                font-family: 'Courier New', monospace;
+                font-size: .78rem;
+            }
+
+    tr.pd-grand td {
+        background: #e2e8f0;
+        font-weight: 800;
+        font-size: .85rem;
+        border-top: 2px solid #cbd5e1;
+    }
+
+    .pd-spinner {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 3rem;
+        color: #64748b;
+        gap: .75rem;
+    }
+
+    .spinner-ring {
+        width: 22px;
+        height: 22px;
+        border: 2px solid #e2e8f0;
+        border-top-color: #0369a1;
+        border-radius: 50%;
+        animation: spin .65s linear infinite;
+    }
+
+    @@keyframes spin {
+        to
+
+    {
+        transform: rotate(360deg);
+    }
+
+    }
+
+    .pd-empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 3.5rem 1rem;
+        color: #94a3b8;
+        text-align: center;
+    }
+
+        .pd-empty h4 {
+            font-size: .9rem;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: .25rem;
+        }
+
+        .pd-empty p {
+            font-size: .78rem;
+        }
+
+    .duration-badge {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: .7rem;
+        font-weight: 700;
+        color: #fff;
+    }
+
+    .badge-0-15 {
+        background: #15803d;
+    }
+
+    .badge-15-30 {
+        background: #0369a1;
+    }
+
+    .badge-30-60 {
+        background: #7c3aed;
+    }
+
+    .badge-60-120 {
+        background: #c2410c;
+    }
+
+    .badge-120-180 {
+        background: #be123c;
+    }
+
+    .badge-180-240 {
+        background: #4338ca;
+    }
+
+    .badge-240-300 {
+        background: #0f766e;
+    }
+
+    .badge-300-360 {
+        background: #b45309;
+    }
+
+    .badge-360-plus {
+        background: #881337;
+    }
+</style>
+
+<div class="container-fluid py-3 px-3">
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+            <h5 class="mb-0 fw-bold"><i class="fas fa-clock me-2 text-primary"></i>Parking Duration Analysis</h5>
+            <small class="text-muted">Vehicle count grouped by parking duration</small>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="pd-btn pd-btn-success" id="btnExportExcel" onclick="exportExcel()" style="display:none">
+                <i class="fas fa-file-excel"></i> Export Excel
+            </button>
+            <button class="pd-btn pd-btn-ghost" onclick="window.print()">
+                <i class="fas fa-print"></i> Print
+            </button>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="pd-filter-card">
+        <div style="flex: 1 1 100%;">
+            <div class="pd-quick-row">
+                <button type="button" class="pd-btn pd-btn-ghost" onclick="applyQuickRange('today')">Today</button>
+                <button type="button" class="pd-btn pd-btn-ghost" onclick="applyQuickRange('yesterday')">Yesterday</button>
+                <button type="button" class="pd-btn pd-btn-ghost" onclick="applyQuickRange('lastWeek')">Last Week </button>
+                <button type="button" class="pd-btn pd-btn-ghost" onclick="applyQuickRange('lastMonth')">Last Month </button>
+            </div>
+        </div>
+        <div class="pd-filter-group">
+            <label class="pd-filter-label">From Date</label>
+            <input type="date" id="pdFromDate" class="pd-filter-input" /> 
+        </div>
+        <div class="pd-filter-group">
+            <label class="pd-filter-label">To Date</label>
+            <input type="date" id="pdToDate" class="pd-filter-input" />
+        </div>
+        <button class="pd-btn pd-btn-primary" onclick="loadReport()">
+            <i class="fas fa-search"></i> Generate Report
+        </button>
+        <button class="pd-btn pd-btn-ghost" onclick="resetReport()">
+            <i class="fas fa-undo"></i> Reset
+        </button>
+        <div class="pd-filter-group">
+            <label class="pd-filter-label">Card Type</label>
+            <select id="pdCardTypeFilter" class="pd-filter-input" style="width: 200px;">
+                <option value="">All Card Types</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="pd-kpi-grid" id="pdKpiGrid"></div>
+
+    <!-- Table -->
+    <div class="pd-table-card">
+        <div class="pd-table-header">
+            <div>
+                <div class="pd-table-title"><i class="fas fa-table me-2"></i>Duration Breakdown</div>
+                <div class="pd-table-sub" id="pdTableSub">Select date range and click Generate Report</div>
+            </div>
+        </div>
+        <div class="pd-table-scroll">
+            <table class="pd-tbl" id="pdMainTable">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Day</th>
+                        <th class="r">0 to 15min</th>
+                        <th class="r">15 to 30min</th>
+                        <th class="r">30min to 1Hr</th>
+                        <th class="r">1Hr to 2Hr</th>
+                        <th class="r">2Hr to 3Hr</th>
+                        <th class="r">3Hr to 4Hr</th>
+                        <th class="r">4Hr to 5Hr</th>
+                        <th class="r">5Hr to 6Hr</th>
+                        <th class="r">Above 6Hr</th>
+                        <th class="r">TOTAL</th>
+                    </tr>
+                </thead>
+                <tbody id="pdTbody">
+                    <tr>
+                        <td colspan="12">
+                            <div class="pd-empty">
+                                <h4>No data yet</h4>
+                                <p>Select a date range and click Generate Report</p>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+            let lastData = null;
+        let allCardTypes = []; // Store all card types
+
+        // Initialize with current month
+        (function() {
+            const today = new Date();
+            const first = new Date(today.getFullYear(), today.getMonth(), 1);
+            document.getElementById('pdFromDate').value = toInputDate(first);
+            document.getElementById('pdToDate').value = toInputDate(today);
+
+            // Load card types on page load
+            loadCardTypes();
+        })();
+
+        function toInputDate(d) {
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // NEW: Load card types from server
+        async function loadCardTypes() {
+            try {
+                const resp = await fetch('/AccessReport/GetCardTypes', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await resp.json();
+                if (data.success) {
+                    allCardTypes = data.cardTypes || [];
+                    const select = document.getElementById('pdCardTypeFilter');
+
+                    // Clear existing options except "All"
+                    select.innerHTML = '<option value="">All Card Types</option>';
+
+                    // Add card types
+                    allCardTypes.forEach(ct => {
+                        const opt = document.createElement('option');
+                        opt.value = ct;
+                        opt.textContent = ct;
+                        select.appendChild(opt);
+                    });
+                }
+            } catch (err) {
+                console.error('Failed to load card types:', err);
+            }
+        }
+
+        function applyQuickRange(type) {
+            const today = new Date();
+            let from, to;
+
+            if (type === 'today') {
+                from = new Date(today);
+                to = new Date(today);
+            } else if (type === 'yesterday') {
+                from = new Date(today);
+                from.setDate(today.getDate() - 1);
+                to = new Date(from);
+            } else if (type === 'lastWeek') {
+                const currentDay = today.getDay();
+                const diffToMonday = currentDay === 0 ? 6 : currentDay - 1;
+                const thisWeekMonday = new Date(today);
+                thisWeekMonday.setDate(today.getDate() - diffToMonday);
+                from = new Date(thisWeekMonday);
+                from.setDate(thisWeekMonday.getDate() - 7);
+                to = new Date(from);
+                to.setDate(from.getDate() + 6);
+            } else if (type === 'lastMonth') {
+                from = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                to = new Date(today.getFullYear(), today.getMonth(), 0);
+            }
+
+            document.getElementById('pdFromDate').value = toInputDate(from);
+            document.getElementById('pdToDate').value = toInputDate(to);
+            loadReport();
+        }
+
+        async function loadReport() {
+            const from = document.getElementById('pdFromDate').value;
+            const to = document.getElementById('pdToDate').value;
+            const selectedCardType = document.getElementById('pdCardTypeFilter').value;
+
+            if (!from || !to) {
+                alert('Please select both From and To dates.');
+                return;
+            }
+
+            if (new Date(from) > new Date(to)) {
+                alert('From date must be before To date.');
+                return;
+            }
+
+            document.getElementById('pdTbody').innerHTML = `<tr><td colspan="12"><div class="pd-spinner"><div class="spinner-ring"></div>Loading report data...</div></td></tr>`;
+            document.getElementById('pdKpiGrid').innerHTML = '';
+
+            try {
+                const formData = new URLSearchParams();
+                formData.append('fromDate', from);
+                formData.append('toDate', to);
+                if (selectedCardType) {
+                    formData.append('cardType', selectedCardType);
+                }
+
+                const resp = await fetch('/AccessReport/GetParkingDuration', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? ''
+                    },
+                    body: formData.toString()
+                });
+
+                const d = await resp.json();
+                if (!d.success) throw new Error(d.message || 'Failed to load report.');
+
+                lastData = { ...d, from, to, cardType: selectedCardType };
+                renderKPIs(d);
+                renderTable(d);
+                document.getElementById('btnExportExcel').style.display = '';
+            } catch (err) {
+                document.getElementById('pdTbody').innerHTML = `<tr><td colspan="12" style="text-align:center;padding:2rem;color:#b91c1c"><i class="fas fa-exclamation-circle me-2"></i>${err.message}</td></tr>`;
+                console.error(err);
+            }
+        }
+
+        function renderKPIs(d) {
+            const grid = document.getElementById('pdKpiGrid');
+            const gt = d.grandTotal;
+
+            const kpis = [
+                { label: '0-15 min', value: gt.parked_0_to_15min, color: '#15803d' },
+                { label: '15-30 min', value: gt.parked_15_to_30min, color: '#0369a1' },
+                { label: '30-60 min', value: gt.parked_30min_to_1hr, color: '#7c3aed' },
+                { label: '1-2 hrs', value: gt.parked_1hr_to_2hr, color: '#c2410c' },
+                { label: '2-3 hrs', value: gt.parked_2hr_to_3hr, color: '#be123c' },
+                { label: '3-4 hrs', value: gt.parked_3hr_to_4hr, color: '#4338ca' },
+                { label: '4-5 hrs', value: gt.parked_4hr_to_5hr, color: '#0f766e' },
+                { label: '5-6 hrs', value: gt.parked_5hr_to_6hr, color: '#b45309' },
+                { label: 'Above 6hr', value: gt.parked_above_6hr, color: '#881337' },
+                { label: 'TOTAL', value: gt.total_vehicles, color: '#1e293b' }
+            ];
+
+            let html = '';
+            kpis.forEach(k => {
+                html += `<div class="pd-kpi" style="--kpi-color:${k.color}">
+                    <div class="pd-kpi-label">${k.label}</div>
+                    <div class="pd-kpi-value">${Number(k.value ?? 0).toLocaleString()}</div>
+                </div>`;
+            });
+
+            grid.innerHTML = html;
+        }
+
+        function renderTable(d) {
+            const tbody = document.getElementById('pdTbody');
+
+            if (!d.rows || d.rows.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="12"><div class="pd-empty"><h4>No records found</h4><p>Try a wider date range.</p></div></td></tr>`;
+                return;
+            }
+
+            let html = '';
+            d.rows.forEach(r => {
+                const dt = r.dayTotal;
+                html += `<tr>
+                    <td><strong>${r.exitDate}</strong></td>
+                    <td style="color:#64748b;font-size:.75rem">${escapeHtml(r.dayOfWeek)}</td>
+                    <td class="r">${Number(dt.parked_0_to_15min ?? 0).toLocaleString()}</td>
+                    <td class="r">${Number(dt.parked_15_to_30min ?? 0).toLocaleString()}</td>
+                    <td class="r">${Number(dt.parked_30min_to_1hr ?? 0).toLocaleString()}</td>
+                    <td class="r">${Number(dt.parked_1hr_to_2hr ?? 0).toLocaleString()}</td>
+                    <td class="r">${Number(dt.parked_2hr_to_3hr ?? 0).toLocaleString()}</td>
+                    <td class="r">${Number(dt.parked_3hr_to_4hr ?? 0).toLocaleString()}</td>
+                    <td class="r">${Number(dt.parked_4hr_to_5hr ?? 0).toLocaleString()}</td>
+                    <td class="r">${Number(dt.parked_5hr_to_6hr ?? 0).toLocaleString()}</td>
+                    <td class="r">${Number(dt.parked_above_6hr ?? 0).toLocaleString()}</td>
+                    <td class="r"><strong>${Number(dt.total_vehicles ?? 0).toLocaleString()}</strong></td>
+                </tr>`;
+            });
+
+            const gt = d.grandTotal;
+            html += `<tr class="pd-grand">
+                <td colspan="2"><strong>GRAND TOTAL</strong></td>
+                <td class="r"><strong>${Number(gt.parked_0_to_15min ?? 0).toLocaleString()}</strong></td>
+                <td class="r"><strong>${Number(gt.parked_15_to_30min ?? 0).toLocaleString()}</strong></td>
+                <td class="r"><strong>${Number(gt.parked_30min_to_1hr ?? 0).toLocaleString()}</strong></td>
+                <td class="r"><strong>${Number(gt.parked_1hr_to_2hr ?? 0).toLocaleString()}</strong></td>
+                <td class="r"><strong>${Number(gt.parked_2hr_to_3hr ?? 0).toLocaleString()}</strong></td>
+                <td class="r"><strong>${Number(gt.parked_3hr_to_4hr ?? 0).toLocaleString()}</strong></td>
+                <td class="r"><strong>${Number(gt.parked_4hr_to_5hr ?? 0).toLocaleString()}</strong></td>
+                <td class="r"><strong>${Number(gt.parked_5hr_to_6hr ?? 0).toLocaleString()}</strong></td>
+                <td class="r"><strong>${Number(gt.parked_above_6hr ?? 0).toLocaleString()}</strong></td>
+                <td class="r"><strong>${Number(gt.total_vehicles ?? 0).toLocaleString()}</strong></td>
+            </tr>`;
+
+            tbody.innerHTML = html;
+
+            const selectedCardType = document.getElementById('pdCardTypeFilter').value;
+            const filterText = selectedCardType ? ` (${selectedCardType})` : '';
+            document.getElementById('pdTableSub').textContent = `${d.rows.length} dates | ${Number(gt.total_vehicles ?? 0).toLocaleString()} total vehicles${filterText}`;
+        }
+
+        function resetReport() {
+            const today = new Date();
+            const first = new Date(today.getFullYear(), today.getMonth(), 1);
+            document.getElementById('pdFromDate').value = toInputDate(first);
+            document.getElementById('pdToDate').value = toInputDate(today);
+            document.getElementById('pdCardTypeFilter').value = ''; // Reset card type filter
+            document.getElementById('pdKpiGrid').innerHTML = '';
+            document.getElementById('btnExportExcel').style.display = 'none';
+            document.getElementById('pdTableSub').textContent = 'Select date range and click Generate Report';
+            document.getElementById('pdTbody').innerHTML = `<tr><td colspan="12"><div class="pd-empty"><h4>No data yet</h4><p>Select a date range and click Generate Report</p></div></td></tr>`;
+            lastData = null;
+        }
+
+        function exportExcel() {
+            if (!lastData) return;
+
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/AccessReport/ExportParkingDurationExcel';
+
+            const addField = (n, v) => {
+                const i = document.createElement('input');
+                i.type = 'hidden';
+                i.name = n;
+                i.value = v;
+                form.appendChild(i);
+            };
+
+            addField('fromDate', lastData.from);
+            addField('toDate', lastData.to);
+            if (lastData.cardType) {
+                addField('cardType', lastData.cardType);
+            }
+
+            const tok = document.querySelector('input[name="__RequestVerificationToken"]');
+            if (tok) addField('__RequestVerificationToken', tok.value);
+
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+        }
+    </script>
+}

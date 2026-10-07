@@ -1,0 +1,1568 @@
+﻿@{
+    ViewData["Title"] = "Real Time Report";
+    var canWriteJs = (ViewBag.CanWrite == true) ? "true" : "false";
+}
+<script>
+    var canWrite = @Html.Raw(canWriteJs);
+</script>
+
+<!-- ── Page Header ─────────────────────────────────────────────── -->
+<div class="page-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+    <div>
+        <h2><i class="fas fa-chart-line me-2"></i>Real Time Parking Report</h2>
+        <p class="text-muted mb-0">Live view of vehicles currently parked. Auto-refreshes every 30 seconds.</p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <span class="text-muted small">Last refreshed: <span id="lastRefreshed">-</span></span>
+        <button type="button" class="btn btn-primary btn-sm" id="btnReloadAll">
+            <i class="fas fa-rotate-right me-1"></i>Refresh Now
+        </button>
+    </div>
+</div>
+
+<!-- ── Tab Navigation ──────────────────────────────────────────── -->
+<ul class="nav nav-tabs mb-0 border-bottom-0" id="rtrTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="tab-realtime" data-bs-toggle="tab"
+                data-bs-target="#pane-realtime" type="button" role="tab"
+                aria-controls="pane-realtime" aria-selected="true">
+            <i class="fas fa-chart-line me-1 text-success"></i>
+            Real Time Report
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-b2" data-bs-toggle="tab"
+                data-bs-target="#pane-b2" type="button" role="tab"
+                aria-controls="pane-b2" aria-selected="false">
+            <i class="fas fa-parking me-1 text-warning"></i>
+            B2 Pending
+            <span class="badge bg-warning text-dark ms-1" id="b2Badge">0</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-deleted" data-bs-toggle="tab"
+                data-bs-target="#pane-deleted" type="button" role="tab"
+                aria-controls="pane-deleted" aria-selected="false">
+            <i class="fas fa-trash-alt me-1 text-danger"></i>
+            Deleted Cards
+            <span class="badge bg-danger ms-1" id="deletedBadge">0</span>
+        </button>
+    </li>
+</ul>
+
+
+<!-- ── Tab Content ─────────────────────────────────────────────── -->
+<div class="tab-content border border-top-0 rounded-bottom mb-4" id="rtrTabContent">
+
+    <!-- ════════════ TAB 1 – REAL TIME REPORT (Today + Overdue) ═══ -->
+    <div class="tab-pane fade show active p-0" id="pane-realtime" role="tabpanel" aria-labelledby="tab-realtime">
+
+        <!-- TODAY'S PARKED -->
+        <div class="card border-0 mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <h5 class="mb-0">
+                        <i class="fas fa-car me-2 text-success"></i>
+                        Today's Parked Vehicles
+                        <span class="badge bg-success ms-2" id="currentBadge">0</span>
+                    </h5>
+                    <div class="input-group input-group-sm" style="min-width:200px; max-width:280px;">
+                        <input type="text" class="form-control" id="currentSearchInput" placeholder="Search today's vehicles...">
+                        <button class="btn btn-success" type="button" id="btnCurrentSearch" title="Search">
+                            <i class="fas fa-search"></i>
+                        </button>
+                        <button class="btn btn-danger" type="button" id="btnCurrentClear" title="Clear">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-success fw-bold" id="btnExportCurrent">
+                    <i class="fas fa-file-csv me-1"></i>Export to CSV
+                </button>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-scroll-wrapper">
+                    <table class="table table-bordered table-hover table-sm mb-0 table-sticky-head" id="tblCurrentEntries">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>#</th>
+                                <th>Card No</th>
+                                <th>Card Name</th>
+                                <th>Plate No</th>
+                                <th>
+                                    <div class="d-flex align-items-center justify-content-between gap-1 position-relative">
+                                        <span>Card Type</span>
+                                        <button type="button" class="btn btn-link btn-sm text-white p-0 card-type-filter-toggle" title="Filter Card Type">
+                                            <i class="fas fa-filter"></i>
+                                        </button>
+                                    </div>
+                                    <div id="cardTypeFilterPopup" class="card shadow position-absolute p-2 bg-white text-dark" style="display:none; top:100%; left:0; z-index:1050; min-width:240px; max-height:280px; overflow:auto;">
+                                        <div class="fw-bold mb-2">Filter Card Type</div>
+                                        <div class="mb-2 d-flex gap-2">
+                                            <button type="button" class="btn btn-sm btn-outline-primary" id="btnCardTypeSelectAll">All</button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" id="btnCardTypeClear">Clear</button>
+                                        </div>
+                                        <div id="cardTypeFilterList"></div>
+                                    </div>
+                                </th>
+                                <th>Entry Date</th>
+                                <th>Entry Time</th>
+                                <th>Live Park Time</th>
+                                <th>Fee Schedule</th>
+                                <th>Company</th>
+                                <th>Charges (KES)</th>
+                                <th>Action Status</th>
+                                <th class="validated-sort" data-sort="none" style="cursor:pointer; user-select:none;">Validated <i class="fas fa-sort ms-1"></i></th>
+                                <th>Pay Mode</th>
+                                <th>M-Pesa Ref</th>
+                                <th>Remark</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tblCurrentBody">
+                            <tr><td colspan="16" class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin me-2"></i>Loading today's entries...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 px-3 py-2 border-top" id="currentPaginationBar">
+                    <div class="text-muted small" id="currentPageInfo">Showing 0 records</div>
+                    <nav aria-label="Current entries pagination">
+                        <ul class="pagination pagination-sm mb-0" id="currentPagination"></ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+
+        <!-- OVERDUE VEHICLES -->
+        <div class="card border-0 mb-0">
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <h5 class="mb-0">
+                        <i class="fas fa-clock-rotate-left me-2 text-danger"></i>
+                        Overdue Vehicles (Entered Before Today &ndash; Still Parked)
+                        <span class="badge bg-danger ms-2" id="pastBadge">0</span>
+                    </h5>
+                    <div class="input-group input-group-sm" style="min-width:200px; max-width:280px;">
+                        <input type="text" class="form-control" id="pastSearchInput" placeholder="Search overdue vehicles...">
+                        <button class="btn btn-success" type="button" id="btnPastSearch" title="Search">
+                            <i class="fas fa-search"></i>
+                        </button>
+                        <button class="btn btn-danger" type="button" id="btnPastClear" title="Clear">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-danger fw-bold" id="btnExportPast">
+                    <i class="fas fa-file-csv me-1"></i>Export to CSV
+                </button>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-scroll-wrapper">
+                    <table class="table table-bordered table-hover table-sm mb-0 table-sticky-head" id="tblPastEntries">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>#</th>
+                                <th>Card No</th>
+                                <th>Card Name</th>
+                                <th>Plate No</th>
+                                <th>
+                                    <div class="d-flex align-items-center justify-content-between gap-1 position-relative">
+                                        <span>Card Type</span>
+                                        <button type="button" class="btn btn-link btn-sm text-white p-0 card-type-filter-toggle" title="Filter Card Type">
+                                            <i class="fas fa-filter"></i>
+                                        </button>
+                                    </div>
+                                    <div id="cardTypeFilterPopup2" class="card shadow position-absolute p-2 bg-white text-dark" style="display:none; top:100%; left:0; z-index:1050; min-width:240px; max-height:280px; overflow:auto;">
+                                        <div class="fw-bold mb-2">Filter Card Type</div>
+                                        <div class="mb-2 d-flex gap-2">
+                                            <button type="button" class="btn btn-sm btn-outline-primary" id="btnCardTypeSelectAll2">All</button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" id="btnCardTypeClear2">Clear</button>
+                                        </div>
+                                        <div id="cardTypeFilterList2"></div>
+                                    </div>
+                                </th>
+                                <th>Entry Date</th>
+                                <th>Entry Time</th>
+                                <th>Total Park Time</th>
+                                <th>Fee Schedule</th>
+                                <th>Company</th>
+                                <th>Charges (KES)</th>
+                                <th>Action Status</th>
+                                <th class="validated-sort" data-sort="none" style="cursor:pointer; user-select:none;">Validated <i class="fas fa-sort ms-1"></i></th>
+                                <th>Pay Mode</th>
+                                <th>M-Pesa Ref</th>
+                                <th>Remark</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tblPastBody">
+                            <tr><td colspan="17" class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin me-2"></i>Loading overdue entries...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 px-3 py-2 border-top" id="pastPaginationBar">
+                    <div class="text-muted small" id="pastPageInfo">Showing 0 records</div>
+                    <nav aria-label="Past entries pagination">
+                        <ul class="pagination pagination-sm mb-0" id="pastPagination"></ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /pane-realtime -->
+    <!-- ════════════ TAB 2 – B2 PENDING (VIEW-ONLY) ═══════════════ -->
+    <div class="tab-pane fade p-3" id="pane-b2" role="tabpanel" aria-labelledby="tab-b2">
+
+        <!-- Info bar -->
+        <div class="row g-2 mb-3">
+            <div class="col-sm-6 col-lg-3">
+                <div class="border rounded p-2 bg-light text-center">
+                    <div class="text-muted" style="font-size:11px;">SERVICE STATUS</div>
+                    <div id="b2ServiceStatus" class="fw-bold" style="font-size:13px;">—</div>
+                </div>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="border rounded p-2 bg-light text-center">
+                    <div class="text-muted" style="font-size:11px;">LAST RUN</div>
+                    <div id="b2LastRun" class="fw-semibold" style="font-size:13px;">—</div>
+                </div>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="border rounded p-2 bg-light text-center">
+                    <div class="text-muted" style="font-size:11px;">NEXT RUN</div>
+                    <div id="b2NextRun" class="fw-semibold" style="font-size:13px;">—</div>
+                </div>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="border rounded p-2 bg-light text-center">
+                    <div class="text-muted" style="font-size:11px;">EMAILS SENT / FAILED</div>
+                    <div class="fw-semibold" style="font-size:13px;">
+                        <span class="text-success" id="b2EmailsSent">0</span>
+                        /
+                        <span class="text-danger" id="b2EmailsFailed">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <!-- Pending Cars Table -->
+            <div class="col-lg-8">
+                <div class="card border mb-0 h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center py-2">
+                        <h6 class="mb-0 fw-bold">
+                            <i class="fas fa-car me-1 text-warning"></i>
+                            Pending B2 Cars
+                            <span class="badge bg-warning text-dark ms-1" id="b2PendingBadge">0</span>
+                        </h6>
+                        <small class="text-muted">DAILY_ACCESS &amp; SEASONAL — no B2 entry yet, parked ≥ threshold</small>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-scroll-wrapper">
+                            <table class="table table-bordered table-hover table-sm mb-0" id="tblB2Pending">
+                                <thead style="background:#1a3c5e; color:#fff; position:sticky; top:0; z-index:2;">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Card No</th>
+                                        <th>Card Name</th>
+                                        <th>Plate No</th>
+                                        <th>Card Type</th>
+                                        <th>Sub Company</th>
+                                        <th>Entry Time</th>
+                                        <th>Time Parked</th>
+                                        <th>Fee Schedule</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tblB2PendingBody">
+                                    <tr><td colspan="9" class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin me-2"></i>Loading...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notified Cards (read-only) -->
+            <div class="col-lg-4">
+                <div class="card border mb-0 h-100">
+                    <div class="card-header py-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-0 fw-bold">
+                                    <i class="fas fa-envelope-open-text me-1 text-primary"></i> Notified Cards
+                                </h6>
+                                <small class="text-muted d-block mt-1" style="font-size:11px;">
+                                    Cards below have already received an email for their current entry.
+                                </small>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <input type="text"
+                                       id="b2NotifiedSearch"
+                                       class="form-control form-control-sm"
+                                       placeholder="Search card / name" />
+                                <button type="button"
+                                        class="btn btn-outline-secondary btn-sm"
+                                        onclick="exportB2Notified()">
+                                    <i class="fas fa-file-csv"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body p-2">
+                        <div id="b2NotifiedWrapper" style="max-height:340px; overflow-y:auto;">
+                            <div class="text-center text-muted py-3" style="font-size:13px;">No cards notified yet</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /pane-b2 -->
+    <!-- ════════════ TAB 3 – DELETED CARDS ════════════════════════ -->
+    <div class="tab-pane fade p-3" id="pane-deleted" role="tabpanel" aria-labelledby="tab-deleted">
+
+        <!-- Date range filter bar -->
+        <div class="card border-0 bg-light mb-3">
+            <div class="card-body py-2 px-3">
+                <div class="d-flex align-items-center flex-wrap gap-2">
+                    <strong class="me-1" style="font-size:13px;">Filter by Removed Date:</strong>
+
+                    <!-- Quick buttons -->
+                    <button type="button" class="btn btn-sm btn-outline-secondary deleted-quick" data-range="today">Today</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary deleted-quick" data-range="yesterday">Yesterday</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary deleted-quick" data-range="week">This Week</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary deleted-quick" data-range="month">This Month</button>
+
+                    <div class="vr mx-1"></div>
+
+                    <!-- Custom range -->
+                    <label class="form-label mb-0" style="font-size:13px;">From</label>
+                    <input type="date" id="deletedFrom" class="form-control form-control-sm" style="width:145px;">
+                    <label class="form-label mb-0" style="font-size:13px;">To</label>
+                    <input type="date" id="deletedTo" class="form-control form-control-sm" style="width:145px;">
+                    <button type="button" class="btn btn-sm btn-primary" id="btnDeletedSearch">
+                        <i class="fas fa-search me-1"></i>Search
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="btnDeletedClear">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div class="card border mb-0">
+            <div class="card-header d-flex justify-content-between align-items-center py-2">
+                <h6 class="mb-0 fw-bold">
+                    <i class="fas fa-trash-alt me-1 text-danger"></i>
+                    Deleted / Archived Cards
+                    <span class="badge bg-danger ms-1" id="deletedTableBadge">0</span>
+                </h6>
+                <button type="button" class="btn btn-danger fw-bold btn-sm" id="btnExportDeleted">
+                    <i class="fas fa-file-csv me-1"></i>Export to CSV
+                </button>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-scroll-wrapper">
+                    <table class="table table-bordered table-hover table-sm mb-0 table-sticky-head" id="tblDeletedCards">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>#</th>
+                                <th>Card No</th>
+                                <th>Card Name</th>
+                                <th>Plate No</th>
+                                <th>Card Type</th>
+                                <th>Entry Time</th>
+                                <th>Fee Schedule</th>
+                                <th>Company</th>
+                                <th>Charges (KES)</th>
+                                <th>Pay Mode</th>
+                                <th>M-Pesa Ref</th>
+                                <th>Validated</th>
+                                <th>Remark</th>
+                                <th>Removed At</th>
+                                <th>Removed By</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tblDeletedBody">
+                            <tr><td colspan="15" class="text-center text-muted py-3">Select a date range and click Search.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <!-- Pagination -->
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 px-3 py-2 border-top" id="deletedPaginationBar">
+                    <div class="text-muted small" id="deletedPageInfo">Showing 0 records</div>
+                    <nav aria-label="Deleted cards pagination">
+                        <ul class="pagination pagination-sm mb-0" id="deletedPagination"></ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /pane-deleted -->
+
+</div><!-- /tab-content -->
+<!-- ── Remove Modal ────────────────────────────────── -->
+<div class="modal fade" id="removeModal" tabindex="-1" aria-labelledby="removeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="removeModalLabel">
+                    <i class="fas fa-trash-alt me-2"></i>Remove Overdue Entry
+                </h5>
+
+                <button type="button"
+                        class="btn-close btn-close-white"
+                        data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body">
+                <p class="mb-2">
+                    You are about to <strong>permanently remove</strong> this entry from the parking table and archive it.
+                </p>
+
+                <div id="removeEntryInfo"
+                     class="alert alert-warning py-2 small mb-3"></div>
+
+                <div class="mb-3">
+                    <label for="removeRemark" class="form-label fw-semibold">
+                        Remark <span class="text-danger">*</span>
+                        <small class="text-muted fw-normal">(required)</small>
+                    </label>
+
+                    <textarea class="form-control"
+                              id="removeRemark"
+                              rows="2"
+                              placeholder="e.g. Card lost, vehicle towed, manual clearance..."
+                              required></textarea>
+
+                    <div class="invalid-feedback" id="remarkError">
+                        Remark is required. Please enter a reason for removing this entry.
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button"
+                        class="btn btn-secondary"
+                        data-bs-dismiss="modal">
+                    Cancel
+                </button>
+
+                <button type="button"
+                        class="btn btn-danger overdue-action-btn"
+                        id="btnConfirmRemove">
+                    <i class="fas fa-trash-alt me-1"></i>Confirm Remove
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+
+<!-- ── Exit Overdue Vehicle Modal ───────────────────────────── -->
+<div class="modal fade" id="exitModal" tabindex="-1" aria-labelledby="exitModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="exitModalLabel">
+                    <i class="fas fa-sign-out-alt me-2"></i>Exit Overdue Vehicle
+                </h5>
+
+                <button type="button"
+                        class="btn-close btn-close-white"
+                        data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body">
+
+                <p class="mb-2">
+                    Please enter the actual exit time for this overdue vehicle.
+                </p>
+
+                <div id="exitEntryInfo"
+                     class="alert alert-warning py-2 small mb-3"></div>
+
+                <div class="mb-3">
+                    <label for="exitTime" class="form-label fw-semibold">
+                        Exit Time <span class="text-danger">*</span>
+                    </label>
+
+                    <input type="datetime-local"
+                           class="form-control"
+                           id="exitTime"
+                           required>
+
+                    <div class="invalid-feedback">
+                        Exit time is required.
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="exitCharge" class="form-label fw-semibold">
+                        Exit Charge (KES) <span class="text-danger">*</span>
+                    </label>
+
+                    <input type="number"
+                           class="form-control"
+                           id="exitCharge"
+                           min="0"
+                           step="0.01"
+                           placeholder="Enter charge amount"
+                           required>
+
+                    <div class="invalid-feedback">
+                        Please enter the exit charge.
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="modal-footer">
+                <button type="button"
+                        class="btn btn-secondary"
+                        data-bs-dismiss="modal">
+                    Cancel
+                </button>
+
+                <button type="button"
+                        class="btn btn-success overdue-action-btn"
+                        id="btnConfirmExit">
+                    <i class="fas fa-sign-out-alt me-1"></i>Confirm Exit
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <style>
+        .overdue-action-btn {
+            width: 88px;
+            min-width: 88px;
+            height: 34px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .table-scroll-wrapper {
+            overflow-x: auto;
+            overflow-y: auto;
+            max-height: 600px;
+            position: relative;
+        }
+
+        .table-sticky-head thead th {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            background-color: #212529;
+        }
+
+        #currentPaginationBar,
+        #pastPaginationBar {
+            background: #f8f9fa;
+            min-height: 44px;
+        }
+
+        .minutes-badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .minutes-high {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .minutes-medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .minutes-low {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        #rtrTabContent {
+            border-top: 1px solid #dee2e6;
+        }
+    </style>
+
+    <script>
+        var currentData        = [];
+        var pastData           = [];
+        var cardTypeOptions    = [];
+        var selectedCardTypes  = new Set();
+        var validatedSortState = 'none';
+        var currentSearchQuery = '';
+        var pastSearchQuery    = '';
+        var pendingRemoveId    = null;
+
+        var PAGE_SIZE   = 50;
+        var currentPage = 1;
+        var pastPage    = 1;
+
+        document.addEventListener('DOMContentLoaded', function () {
+            loadAllReports();
+            loadCardTypes();
+            setupCardTypePopup();
+
+            document.getElementById('btnReloadAll').addEventListener('click', function () {
+                loadAllReports();
+                if (document.getElementById('pane-b2').classList.contains('active')) {
+                    loadB2Tab();
+                }
+            });
+
+            /* TODAY search */
+            document.getElementById('btnCurrentSearch').addEventListener('click', function () {
+                currentSearchQuery = document.getElementById('currentSearchInput').value.toLowerCase().trim();
+                currentPage = 1; renderCurrentTable();
+            });
+            document.getElementById('currentSearchInput').addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') { currentSearchQuery = this.value.toLowerCase().trim(); currentPage = 1; renderCurrentTable(); }
+            });
+            document.getElementById('btnCurrentClear').addEventListener('click', function () {
+                document.getElementById('currentSearchInput').value = '';
+                currentSearchQuery = ''; currentPage = 1; renderCurrentTable();
+            });
+
+            /* OVERDUE search */
+            document.getElementById('btnPastSearch').addEventListener('click', function () {
+                pastSearchQuery = document.getElementById('pastSearchInput').value.toLowerCase().trim();
+                pastPage = 1; renderPastTable();
+            });
+            document.getElementById('pastSearchInput').addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') { pastSearchQuery = this.value.toLowerCase().trim(); pastPage = 1; renderPastTable(); }
+            });
+            document.getElementById('btnPastClear').addEventListener('click', function () {
+                document.getElementById('pastSearchInput').value = '';
+                pastSearchQuery = ''; pastPage = 1; renderPastTable();
+            });
+
+            /* Export */
+            document.getElementById('btnExportCurrent').addEventListener('click', function () {
+                exportToCSV(applySearch(getFilteredData(currentData), currentSearchQuery), 'Current_Parked_Vehicles_' + getTodayStr());
+            });
+            document.getElementById('btnExportPast').addEventListener('click', function () {
+                exportToCSV(applySearch(getFilteredData(pastData), pastSearchQuery), 'Overdue_Parked_Vehicles_' + getTodayStr());
+            });
+
+            /* Validated sort */
+            document.querySelectorAll('.validated-sort').forEach(function (th) {
+                th.addEventListener('click', function () {
+                    validatedSortState = validatedSortState === 'none' ? 'asc' : validatedSortState === 'asc' ? 'desc' : 'none';
+                    updateSortIcons(); renderAllTables();
+                });
+            });
+
+        /* Remove confirm */
+        document.getElementById('btnConfirmRemove').addEventListener('click', function () {
+            if (!pendingRemoveId) return;
+
+            doRemoveEntry(
+                pendingRemoveId,
+                document.getElementById('removeRemark').value
+            );
+        });
+
+
+        /* Exit confirm */
+        document.getElementById('btnConfirmExit').addEventListener('click', async function () {
+
+            if (!pendingRemoveId) {
+                alert('No overdue entry selected.');
+                return;
+            }
+
+            var button = this;
+
+            var exitInput = document.getElementById('exitTime');
+            var chargeInput = document.getElementById('exitCharge');
+
+            var exitTime = exitInput.value;
+            var chargeText = chargeInput.value;
+
+            if (!exitTime) {
+                exitInput.classList.add('is-invalid');
+                return;
+            }
+
+            if (!chargeText || isNaN(parseFloat(chargeText))) {
+                chargeInput.classList.add('is-invalid');
+                return;
+            }
+
+            var charge = parseFloat(chargeText);
+
+            if (charge < 0) {
+                chargeInput.classList.add('is-invalid');
+                return;
+            }
+
+            exitInput.classList.remove('is-invalid');
+            chargeInput.classList.remove('is-invalid');
+
+            button.disabled = true;
+            button.innerHTML =
+                '<i class="fas fa-spinner fa-spin me-1"></i>Processing...';
+
+            try {
+
+                var params = new URLSearchParams();
+
+                params.append('id', pendingRemoveId);
+                params.append('exitTime', exitTime);
+                params.append('charge', charge.toFixed(2));
+
+                var response = await fetch(
+                    '/RealTimeReport/ExitOverdueTag?' + params.toString(),
+                    {
+                        method: 'POST',
+                        headers: {
+                            'RequestVerificationToken': getAntiForgeryToken(),
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    }
+                );
+
+                var responseText = await response.text();
+
+                var result;
+
+                try {
+                    result = JSON.parse(responseText);
+                }
+                catch (parseError) {
+                    console.error(
+                        'ExitOverdueTag returned non-JSON:',
+                        responseText
+                    );
+
+                    throw new Error(
+                        'Server returned an invalid response. HTTP ' +
+                        response.status
+                    );
+                }
+
+                if (!response.ok) {
+                    throw new Error(
+                        result.message ||
+                        ('Exit request failed. HTTP ' + response.status)
+                    );
+                }
+
+                if (!result.success) {
+
+                    alert(
+                        result.message ||
+                        'Unable to exit vehicle.'
+                    );
+
+                    return;
+                }
+
+                var modalElement =
+                    document.getElementById('exitModal');
+
+                var modal =
+                    bootstrap.Modal.getInstance(modalElement);
+
+                if (modal) {
+                    modal.hide();
+                }
+
+                alert(
+                    'Vehicle exited successfully.\n\n' +
+                    'Exit Charge: KES ' +
+                    Number(charge).toFixed(2)
+                );
+
+                pendingRemoveId = null;
+
+                await loadAllReports(false);
+
+            }
+            catch (error) {
+
+                console.error(
+                    'ExitOverdueTag error:',
+                    error
+                );
+
+                alert(
+                    error.message ||
+                    'Unable to process vehicle exit.'
+                );
+
+            }
+            finally {
+
+                button.disabled = false;
+
+                button.innerHTML =
+                    '<i class="fas fa-sign-out-alt me-1"></i>Confirm Exit';
+            }
+        });
+
+
+            /* Load B2 tab lazily on first click */
+            document.getElementById('tab-b2').addEventListener('shown.bs.tab', function () {
+                loadB2Tab();
+            });
+
+            /* Auto-refresh every 30 s */
+            setInterval(function () {
+                loadAllReports(true);
+                if (document.getElementById('pane-b2').classList.contains('active')) {
+                    loadB2Tab(true);
+                }
+            }, 30000);
+
+            /* Live park-time ticker */
+            setInterval(function () {
+                document.querySelectorAll('.park-time-live').forEach(function (el) {
+                    var entryStr = el.getAttribute('data-entry');
+                    if (!entryStr) return;
+                    var entry = new Date(entryStr);
+                    if (isNaN(entry)) return;
+                    var diff = Math.floor((new Date() - entry) / 1000);
+                    if (diff < 0) diff = 0;
+                    var hh = String(Math.floor(diff / 3600)).padStart(2, '0');
+                    var mm = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
+                    var ss = String(diff % 60).padStart(2, '0');
+                    el.textContent = hh + ':' + mm + ':' + ss;
+                });
+            }, 1000);
+        });
+
+        /* ── Helpers ─────────────────────────────────────── */
+        function matchesQuery(item, q) {
+            if (!q) return true;
+            return [item.cardno, item.card_name, item.car_plate_no, item.card_type,
+                    item.entry_date, item.car_parkers_sub_co_name, item.fee_schedule_name,
+                    item.pay_mode, item.mpesa_receipt_number, item.action_status, item.remark]
+                .some(function (v) { return (v || '').toLowerCase().includes(q); });
+        }
+        function applySearch(data, q) {
+            if (!q) return data;
+            return data.filter(function (item) { return matchesQuery(item, q); });
+        }
+        function getFilteredData(data) {
+            var filtered = (data || []).slice();
+            if (selectedCardTypes.size > 0) {
+                filtered = filtered.filter(function (x) { return selectedCardTypes.has((x.card_type || '').toString().trim()); });
+            }
+            return sortValidated(filtered);
+        }
+        function sortValidated(data) {
+            if (validatedSortState === 'none') return data;
+            return data.slice().sort(function (a, b) {
+                var av = Number(a.isValidated) || 0;
+                var bv = Number(b.isValidated) || 0;
+                return validatedSortState === 'asc' ? av - bv : bv - av;
+            });
+        }
+                function renderAllTables() { renderCurrentTable(); renderPastTable(); }
+
+        function validatedLabel(v) {
+            var n = (v === true) ? 1 : (Number(v) || 0);
+            return n === 1  ? 'Validated'
+                 : n === 10 ? 'Revalidation Required'
+                 : n === 11 ? 'Revalidated'
+                 : 'Not Validated';
+        }
+        function validatedBadge(v) {
+            var n = (v === true) ? 1 : (Number(v) || 0);
+            var cls = n === 1  ? 'bg-success'
+                    : n === 10 ? 'bg-danger'
+                    : n === 11 ? 'bg-primary'
+                    : 'bg-secondary';
+            return '<span class="badge ' + cls + '">' + validatedLabel(v) + '</span>';
+        }
+
+        /* ── Pagination ──────────────────────────────────── */
+        function buildPagination(containerId, infoId, totalRecords, currentPg, onPageChange) {
+            var totalPages = Math.max(1, Math.ceil(totalRecords / PAGE_SIZE));
+            var start = totalRecords === 0 ? 0 : (currentPg - 1) * PAGE_SIZE + 1;
+            var end   = Math.min(currentPg * PAGE_SIZE, totalRecords);
+            document.getElementById(infoId).textContent =
+                totalRecords === 0 ? 'No records found' : 'Showing ' + start + ' – ' + end + ' of ' + totalRecords + ' records';
+            var ul = document.getElementById(containerId);
+            ul.innerHTML = '';
+            if (totalPages <= 1) return;
+            function makeItem(label, page, disabled, active) {
+                var li = document.createElement('li');
+                li.className = 'page-item' + (disabled ? ' disabled' : '') + (active ? ' active' : '');
+                var a = document.createElement('a');
+                a.className = 'page-link'; a.href = '#'; a.innerHTML = label;
+                if (!disabled && !active) {
+                    a.addEventListener('click', function (e) { e.preventDefault(); onPageChange(page); });
+                }
+                li.appendChild(a); ul.appendChild(li);
+            }
+            makeItem('&laquo;', 1, currentPg === 1, false);
+            makeItem('&lsaquo;', currentPg - 1, currentPg === 1, false);
+            var startP = Math.max(1, currentPg - 2);
+            var endP   = Math.min(totalPages, currentPg + 2);
+            for (var p = startP; p <= endP; p++) makeItem(p, p, false, p === currentPg);
+            makeItem('&rsaquo;', currentPg + 1, currentPg === totalPages, false);
+            makeItem('&raquo;', totalPages, currentPg === totalPages, false);
+        }
+
+        /* ── Render: Today ───────────────────────────────── */
+        function renderCurrentTable() {
+            var data = applySearch(getFilteredData(currentData), currentSearchQuery);
+            if (data.length === 0) {
+                setEmpty('tblCurrentBody', 16, currentSearchQuery ? 'No results match your search.' : 'No vehicles currently parked today.');
+                buildPagination('currentPagination', 'currentPageInfo', 0, 1, function(){});
+                return;
+            }
+            var totalPages = Math.ceil(data.length / PAGE_SIZE);
+            if (currentPage > totalPages) currentPage = totalPages;
+            var pageData = data.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+            var html = '';
+            pageData.forEach(function (item, idx) {
+                var globalIdx = (currentPage - 1) * PAGE_SIZE + idx + 1;
+                html += '<tr>' +
+                    '<td>' + globalIdx + '</td>' +
+                    '<td>' + esc(item.cardno) + '</td>' +
+                    '<td>' + esc(item.card_name) + '</td>' +
+                    '<td><strong>' + esc(item.car_plate_no) + '</strong></td>' +
+                    '<td>' + esc(item.card_type) + '</td>' +
+                    '<td>' + esc(item.entry_date) + '</td>' +
+                    '<td>' + esc(item.entry_time_only) + '</td>' +
+                    '<td class="park-time-live" data-entry="' + esc(item.entry_time) + '">' + esc(item.park_time_live) + '</td>' +
+                    '<td>' + esc(item.fee_schedule_name) + '</td>' +
+                    '<td>' + esc(item.car_parkers_sub_co_name) + '</td>' +
+                    '<td class="text-end">' + fmtCurrency(item.display_charges) + '</td>' +
+                    '<td><span class="badge bg-success">' + esc(item.action_status) + '</span></td>' +
+                    '<td>' + validatedBadge(item.isValidated) + '</td>' +
+                    '<td>' + esc(item.pay_mode) + '</td>' +
+                    '<td>' + esc(item.mpesa_receipt_number) + '</td>' +
+                    '<td>' + esc(item.remark) + '</td>' +
+                    '</tr>';
+            });
+            document.getElementById('tblCurrentBody').innerHTML = html;
+            buildPagination('currentPagination', 'currentPageInfo', data.length, currentPage, function (pg) {
+                currentPage = pg; renderCurrentTable();
+                var w = document.querySelector('#tblCurrentEntries').closest('.table-scroll-wrapper');
+                if (w) w.scrollTop = 0;
+            });
+        }
+
+        /* ── Render: Overdue ─────────────────────────────── */
+        function renderPastTable() {
+            var data = applySearch(getFilteredData(pastData), pastSearchQuery);
+            if (data.length === 0) {
+                setEmpty('tblPastBody', 17, pastSearchQuery ? 'No results match your search.' : 'No overdue vehicles found.');
+                buildPagination('pastPagination', 'pastPageInfo', 0, 1, function(){});
+                return;
+            }
+            var totalPages = Math.ceil(data.length / PAGE_SIZE);
+            if (pastPage > totalPages) pastPage = totalPages;
+            var pageData = data.slice((pastPage - 1) * PAGE_SIZE, pastPage * PAGE_SIZE);
+            var html = '';
+            pageData.forEach(function (item, idx) {
+                var globalIdx = (pastPage - 1) * PAGE_SIZE + idx + 1;
+                html += '<tr class="table-warning">' +
+                    '<td>' + globalIdx + '</td>' +
+                    '<td>' + esc(item.cardno) + '</td>' +
+                    '<td>' + esc(item.card_name) + '</td>' +
+                    '<td><strong>' + esc(item.car_plate_no) + '</strong></td>' +
+                    '<td>' + esc(item.card_type) + '</td>' +
+                    '<td class="text-danger fw-bold">' + esc(item.entry_date) + '</td>' +
+                    '<td>' + esc(item.entry_time_only) + '</td>' +
+                    '<td class="text-danger fw-bold park-time-live" data-entry="' + esc(item.entry_time) + '">' + esc(item.park_time_live) + '</td>' +
+                    '<td>' + esc(item.fee_schedule_name) + '</td>' +
+                    '<td>' + esc(item.car_parkers_sub_co_name) + '</td>' +
+                    '<td class="text-end">' + fmtCurrency(item.display_charges) + '</td>' +
+                    '<td><span class="badge bg-warning text-dark">' + esc(item.action_status) + '</span></td>' +
+                    '<td>' + validatedBadge(item.isValidated) + '</td>' +
+                    '<td>' + esc(item.pay_mode) + '</td>' +
+                    '<td>' + esc(item.mpesa_receipt_number) + '</td>' +
+                    '<td>' + esc(item.remark) + '</td>' +
+                            '<td>' +
+            (canWrite
+                        ? '<button type="button" class="btn btn-danger btn-sm overdue-action-btn me-1" onclick="openRemoveModal(' + item.id + ')" title="Remove & Archive">' +
+            '<i class="fas fa-trash-alt me-1"></i>Remove' +
+        '</button>' +
+                  (String(item.card_type || '').trim().toUpperCase() !== 'TEMPORARY'
+                            ? '<button type="button" class="btn btn-success btn-sm overdue-action-btn" onclick="openExitModal(' + item.id + ')" title="Exit Vehicle">' +
+            '<i class="fas fa-sign-out-alt me-1"></i>Exit' +
+        '</button>'
+                    : '')
+                : '<span class="text-muted small">View only</span>') +
+        '</td>' +
+                    '</tr>';
+            });
+            document.getElementById('tblPastBody').innerHTML = html;
+            buildPagination('pastPagination', 'pastPageInfo', data.length, pastPage, function (pg) {
+                pastPage = pg; renderPastTable();
+                var w = document.querySelector('#tblPastEntries').closest('.table-scroll-wrapper');
+                if (w) w.scrollTop = 0;
+            });
+        }
+
+        /* ── Data loading ────────────────────────────────── */
+        function loadAllReports(silent) {
+            return Promise.all([loadCurrentEntries(silent), loadPastEntries(silent)]).then(function () {
+                document.getElementById('lastRefreshed').textContent = new Date().toLocaleTimeString();
+            });
+        }
+        function loadCurrentEntries(silent) {
+            if (!silent) setLoading('tblCurrentBody', 16, "Loading today's entries...");
+            return fetch('/RealTimeReport/GetCurrentEntries', { method: 'POST', headers: { 'RequestVerificationToken': getAntiForgeryToken() } })
+                .then(function (r) { return r.json(); })
+                .then(function (res) {
+                    document.getElementById('currentBadge').textContent = res.count || 0;
+                    currentData = res.data || [];
+                    if (!silent) currentPage = 1;
+                    if (!res.success) { setError('tblCurrentBody', 16, res.debugMessage || 'Failed to load.'); return; }
+                    renderCurrentTable();
+                })
+                .catch(function (err) { setError('tblCurrentBody', 16, 'AJAX error: ' + err.message); });
+        }
+        function loadPastEntries(silent) {
+            if (!silent) setLoading('tblPastBody', 17, 'Loading overdue entries...');
+            return fetch('/RealTimeReport/GetPastEntries', { method: 'POST', headers: { 'RequestVerificationToken': getAntiForgeryToken() } })
+                .then(function (r) { return r.json(); })
+                .then(function (res) {
+                    document.getElementById('pastBadge').textContent = res.count || 0;
+                    pastData = res.data || [];
+                    if (!silent) pastPage = 1;
+                    if (!res.success) { setError('tblPastBody', 17, res.debugMessage || 'Failed to load.'); return; }
+                    renderPastTable();
+                })
+                .catch(function (err) { setError('tblPastBody', 17, 'AJAX error: ' + err.message); });
+        }
+
+        /* ══════════════════════════════════════════════════
+           B2 Tab JS
+           ══════════════════════════════════════════════════ */
+                function loadB2Tab(silent) {
+            loadB2PendingCars(silent);
+            loadB2Status(silent);
+            var b2NotifiedData = [];
+        }
+
+        function loadB2PendingCars(silent) {
+            if (!silent) {
+                document.getElementById('tblB2PendingBody').innerHTML =
+                    '<tr><td colspan="9" class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin me-2"></i>Loading...</td></tr>';
+            }
+            // ↓ Changed: calls RealTimeReport controller — accessible to all roles
+            fetch('/RealTimeReport/GetB2PendingCars')
+                .then(function (r) { return r.json(); })
+                .then(function (res) {
+                    var count = res.count || 0;
+                    document.getElementById('b2PendingBadge').textContent = count;
+                    document.getElementById('b2Badge').textContent = count;
+                    var tbody = document.getElementById('tblB2PendingBody');
+                    if (!res.success || !res.data || res.data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">✅ No pending B2 cars right now</td></tr>';
+                        return;
+                    }
+                    var html = '';
+                    res.data.forEach(function (r, idx) {
+                        var cls = r.minutes_parked >= 60 ? 'minutes-high' : r.minutes_parked >= 30 ? 'minutes-medium' : 'minutes-low';
+                        var dur = r.minutes_parked >= 60
+                            ? Math.floor(r.minutes_parked / 60) + 'h ' + (r.minutes_parked % 60) + 'm'
+                            : r.minutes_parked + 'm';
+                        html += '<tr>' +
+                            '<td>' + (idx + 1) + '</td>' +
+                            '<td>' + esc(r.cardno) + '</td>' +
+                            '<td>' + esc(r.card_name) + '</td>' +
+                            '<td><strong>' + esc(r.car_plate_no) + '</strong></td>' +
+                            '<td><span class="badge bg-info text-dark">' + esc(r.card_type) + '</span></td>' +
+                            '<td>' + esc(r.car_parkers_sub_co_name || r.car_parkers_sub_co_id) + '</td>' +
+                            '<td>' + esc(r.entry_time) + '</td>' +
+                            '<td><span class="minutes-badge ' + cls + '">' + dur + '</span></td>' +
+                            '<td>' + esc(r.fee_schedule_name) + '</td>' +
+                            '</tr>';
+                    });
+                    tbody.innerHTML = html;
+                })
+                .catch(function (err) {
+                    document.getElementById('tblB2PendingBody').innerHTML =
+                        '<tr><td colspan="9" class="text-center text-danger py-3"><i class="fas fa-exclamation-triangle me-1"></i>Error: ' + esc(err.message) + '</td></tr>';
+                });
+        }
+
+                        function loadB2Status(silent) {
+            fetch('RealTimeReport/GetB2NotifiedCards')
+                .then(function (r) { return r.json(); })
+                .then(function (res) {
+                    if (!res.success) return;
+
+                    // top status pills in info bar
+                    var statusEl = document.getElementById('b2ServiceStatus');
+                    statusEl.textContent = res.isEnabled ? 'ENABLED' : 'DISABLED';
+                    statusEl.className = 'fw-bold ' + (res.isEnabled ? 'text-success' : 'text-danger');
+
+                    document.getElementById('b2LastRun').textContent = res.lastRunTime || 'Never';
+                    document.getElementById('b2NextRun').textContent = res.nextRunTime || '';
+                    document.getElementById('b2EmailsSent').textContent = res.totalEmailsSent || 0;
+                    document.getElementById('b2EmailsFailed').textContent = res.totalFailed || 0;
+
+                    // cache data for search/export
+                    b2NotifiedData = res.cooldowns || [];
+
+                    var wrapper = document.getElementById('b2NotifiedWrapper');
+
+                    if (!b2NotifiedData || b2NotifiedData.length === 0) {
+                        wrapper.innerHTML = '<div class="text-center text-muted py-3" style="font-size:13px;">No cards notified yet</div>';
+                        return;
+                    }
+
+                    renderB2NotifiedTable(b2NotifiedData);
+                });
+        }
+                function renderB2NotifiedTable(data) {
+            var wrapper = document.getElementById('b2NotifiedWrapper');
+
+            var rows = data.map(function (c) {
+                var parts = (c.subCoId || '').split('|');
+                var cardNo = parts[0] || c.cardNo || '';
+                var entryId = parts[1]
+                    ? '<span class="text-muted" style="font-size:11px;">#' + parts[1] + '</span>'
+                    : '';
+
+                var status = c.status || 'Email Sent';
+                var isFail = status.toLowerCase().indexOf('fail') >= 0;
+                var badgeBg = isFail ? '#f8d7da' : '#d4edda';
+                var badgeText = isFail ? '#721c24' : '#155724';
+
+                return '<tr>' +
+                    '<td>' + cardNo + ' ' + entryId + '</td>' +
+                    '<td>' + (c.cardName || '') + '</td>' +
+                    '<td>' + (c.subCompanyName || '') + '</td>' +
+                    '<td>' + (c.notificationTime || '') + '</td>' +
+                    '<td><span class="badge" style="background:' + badgeBg + ';color:' + badgeText + ';font-size:11px;">'
+                    + status + '</span></td>' +
+                    '</tr>';
+            }).join('');
+
+            wrapper.innerHTML =
+                '<table class="table table-sm mb-0">' +
+                '  <thead style="position:sticky;top:0;background:#f8f9fa;">' +
+                '    <tr>' +
+                '      <th style="font-size:12px;">Card No</th>' +
+                '      <th style="font-size:12px;">Card Name</th>' +
+                '      <th style="font-size:12px;">Sub Company</th>' +
+                '      <th style="font-size:12px;">Notification Time</th>' +
+                '      <th style="font-size:12px;">Status</th>' +
+                '    </tr>' +
+                '  </thead>' +
+                '  <tbody>' + rows + '</tbody>' +
+                '</table>';
+        }
+
+        // search handler
+        document.addEventListener('input', function (e) {
+            if (e.target && e.target.id === 'b2NotifiedSearch') {
+                var q = e.target.value.toLowerCase();
+                if (!b2NotifiedData) return;
+
+                var filtered = b2NotifiedData.filter(function (c) {
+                    var cardNo = (c.cardNo || '').toLowerCase();
+                    var cardName = (c.cardName || '').toLowerCase();
+                    var subCo = (c.subCompanyName || '').toLowerCase();
+                    return cardNo.indexOf(q) >= 0 || cardName.indexOf(q) >= 0 || subCo.indexOf(q) >= 0;
+                });
+
+                if (filtered.length === 0) {
+                    document.getElementById('b2NotifiedWrapper').innerHTML =
+                        '<div class="text-center text-muted py-3" style="font-size:13px;">No matching records</div>';
+                } else {
+                    renderB2NotifiedTable(filtered);
+                }
+            }
+        });
+
+        // CSV export
+        function exportB2Notified() {
+            if (!b2NotifiedData || b2NotifiedData.length === 0) {
+                alert('No notified cards to export.');
+                return;
+            }
+
+            var rows = [
+                ['Card No', 'Card Name', 'Card Type', 'Sub Company', 'Email', 'Entry Time', 'Notification Time', 'Status']
+            ];
+
+            b2NotifiedData.forEach(function (c) {
+                rows.push([
+                    c.cardNo || '',
+                    c.cardName || '',
+                    c.cardType || '',
+                    c.subCompanyName || '',
+                    c.email || '',
+                    c.entryTime || '',
+                    c.notificationTime || '',
+                    c.status || ''
+                ]);
+            });
+
+            var csv = rows
+                .map(function (r) {
+                    return r.map(function (x) {
+                        var v = (x || '').replace(/"/g, '""');
+                        return '"' + v + '"';
+                    }).join(',');
+                })
+                .join('\r\n');
+
+            var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = 'B2_Notified_Cards.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        /* ── Card type filter ────────────────────────────── */
+        function loadCardTypes() {
+            fetch('/RealTimeReport/GetCardTypes')
+                .then(function (r) { return r.json(); })
+                .then(function (res) {
+                    if (res.success) { cardTypeOptions = res.data || []; selectedCardTypes = new Set(cardTypeOptions); buildCardTypeCheckboxes(); }
+                });
+        }
+        function buildCardTypeCheckboxes() {
+            ['cardTypeFilterList', 'cardTypeFilterList2'].forEach(function (id) {
+                var container = document.getElementById(id);
+                container.innerHTML = '';
+                cardTypeOptions.forEach(function (ct) {
+                    var div = document.createElement('div'); div.className = 'form-check';
+                    var cb  = document.createElement('input');
+                    cb.type = 'checkbox'; cb.className = 'form-check-input card-type-cb';
+                    cb.value = ct; cb.id = id + '_' + ct; cb.checked = selectedCardTypes.has(ct);
+                    cb.addEventListener('change', function () {
+                        if (this.checked) selectedCardTypes.add(this.value); else selectedCardTypes.delete(this.value);
+                        syncCheckboxes(this.value, this.checked); currentPage = 1; pastPage = 1; renderAllTables();
+                    });
+                    var lbl = document.createElement('label');
+                    lbl.className = 'form-check-label'; lbl.htmlFor = cb.id; lbl.textContent = ct;
+                    div.appendChild(cb); div.appendChild(lbl); container.appendChild(div);
+                });
+            });
+        }
+        function syncCheckboxes(value, checked) {
+            document.querySelectorAll('.card-type-cb').forEach(function (cb) { if (cb.value === value) cb.checked = checked; });
+        }
+        function setupCardTypePopup() {
+            document.addEventListener('click', function (e) {
+                if (e.target.closest('.card-type-filter-toggle')) {
+                    var popup = e.target.closest('th').querySelector('[id^="cardTypeFilterPopup"]');
+                    document.querySelectorAll('[id^="cardTypeFilterPopup"]').forEach(function (p) { if (p !== popup) p.style.display = 'none'; });
+                    popup.style.display = popup.style.display === 'none' ? 'block' : 'none';
+                    e.stopPropagation(); return;
+                }
+                document.querySelectorAll('[id^="cardTypeFilterPopup"]').forEach(function (p) { p.style.display = 'none'; });
+            });
+            ['btnCardTypeSelectAll','btnCardTypeSelectAll2'].forEach(function (btnId) {
+                var btn = document.getElementById(btnId);
+                if (btn) btn.addEventListener('click', function () {
+                    cardTypeOptions.forEach(function (ct) { selectedCardTypes.add(ct); });
+                    buildCardTypeCheckboxes(); currentPage = 1; pastPage = 1; renderAllTables();
+                });
+            });
+            ['btnCardTypeClear','btnCardTypeClear2'].forEach(function (btnId) {
+                var btn = document.getElementById(btnId);
+                if (btn) btn.addEventListener('click', function () {
+                    selectedCardTypes.clear(); buildCardTypeCheckboxes(); currentPage = 1; pastPage = 1; renderAllTables();
+                });
+            });
+        }
+        function updateSortIcons() {
+            document.querySelectorAll('.validated-sort').forEach(function (th) {
+                var icon = th.querySelector('i');
+                if (!icon) return;
+                icon.className = validatedSortState === 'asc' ? 'fas fa-sort-up ms-1' : validatedSortState === 'desc' ? 'fas fa-sort-down ms-1' : 'fas fa-sort ms-1';
+            });
+        }
+
+        /* ── Remove modal ────────────────────────────────── */
+        function openRemoveModal(id) {
+            var entry = pastData.find(function (x) { return x.id === id; });
+            if (!entry) return;
+            pendingRemoveId = Number(id);
+            document.getElementById('removeEntryInfo').innerHTML =
+                '<strong>Card:</strong> ' + esc(entry.cardno) + ' — ' + esc(entry.card_name) +
+                '<br><strong>Plate:</strong> ' + esc(entry.car_plate_no) +
+                '<br><strong>Entry:</strong> ' + esc(entry.entry_date) + ' ' + esc(entry.entry_time_only);
+            document.getElementById('removeRemark').value = '';
+            document.getElementById('removeRemark').classList.remove('is-invalid');
+            new bootstrap.Modal(document.getElementById('removeModal')).show();
+        }
+        function openExitModal(id) {
+
+            var item = pastData.find(function (x) {
+                return x.id === id;
+            });
+
+            if (!item) return;
+
+            pendingRemoveId = id;
+
+            document.getElementById('exitEntryInfo').innerHTML =
+                '<strong>Card Name:</strong> ' + esc(item.card_name || '—') +
+                '<br><strong>Plate:</strong> ' + esc(item.car_plate_no || '—') +
+                '<br><strong>Card Type:</strong> ' + esc(item.card_type || '—') +
+                '<br><strong>Entry:</strong> ' +
+                esc(item.entry_date || '') + ' ' +
+                esc(item.entry_time_only || '');
+
+            // Set current local date/time as default
+            var now = new Date();
+
+            var localDateTime =
+                now.getFullYear() + '-' +
+                String(now.getMonth() + 1).padStart(2, '0') + '-' +
+                String(now.getDate()).padStart(2, '0') + 'T' +
+                String(now.getHours()).padStart(2, '0') + ':' +
+                String(now.getMinutes()).padStart(2, '0');
+
+        var exitInput = document.getElementById('exitTime');
+        var chargeInput = document.getElementById('exitCharge');
+
+        exitInput.value = localDateTime;
+        exitInput.classList.remove('is-invalid');
+
+        chargeInput.value = '';
+        chargeInput.classList.remove('is-invalid');
+
+        var modal = new bootstrap.Modal(
+            document.getElementById('exitModal')
+        );
+
+        modal.show();
+
+        }
+
+        function doRemoveEntry(id, remark) {
+            if (!remark || !remark.trim()) { document.getElementById('removeRemark').classList.add('is-invalid'); return; }
+            var params = new URLSearchParams({ id: id, remark: remark.trim() });
+            fetch('/RealTimeReport/RemoveOverdueEntry?' + params.toString(), {
+                method: 'POST', headers: { 'RequestVerificationToken': getAntiForgeryToken() }
+            })
+                .then(function (r) { return r.json(); })
+                .then(function (res) {
+                    bootstrap.Modal.getInstance(document.getElementById('removeModal')).hide();
+                    if (res.success) loadAllReports(false);
+                    else alert('Error: ' + res.message);
+                })
+                .catch(function (err) { alert('AJAX error: ' + err.message); });
+        }
+                /* ══════════════════════════════════════════════════
+           DELETED CARDS TAB JS
+           ══════════════════════════════════════════════════ */
+        var deletedData = [];
+        var deletedPage = 1;
+
+        (function initDeletedTab() {
+
+            // Set default date range to today on page load
+            var todayStr = getTodayStr();
+            document.getElementById('deletedFrom').value = todayStr;
+            document.getElementById('deletedTo').value   = todayStr;
+
+            // Quick-range buttons
+            document.querySelectorAll('.deleted-quick').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var range = this.getAttribute('data-range');
+                    var now   = new Date();
+
+                    document.querySelectorAll('.deleted-quick').forEach(function (b) { b.classList.remove('btn-secondary'); b.classList.add('btn-outline-secondary'); });
+                    this.classList.remove('btn-outline-secondary');
+                    this.classList.add('btn-secondary');
+
+                    if (range === 'today') {
+                        document.getElementById('deletedFrom').value = fmtDate(now);
+                        document.getElementById('deletedTo').value   = fmtDate(now);
+                    } else if (range === 'yesterday') {
+                        var y = new Date(now); y.setDate(y.getDate() - 1);
+                        document.getElementById('deletedFrom').value = fmtDate(y);
+                        document.getElementById('deletedTo').value   = fmtDate(y);
+                    } else if (range === 'week') {
+                        // Mon–Sun of current week
+                        var day  = now.getDay(); // 0=Sun
+                        var diff = (day === 0) ? -6 : 1 - day; // shift to Monday
+                        var mon  = new Date(now); mon.setDate(now.getDate() + diff);
+                        var sun  = new Date(mon); sun.setDate(mon.getDate() + 6);
+                        document.getElementById('deletedFrom').value = fmtDate(mon);
+                        document.getElementById('deletedTo').value   = fmtDate(sun);
+                    } else if (range === 'month') {
+                        // 1st to last day of current month
+                        var first = new Date(now.getFullYear(), now.getMonth(), 1);
+                        var last  = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                        document.getElementById('deletedFrom').value = fmtDate(first);
+                        document.getElementById('deletedTo').value   = fmtDate(last);
+                    }
+                    loadDeletedCards();
+                });
+            });
+
+            // Search button
+            document.getElementById('btnDeletedSearch').addEventListener('click', function () {
+                deletedPage = 1;
+                loadDeletedCards();
+            });
+
+            // Clear button — reset to today
+            document.getElementById('btnDeletedClear').addEventListener('click', function () {
+                var todayStr = getTodayStr();
+                document.getElementById('deletedFrom').value = todayStr;
+                document.getElementById('deletedTo').value   = todayStr;
+                document.querySelectorAll('.deleted-quick').forEach(function (b) { b.classList.remove('btn-secondary'); b.classList.add('btn-outline-secondary'); });
+                deletedData = []; deletedPage = 1;
+                setEmpty('tblDeletedBody', 15, 'Select a date range and click Search.');
+                document.getElementById('deletedBadge').textContent = 0;
+                document.getElementById('deletedTableBadge').textContent = 0;
+                buildPagination('deletedPagination', 'deletedPageInfo', 0, 1, function(){});
+            });
+
+            // Export
+            document.getElementById('btnExportDeleted').addEventListener('click', function () {
+                exportToCSV(deletedData, 'Deleted_Cards_' + getTodayStr());
+            });
+
+            // Load on tab click (lazy first load)
+            document.getElementById('tab-deleted').addEventListener('shown.bs.tab', function () {
+                if (deletedData.length === 0) loadDeletedCards();
+            });
+
+        })();
+
+        function fmtDate(d) {
+            return d.getFullYear() + '-' +
+                   String(d.getMonth() + 1).padStart(2, '0') + '-' +
+                   String(d.getDate()).padStart(2, '0');
+        }
+
+        function loadDeletedCards() {
+            var from = document.getElementById('deletedFrom').value;
+            var to   = document.getElementById('deletedTo').value;
+
+            if (!from || !to) { alert('Please select both From and To dates.'); return; }
+            if (from > to)    { alert('From date cannot be after To date.'); return; }
+
+            setLoading('tblDeletedBody', 15, 'Loading deleted cards...');
+
+            fetch('/RealTimeReport/GetDeletedCards?fromDate=' + encodeURIComponent(from) + '&toDate=' + encodeURIComponent(to))
+                .then(function (r) { return r.json(); })
+                .then(function (res) {
+                    document.getElementById('deletedBadge').textContent      = res.count || 0;
+                    document.getElementById('deletedTableBadge').textContent = res.count || 0;
+
+                    if (!res.success) {
+                        setError('tblDeletedBody', 15, res.message || 'Failed to load.');
+                        return;
+                    }
+                    deletedData = res.data || [];
+                    deletedPage = 1;
+                    renderDeletedTable();
+                })
+                .catch(function (err) { setError('tblDeletedBody', 15, 'AJAX error: ' + err.message); });
+        }
+
+        function renderDeletedTable() {
+            if (deletedData.length === 0) {
+                setEmpty('tblDeletedBody', 15, 'No deleted cards found for the selected period.');
+                buildPagination('deletedPagination', 'deletedPageInfo', 0, 1, function(){});
+                return;
+            }
+            var totalPages = Math.ceil(deletedData.length / PAGE_SIZE);
+            if (deletedPage > totalPages) deletedPage = totalPages;
+            var pageData = deletedData.slice((deletedPage - 1) * PAGE_SIZE, deletedPage * PAGE_SIZE);
+            var html = '';
+            pageData.forEach(function (item, idx) {
+                var globalIdx = (deletedPage - 1) * PAGE_SIZE + idx + 1;
+                html += '<tr>' +
+                    '<td>' + globalIdx + '</td>' +
+                    '<td>' + esc(item.cardno) + '</td>' +
+                    '<td>' + esc(item.card_name) + '</td>' +
+                    '<td><strong>' + esc(item.car_plate_no) + '</strong></td>' +
+                    '<td>' + esc(item.card_type) + '</td>' +
+                    '<td>' + esc(item.entry_time) + '</td>' +
+                    '<td>' + esc(item.fee_schedule_name) + '</td>' +
+                    '<td>' + esc(item.car_parkers_sub_co_name) + '</td>' +
+                    '<td class="text-end">' + fmtCurrency(item.display_charges) + '</td>' +
+                    '<td>' + esc(item.pay_mode) + '</td>' +
+                    '<td>' + esc(item.mpesa_receipt_number) + '</td>' +
+                    '<td>' + validatedBadge(item.isValidated) + '</td>' +
+                    '<td>' + esc(item.remark) + '</td>' +
+                    '<td class="text-danger fw-semibold">' + esc(item.removed_at) + '</td>' +
+                    '<td>' + esc(item.removed_by) + '</td>' +
+                    '</tr>';
+            });
+            document.getElementById('tblDeletedBody').innerHTML = html;
+            buildPagination('deletedPagination', 'deletedPageInfo', deletedData.length, deletedPage, function (pg) {
+                deletedPage = pg;
+                renderDeletedTable();
+                var w = document.querySelector('#tblDeletedCards').closest('.table-scroll-wrapper');
+                if (w) w.scrollTop = 0;
+            });
+        }
+
+        /* ── Tiny utilities ──────────────────────────────── */
+        function esc(v) {
+            if (v === null || v === undefined) return '—';
+            return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+        function fmtCurrency(v) {
+            if (v === null || v === undefined) return '—';
+            return parseFloat(v).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+        function getTodayStr() {
+            var d = new Date();
+            return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+        }
+        function getAntiForgeryToken() {
+            var el = document.querySelector('input[name="__RequestVerificationToken"]');
+            return el ? el.value : '';
+        }
+        function setLoading(tbodyId, colspan, msg) {
+            document.getElementById(tbodyId).innerHTML =
+                '<tr><td colspan="' + colspan + '" class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin me-2"></i>' + msg + '</td></tr>';
+        }
+        function setEmpty(tbodyId, colspan, msg) {
+            document.getElementById(tbodyId).innerHTML =
+                '<tr><td colspan="' + colspan + '" class="text-center text-muted py-3">' + msg + '</td></tr>';
+        }
+        function setError(tbodyId, colspan, msg) {
+            document.getElementById(tbodyId).innerHTML =
+                '<tr><td colspan="' + colspan + '" class="text-center text-danger py-3"><i class="fas fa-exclamation-triangle me-1"></i>' + msg + '</td></tr>';
+        }
+        function exportToCSV(data, filename) {
+            if (!data || data.length === 0) { alert('No data to export.'); return; }
+            var keys = Object.keys(data[0]);
+            var csv  = keys.join(',') + '\n';
+            data.forEach(function (row) {
+                csv += keys.map(function (k) {
+                            var v = row[k] === null || row[k] === undefined ? '' : String(row[k]);
+        if (k === 'isValidated') v = validatedLabel(row[k]);
+                    return '"' + v.replace(/"/g, '""') + '"';
+                }).join(',') + '\n';
+            });
+            var blob = new Blob([csv], { type: 'text/csv' });
+            var a = document.createElement('a');
+            a.href = URL.createObjectURL(blob); a.download = filename + '.csv'; a.click();
+        }
+    </script>
+}

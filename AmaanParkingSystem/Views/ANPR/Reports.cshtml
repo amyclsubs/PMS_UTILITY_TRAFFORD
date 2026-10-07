@@ -1,0 +1,157 @@
+﻿@{
+    ViewData["Title"] = "ANPR Detailed Reports";
+}
+
+<div class="container-fluid">
+    <div class="mb-4">
+        <h3><i class="fas fa-camera"></i> ANPR Detailed Reports</h3>
+        <p>View and analyze ANPR plate recognition data</p>
+    </div>
+
+    <!-- Quick Reports -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <button id="btnToday" class="btn btn-primary btn-sm me-2"><i class="fas fa-sun"></i> Today</button>
+            <button id="btnYesterday" class="btn btn-secondary btn-sm me-2"><i class="fas fa-history"></i> Yesterday</button>
+            <button id="btnWeek" class="btn btn-info btn-sm me-2"><i class="fas fa-calendar-week"></i> This Week</button>
+            <button id="btnMonth" class="btn btn-dark btn-sm"><i class="fas fa-calendar-alt"></i> This Month</button>
+        </div>
+    </div>
+
+    <!-- Custom Range -->
+    <div class="card mb-4">
+        <div class="card-body row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">From Date:</label>
+                <input type="date" id="fromDate" class="form-control form-control-sm" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">To Date:</label>
+                <input type="date" id="toDate" class="form-control form-control-sm" />
+            </div>
+            <div class="col-md-3">
+                <button id="btnGenerate" class="btn btn-primary btn-sm w-100"><i class="fas fa-search"></i> Generate Report</button>
+            </div>
+            <div class="col-md-3">
+                <button id="btnExport" class="btn btn-success btn-sm w-100"><i class="fas fa-file-excel"></i> Export Excel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="text-muted">Total Records</div>
+                    <h2 id="totalRecords">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="text-muted">Unique Plates</div>
+                    <h2 id="uniquePlates">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="text-muted">Avg Confidence</div>
+                    <h2 id="avgConfidence">0%</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="text-muted">Date Range</div>
+                    <h5 id="dateRange">-</h5>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Table -->
+    <div class="card">
+        <div class="card-body table-responsive" style="max-height:620px;overflow:auto;">
+            <table class="table table-sm table-striped">
+                <thead class="table-light">
+                    <tr>
+                        <th>#</th>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Camera</th>
+                        <th>Plate Number</th>
+                        <th>Confidence</th>
+                        <th>Vehicle Image</th>
+                        <th>Plate Image</th>
+                    </tr>
+                </thead>
+                <tbody id="reportBody">
+                    <tr><td colspan="8" class="text-center text-muted">Click a quick button or generate a report</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const Q = ep => fetch(`/ANPR/${ep}`).then(r=>r.json());
+        const P = (u,b) => fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(r=>r.json());
+
+        function bind(j){
+          if(!j || !j.success){ alert((j && j.message) || 'Failed to load report'); return; }
+          const s = j.stats;
+          document.getElementById('totalRecords').textContent = s.totalRecords ?? 0;
+          document.getElementById('uniquePlates').textContent = s.uniquePlates ?? 0;
+          document.getElementById('avgConfidence').textContent = `${(s.averageConfidence||0).toFixed(0)}%`;
+          document.getElementById('dateRange').textContent = s.dateRange || '-';
+          renderRows(j.rows);
+        }
+
+        function renderRows(rows){
+          const tb = document.getElementById('reportBody');
+          tb.innerHTML = '';
+          if(!rows || rows.length===0){
+            tb.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No records found</td></tr>';
+            return;
+          }
+          rows.forEach((r,i)=>{
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${i+1}</td>
+              <td>${r.date||'-'}</td>
+              <td>${r.time||'-'}</td>
+              <td>${r.camera||'-'}</td>
+              <td>${r.plateNumber||'-'}</td>
+              <td>${(r.confidence??0).toFixed(2)}</td>
+              <td>${r.vehicleImage?`<a href="${r.vehicleImage}" target="_blank">View</a>`:'-'}</td>
+              <td>${r.plateImage?`<a href="${r.plateImage}" target="_blank">View</a>`:'-'}</td>`;
+            tb.appendChild(tr);
+          });
+        }
+
+        document.getElementById('btnToday').onclick     = ()=> Q('Today').then(bind).catch(()=>alert('Failed to load report'));
+        document.getElementById('btnYesterday').onclick = ()=> Q('Yesterday').then(bind).catch(()=>alert('Failed to load report'));
+        document.getElementById('btnWeek').onclick      = ()=> Q('ThisWeek').then(bind).catch(()=>alert('Failed to load report'));
+        document.getElementById('btnMonth').onclick     = ()=> Q('ThisMonth').then(bind).catch(()=>alert('Failed to load report'));
+
+        document.getElementById('btnGenerate').onclick = ()=>{
+          const from = document.getElementById('fromDate').value;
+          const to   = document.getElementById('toDate').value;
+          if(!from || !to){ alert('Select both dates'); return; }
+          P('/ANPR/GetReports', { startDate: from, endDate: to}).then(bind).catch(()=>alert('Failed to load report'));
+        };
+
+                        document.getElementById('btnExport').onclick = ()=>{
+          const from = document.getElementById('fromDate').value || new Date().toISOString().slice(0,10);
+          const to   = document.getElementById('toDate').value   || new Date().toISOString().slice(0,10);
+          window.location.href = `/ANPR/ExportExcel?from=${from}&to=${to}`;
+        };
+
+    </script>
+}

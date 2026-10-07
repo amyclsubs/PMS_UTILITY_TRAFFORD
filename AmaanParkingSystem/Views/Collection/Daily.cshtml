@@ -1,0 +1,960 @@
+﻿@{
+    ViewData["Title"] = "Daily Collection Report";
+}
+
+<style>
+    .stat-box {
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        padding: 12px;
+        background-color: #f9f9f9;
+        text-align: center;
+        min-height: 80px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+        .stat-box .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .stat-box .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .stat-box.highlight-foc {
+            background-color: #c8e6c9;
+            border-color: #4caf50;
+        }
+
+            .stat-box.highlight-foc .stat-value {
+                color: #2e7d32;
+            }
+
+        .stat-box.highlight-total {
+            background-color: #fff9c4;
+            border-color: #fbc02d;
+        }
+
+            .stat-box.highlight-total .stat-value {
+                color: #f57f17;
+            }
+
+    .nav-tabs .nav-link {
+        color: #495057;
+        border: 1px solid #dee2e6;
+    }
+
+        .nav-tabs .nav-link.active {
+            color: #495057;
+            background-color: #fff;
+            border: 1px solid #dee2e6;
+            border-bottom: 3px solid #007bff;
+        }
+</style>
+
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="page-header mb-4">
+        <h2><i class="fas fa-money-bill"></i> Daily Collection Report</h2>
+        <p>Real-time parking collection data from AMAAN_PMS database</p>
+    </div>
+
+    <!-- Tabs Navigation -->
+    <ul class="nav nav-tabs mb-4" role="tablist">
+        <li class="nav-item">
+            <button class="nav-link active" id="exited-tab" data-bs-toggle="tab" data-bs-target="#exitedContent" type="button">
+                <i class="fas fa-car"></i> Daily Collection [Exited Cars]
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" id="transactions-tab" data-bs-toggle="tab" data-bs-target="#transactionsContent" type="button">
+                <i class="fas fa-receipt"></i> Daily Collection [Transactions]
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content">
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <!-- TAB 1: EXITED CARS -->
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <div class="tab-pane fade show active" id="exitedContent">
+            <!-- Date Range Selection with Quick Buttons -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="row g-2 align-items-end">
+                                <!-- From Date -->
+                                <div class="col-md-2">
+                                    <label class="form-label fw-bold">From Date</label>
+                                    <input type="date" id="dateFromExited" class="form-control date-input" />
+                                </div>
+
+                                <!-- To Date -->
+                                <div class="col-md-2">
+                                    <label class="form-label fw-bold">To Date</label>
+                                    <input type="date" id="dateToExited" class="form-control date-input" />
+                                </div>
+
+                                <!-- Show Button -->
+                                <div class="col-md-1">
+                                    <button onclick="loadDailyDataExited()" class="btn btn-primary w-100">
+                                        <i class="fas fa-search"></i> Show
+                                    </button>
+                                </div>
+
+                                <!-- Today Button -->
+                                <div class="col-md-1">
+                                    <button onclick="loadTodayExited()" class="btn btn-info w-100">
+                                        <i class="fas fa-calendar-day"></i> Today
+                                    </button>
+                                </div>
+
+                                <!-- Yesterday Button -->
+                                <div class="col-md-2">
+                                    <button onclick="loadYesterdayExited()" class="btn btn-secondary w-100">
+                                        <i class="fas fa-calendar-minus"></i> Yesterday
+                                    </button>
+                                </div>
+
+                                <!-- Export Button -->
+                                <div class="col-md-2">
+                                    <button onclick="exportDailyExited()" class="btn btn-success w-100">
+                                        <i class="fas fa-download"></i> Export Excel
+                                    </button>
+                                </div>
+
+                                <!-- Clear Button -->
+                                <div class="col-md-1">
+                                    <button onclick="clearDailyExited()" class="btn btn-warning w-100">
+                                        <i class="fas fa-redo"></i> Clear
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment Method Summary -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h5 class="card-title mb-0">Payment Method Summary</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-striped table-hover" id="exitedPaymentSummaryTable">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th rowspan="2" style="width: 8%; vertical-align: middle;">Payment Method</th>
+                                            <th colspan="2" class="text-center" style="width: 8%;">Server</th>
+                                            <th colspan="2" class="text-center" style="width: 8%;">Paystation 1</th>
+                                            <th colspan="2" class="text-center" style="width: 8%;">Paystation 2</th>
+                                            <th colspan="2" class="text-center" style="width: 8%;">Paystation 3</th>
+                                            <th colspan="2" class="text-center" style="width: 8%;">Paystation 4</th>
+                                            <th colspan="2" class="text-center" style="width: 8%;">HHD1</th>
+                                            <th colspan="2" class="text-center" style="width: 8%;">HHD2</th>
+                                            <th colspan="2" class="text-center" style="width: 8%;">HHD3</th>
+                                            <th colspan="2" class="text-center" style="width: 8%;">HHD4</th>
+                                            <th colspan="2" class="text-center" style="width: 8%;">Web</th>
+                                            <th colspan="2" class="text-center" style="width: 8%;">Total</th>
+                                        </tr>
+                                        <tr>
+                                            <!-- Server -->
+                                            <th class="text-end">Count</th>
+                                            <th class="text-end">Amount</th>
+                                            <!-- Paystation 1 -->
+                                            <th class="text-end">Count</th>
+                                            <th class="text-end">Amount</th>
+                                            <!-- Paystation 2 -->
+                                            <th class="text-end">Count</th>
+                                            <th class="text-end">Amount</th>
+                                            <!-- Paystation 3 -->
+                                            <th class="text-end">Count</th>
+                                            <th class="text-end">Amount</th>
+                                            <!-- Paystation 4 -->
+                                            <th class="text-end">Count</th>
+                                            <th class="text-end">Amount</th>
+                                            <!-- HHD 1 -->
+                                            <th class="text-end">Count</th>
+                                            <th class="text-end">Amount</th>
+                                            <!-- HHD 2 -->
+                                            <th class="text-end">Count</th>
+                                            <th class="text-end">Amount</th>
+                                            <!-- HHD 3 -->
+                                            <th class="text-end">Count</th>
+                                            <th class="text-end">Amount</th>
+                                            <!-- HHD 4 -->
+                                            <th class="text-end">Count</th>
+                                            <th class="text-end">Amount</th>
+                                            <!-- Web -->
+                                            <th class="text-end">Count</th>
+                                            <th class="text-end">Amount</th>
+                                            <!-- Total -->
+                                            <th class="text-end">Count</th>
+                                            <th class="text-end">Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="exitedPaymentSummaryBody">
+                                        <tr><td colspan="24" class="text-center text-muted">Select date range and click "Show"</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transaction Details -->
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h5 class="card-title mb-0">Transaction Details</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                                <table class="table table-sm table-striped table-hover" id="exitedTransactionTable">
+                                    <thead class="table-light sticky-top">
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Transaction ID</th>
+                                            <th>Card Number</th>
+                                            <th>Card Name</th>
+                                            <th>Entry Time (DD-MM-YYYY HH:MM:SS)</th>
+                                            <th>Exit Time (DD-MM-YYYY HH:MM:SS)</th>
+                                            <th>Park Time</th>
+                                            <th>Charge (KES)</th>
+                                            <th>Paid (KES)</th>
+                                            <th>Discount (KES)</th>
+                                            <th>Pay Mode</th>
+                                            <th>Payment Source</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="exitedTransactionTableBody">
+                                        <tr><td colspan="12" class="text-center text-muted">Select date range and click "Show"</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <!-- TAB 2: TRANSACTIONS -->
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <div class="tab-pane fade" id="transactionsContent">
+            <!-- Date Range Selection with Quick Buttons -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="row g-2 align-items-end">
+                                <!-- From Date -->
+                                <div class="col-md-2">
+                                    <label class="form-label fw-bold">From Date</label>
+                                    <input type="date" id="dateFromTransactions" class="form-control date-input" />
+                                </div>
+
+                                <!-- To Date -->
+                                <div class="col-md-2">
+                                    <label class="form-label fw-bold">To Date</label>
+                                    <input type="date" id="dateToTransactions" class="form-control date-input" />
+                                </div>
+
+                                <!-- Show Button -->
+                                <div class="col-md-1">
+                                    <button onclick="loadDailyDataTransactions()" class="btn btn-primary w-100">
+                                        <i class="fas fa-search"></i> Show
+                                    </button>
+                                </div>
+
+                                <!-- Today Button -->
+                                <div class="col-md-1">
+                                    <button onclick="loadTodayTransactions()" class="btn btn-info w-100">
+                                        <i class="fas fa-calendar-day"></i> Today
+                                    </button>
+                                </div>
+
+                                <!-- Yesterday Button -->
+                                <div class="col-md-2">
+                                    <button onclick="loadYesterdayTransactions()" class="btn btn-secondary w-100">
+                                        <i class="fas fa-calendar-minus"></i> Yesterday
+                                    </button>
+                                </div>
+
+                                <!-- Export Button -->
+                                <div class="col-md-2">
+                                    <button onclick="exportDailyTransactions()" class="btn btn-success w-100">
+                                        <i class="fas fa-download"></i> Export Excel
+                                    </button>
+                                </div>
+
+                                <!-- Clear Button -->
+                                <div class="col-md-1">
+                                    <button onclick="clearDailyTransactions()" class="btn btn-warning w-100">
+                                        <i class="fas fa-redo"></i> Clear
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment Method Summary for Transactions Tab -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h5 class="card-title mb-0">Payment Method Summary</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-striped table-hover" id="transPaymentSummaryTable">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th rowspan="2" style="width: 8%; vertical-align: middle;">Payment Method</th>
+                                            <th colspan="2" class="text-center" style="width: 8%;">Server</th>
+                                            <th colspan="2" class="text-center" style="width: 8%;">Paystation 1</th>
+                                            <th colspan="2" class="text-center" style="width: 8%;">Paystation 2</th>
+                                            <th colspan="2" class="text-center" style="width: 8%;">Paystation 3</th>
+                                            <th colspan="2" class="text-center" style="width: 8%;">Paystation 4</th>
+                                            <th colspan="2" class="text-center" style="width: 8%;">HHD1</th>
+                                            <th colspan="2" class="text-center" style="width: 8%;">HHD2</th>
+                                            <th colspan="2" class="text-center" style="width: 8%;">HHD3</th>
+                                            <th colspan="2" class="text-center" style="width: 8%;">HHD4</th>
+                                            <th colspan="2" class="text-center" style="width: 8%;">Web</th>
+                                            <th colspan="2" class="text-center" style="width: 8%;">Total</th>
+                                        </tr>
+                                        <tr>
+                                            <!-- Server -->
+                                            <th class="text-end">Count</th>
+                                            <th class="text-end">Amount</th>
+                                            <!-- Paystation 1 -->
+                                            <th class="text-end">Count</th>
+                                            <th class="text-end">Amount</th>
+                                            <!-- Paystation 2 -->
+                                            <th class="text-end">Count</th>
+                                            <th class="text-end">Amount</th>
+                                            <!-- Paystation 3 -->
+                                            <th class="text-end">Count</th>
+                                            <th class="text-end">Amount</th>
+                                            <!-- Paystation 4 -->
+                                            <th class="text-end">Count</th>
+                                            <th class="text-end">Amount</th>
+                                            <!-- HHD 1 -->
+                                            <th class="text-end">Count</th>
+                                            <th class="text-end">Amount</th>
+                                            <!-- HHD 2 -->
+                                            <th class="text-end">Count</th>
+                                            <th class="text-end">Amount</th>
+                                            <!-- HHD 3 -->
+                                            <th class="text-end">Count</th>
+                                            <th class="text-end">Amount</th>
+                                            <!-- HHD 4 -->
+                                            <th class="text-end">Count</th>
+                                            <th class="text-end">Amount</th>
+                                            <!-- Web -->
+                                            <th class="text-end">Count</th>
+                                            <th class="text-end">Amount</th>
+                                            <!-- Total -->
+                                            <th class="text-end">Count</th>
+                                            <th class="text-end">Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="transPaymentSummaryBody">
+                                        <tr><td colspan="24" class="text-center text-muted">Select date range and click "Show"</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transaction Details -->
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h5 class="card-title mb-0">Transaction Details</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                                <table class="table table-sm table-striped table-hover" id="transTransactionTable">
+                                    <thead class="table-light sticky-top">
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Transaction ID</th>
+                                            <th>Card Number</th>
+                                            <th>Card Name</th>
+                                            <th>Entry Time (DD-MM-YYYY HH:MM:SS)</th>
+                                            <th>Validation Time (DD-MM-YYYY HH:MM:SS)</th>
+                                            <th>Amount (KES)</th>
+                                            <th>Pay Mode</th>
+                                            <th>Payment Source</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="transTransactionTableBody">
+                                        <tr><td colspan="10" class="text-center text-muted">Select date range and click "Show"</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script>
+        const API_BASE = '/Collection';
+
+        // ═══════════════════════════════════════════════════════════════════
+        // INITIALIZE - Set today's date in all date inputs
+        // ═══════════════════════════════════════════════════════════════════
+        document.addEventListener('DOMContentLoaded', function () {
+            const today = new Date().toISOString().split('T')[0];
+
+            // Set dates for Exited tab
+            document.getElementById('dateFromExited').value = today;
+            document.getElementById('dateToExited').value = today;
+
+            // Set dates for Transactions tab
+            document.getElementById('dateFromTransactions').value = today;
+            document.getElementById('dateToTransactions').value = today;
+
+            // Apply date format display
+            applyDateFormatDisplay();
+        });
+
+        // ═══════════════════════════════════════════════════════════════════
+        // DATE FORMAT DISPLAY (DD-MMM-YYYY)
+        // ═══════════════════════════════════════════════════════════════════
+        function applyDateFormatDisplay() {
+            const dateInputs = document.querySelectorAll('input[type="date"].date-input');
+
+            dateInputs.forEach(input => {
+                const wrapper = document.createElement('div');
+                wrapper.style.position = 'relative';
+                wrapper.style.display = 'inline-block';
+                wrapper.style.width = '100%';
+
+                const display = document.createElement('div');
+                display.style.position = 'absolute';
+                display.style.left = '12px';
+                display.style.top = '50%';
+                display.style.transform = 'translateY(-50%)';
+                display.style.pointerEvents = 'none';
+                display.style.zIndex = '1';
+                display.style.background = 'white';
+                display.style.padding = '0 5px';
+
+                input.parentNode.insertBefore(wrapper, input);
+                wrapper.appendChild(input);
+                wrapper.appendChild(display);
+
+                function updateDisplay() {
+                    if (input.value) {
+                        const date = new Date(input.value + 'T00:00:00');
+                        const day = String(date.getDate()).padStart(2, '0');
+                        const month = date.toLocaleString('en-US', { month: 'short' }).toUpperCase();
+                        const year = date.getFullYear();
+                        display.textContent = `${day}-${month}-${year}`;
+                        input.style.color = 'transparent';
+                    } else {
+                        display.textContent = '';
+                        input.style.color = '';
+                    }
+                }
+
+                updateDisplay();
+                input.addEventListener('change', updateDisplay);
+            });
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // QUICK BUTTON FUNCTIONS - EXITED CARS
+        // ═══════════════════════════════════════════════════════════════════
+        function loadTodayExited() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('dateFromExited').value = today;
+            document.getElementById('dateToExited').value = today;
+
+            document.getElementById('dateFromExited').dispatchEvent(new Event('change'));
+            document.getElementById('dateToExited').dispatchEvent(new Event('change'));
+
+            loadDailyDataExited();
+        }
+
+        function loadYesterdayExited() {
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+            document.getElementById('dateFromExited').value = yesterdayStr;
+            document.getElementById('dateToExited').value = yesterdayStr;
+
+            document.getElementById('dateFromExited').dispatchEvent(new Event('change'));
+            document.getElementById('dateToExited').dispatchEvent(new Event('change'));
+
+            loadDailyDataExited();
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // QUICK BUTTON FUNCTIONS - TRANSACTIONS
+        // ═══════════════════════════════════════════════════════════════════
+        function loadTodayTransactions() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('dateFromTransactions').value = today;
+            document.getElementById('dateToTransactions').value = today;
+
+            document.getElementById('dateFromTransactions').dispatchEvent(new Event('change'));
+            document.getElementById('dateToTransactions').dispatchEvent(new Event('change'));
+
+            loadDailyDataTransactions();
+        }
+
+        function loadYesterdayTransactions() {
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+            document.getElementById('dateFromTransactions').value = yesterdayStr;
+            document.getElementById('dateToTransactions').value = yesterdayStr;
+
+            document.getElementById('dateFromTransactions').dispatchEvent(new Event('change'));
+            document.getElementById('dateToTransactions').dispatchEvent(new Event('change'));
+
+            loadDailyDataTransactions();
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // UTILITY FUNCTIONS
+        // ═══════════════════════════════════════════════════════════════════
+        function formatDateTimeToDisplay(dateString) {
+            if (!dateString) return '--';
+            const date = new Date(dateString);
+            if (isNaN(date)) return '--';
+
+            const dd = String(date.getDate()).padStart(2, '0');
+            const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+            const mmm = monthNames[date.getMonth()];
+            const yyyy = date.getFullYear();
+            const hh = String(date.getHours()).padStart(2, '0');
+            const min = String(date.getMinutes()).padStart(2, '0');
+            const ss = String(date.getSeconds()).padStart(2, '0');
+
+            return `${dd}-${mmm}-${yyyy} ${hh}:${min}:${ss}`;
+        }
+
+        function formatCurrency(value) {
+            const numValue = parseFloat(value) || 0;
+            return 'KES ' + numValue.toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // ✅ EXITED CARS LOAD DATA FUNCTION - FIXED
+        // ═══════════════════════════════════════════════════════════════════
+        async function loadDailyDataExited() {
+            const dateFrom = document.getElementById('dateFromExited').value;
+            const dateTo = document.getElementById('dateToExited').value;
+
+            if (!dateFrom || !dateTo) {
+                alert('Please select both From and To dates');
+                return;
+            }
+
+            if (new Date(dateFrom) > new Date(dateTo)) {
+                alert('From Date cannot be after To Date');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/GetDailyData`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        StartDate: dateFrom,
+                        EndDate: dateTo
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    populatePaymentSummary(result.summary, 'exited');
+                    populateTransactionTableExited(result.data);
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to load data: ' + error.message);
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // TRANSACTIONS LOAD DATA FUNCTION (With Date Range)
+        // ═══════════════════════════════════════════════════════════════════
+        async function loadDailyDataTransactions() {
+            const dateFrom = document.getElementById('dateFromTransactions').value;
+            const dateTo = document.getElementById('dateToTransactions').value;
+
+            if (!dateFrom || !dateTo) {
+                alert('Please select both From and To dates');
+                return;
+            }
+
+            if (new Date(dateFrom) > new Date(dateTo)) {
+                alert('From Date cannot be after To Date');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/GetTransactionData`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        StartDate: dateFrom,
+                        EndDate: dateTo
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    populatePaymentSummary(result.summary, 'transactions');
+                    populateTransactionTableTransactions(result.data);
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to load data: ' + error.message);
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // POPULATE PAYMENT SUMMARY
+        // ═══════════════════════════════════════════════════════════════════
+        async function populatePaymentSummary(summary, type) {
+            const tableBodyId = type === 'exited' ? 'exitedPaymentSummaryBody' : 'transPaymentSummaryBody';
+            const tbody = document.getElementById(tableBodyId);
+            tbody.innerHTML = '';
+
+            if (!summary || summary.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="24" class="text-center">No data found</td></tr>';
+                return;
+            }
+
+            const totals = {
+                serverCount: 0, serverAmount: 0,
+                ps1Count: 0, ps1Amount: 0,
+                ps2Count: 0, ps2Amount: 0,
+                ps3Count: 0, ps3Amount: 0,
+                ps4Count: 0, ps4Amount: 0,
+                hhd1Count: 0, hhd1Amount: 0,
+                hhd2Count: 0, hhd2Amount: 0,
+                hhd3Count: 0, hhd3Amount: 0,
+                hhd4Count: 0, hhd4Amount: 0,
+                webCount: 0, webAmount: 0,
+                grandTotalCount: 0,
+                grandTotalAmount: 0
+            };
+
+            summary.forEach(row => {
+                const payMode = row.payMode || row.PayMode || 'N/A';
+
+                const serverCount = parseInt(row.serverCount || row.ServerCount || 0);
+                const serverAmount = parseFloat(row.server || row.Server || 0);
+                const ps1Count = parseInt(row.paystation1Count || row.Paystation1Count || 0);
+                const ps1Amount = parseFloat(row.paystation1 || row.Paystation1 || 0);
+                const ps2Count = parseInt(row.paystation2Count || row.Paystation2Count || 0);
+                const ps2Amount = parseFloat(row.paystation2 || row.Paystation2 || 0);
+                const ps3Count = parseInt(row.paystation3Count || row.Paystation3Count || 0);
+                const ps3Amount = parseFloat(row.paystation3 || row.Paystation3 || 0);
+                const ps4Count = parseInt(row.paystation4Count || row.Paystation4Count || 0);
+                const ps4Amount = parseFloat(row.paystation4 || row.Paystation4 || 0);
+                const hhd1Count = parseInt(row.hhd1Count || row.HHD1Count || 0);
+                const hhd1Amount = parseFloat(row.hhd1 || row.HHD1 || 0);
+                const hhd2Count = parseInt(row.hhd2Count || row.HHD2Count || 0);
+                const hhd2Amount = parseFloat(row.hhd2 || row.HHD2 || 0);
+                const hhd3Count = parseInt(row.hhd3Count || row.HHD3Count || 0);
+                const hhd3Amount = parseFloat(row.hhd3 || row.HHD3 || 0);
+                const hhd4Count = parseInt(row.hhd4Count || row.HHD4Count || 0);
+                const hhd4Amount = parseFloat(row.hhd4 || row.HHD4 || 0);
+                const webCount = parseInt(row.webCount || row.WebCount || 0);
+                const webAmount = parseFloat(row.web || row.Web || 0);
+
+                const rowTotalCount = serverCount + ps1Count + ps2Count + ps3Count + ps4Count +
+                    hhd1Count + hhd2Count + hhd3Count + hhd4Count + webCount;
+                const rowTotalAmount = serverAmount + ps1Amount + ps2Amount + ps3Amount + ps4Amount +
+                    hhd1Amount + hhd2Amount + hhd3Amount + hhd4Amount + webAmount;
+
+                totals.serverCount += serverCount;
+                totals.serverAmount += serverAmount;
+                totals.ps1Count += ps1Count;
+                totals.ps1Amount += ps1Amount;
+                totals.ps2Count += ps2Count;
+                totals.ps2Amount += ps2Amount;
+                totals.ps3Count += ps3Count;
+                totals.ps3Amount += ps3Amount;
+                totals.ps4Count += ps4Count;
+                totals.ps4Amount += ps4Amount;
+                totals.hhd1Count += hhd1Count;
+                totals.hhd1Amount += hhd1Amount;
+                totals.hhd2Count += hhd2Count;
+                totals.hhd2Amount += hhd2Amount;
+                totals.hhd3Count += hhd3Count;
+                totals.hhd3Amount += hhd3Amount;
+                totals.hhd4Count += hhd4Count;
+                totals.hhd4Amount += hhd4Amount;
+                totals.webCount += webCount;
+                totals.webAmount += webAmount;
+                totals.grandTotalCount += rowTotalCount;
+                totals.grandTotalAmount += rowTotalAmount;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${payMode}</strong></td>
+                    <td class="text-end">${serverCount}</td>
+                    <td class="text-end">${formatCurrency(serverAmount)}</td>
+                    <td class="text-end">${ps1Count}</td>
+                    <td class="text-end">${formatCurrency(ps1Amount)}</td>
+                    <td class="text-end">${ps2Count}</td>
+                    <td class="text-end">${formatCurrency(ps2Amount)}</td>
+                    <td class="text-end">${ps3Count}</td>
+                    <td class="text-end">${formatCurrency(ps3Amount)}</td>
+                    <td class="text-end">${ps4Count}</td>
+                    <td class="text-end">${formatCurrency(ps4Amount)}</td>
+                    <td class="text-end">${hhd1Count}</td>
+                    <td class="text-end">${formatCurrency(hhd1Amount)}</td>
+                    <td class="text-end">${hhd2Count}</td>
+                    <td class="text-end">${formatCurrency(hhd2Amount)}</td>
+                    <td class="text-end">${hhd3Count}</td>
+                    <td class="text-end">${formatCurrency(hhd3Amount)}</td>
+                    <td class="text-end">${hhd4Count}</td>
+                    <td class="text-end">${formatCurrency(hhd4Amount)}</td>
+                    <td class="text-end">${webCount}</td>
+                    <td class="text-end">${formatCurrency(webAmount)}</td>
+                    <td class="text-end"><strong>${rowTotalCount}</strong></td>
+                    <td class="text-end"><strong>${formatCurrency(rowTotalAmount)}</strong></td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Card Type rows (Seasonal & VIP)
+            if (type === 'exited') {
+                const dateFrom = document.getElementById('dateFromExited').value;
+                const dateTo = document.getElementById('dateToExited').value;
+                try {
+                    const response = await fetch(`${API_BASE}/GetCardTypeSummary`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ StartDate: dateFrom, EndDate: dateTo })
+                    });
+                    const result = await response.json();
+                    if (result.success && result.data) {
+                        result.data.forEach(cardRow => {
+                            const tr = document.createElement('tr');
+                            tr.className = 'table-info';
+                            tr.innerHTML = `
+                                <td><strong>${cardRow.cardType}</strong></td>
+                                <td class="text-end">${cardRow.serverCount}</td>
+                                <td class="text-end">--</td>
+                                <td class="text-end">${cardRow.paystation1Count}</td>
+                                <td class="text-end">--</td>
+                                <td class="text-end">${cardRow.paystation2Count}</td>
+                                <td class="text-end">--</td>
+                                <td class="text-end">${cardRow.paystation3Count}</td>
+                                <td class="text-end">--</td>
+                                <td class="text-end">${cardRow.paystation4Count}</td>
+                                <td class="text-end">--</td>
+                                <td class="text-end">${cardRow.hhd1Count}</td>
+                                <td class="text-end">--</td>
+                                <td class="text-end">${cardRow.hhd2Count}</td>
+                                <td class="text-end">--</td>
+                                <td class="text-end">${cardRow.hhd3Count}</td>
+                                <td class="text-end">--</td>
+                                <td class="text-end">${cardRow.hhd4Count}</td>
+                                <td class="text-end">--</td>
+                                <td class="text-end">${cardRow.webCount}</td>
+                                <td class="text-end">--</td>
+                                <td class="text-end"><strong>${cardRow.totalCount}</strong></td>
+                                <td class="text-end">--</td>
+                            `;
+                            tbody.appendChild(tr);
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error fetching card type summary:', error);
+                }
+            }
+
+            // Total row
+            const totalRow = document.createElement('tr');
+            totalRow.className = 'table-warning fw-bold';
+            totalRow.innerHTML = `
+                <td><strong>Total</strong></td>
+                <td class="text-end"><strong>${totals.serverCount}</strong></td>
+                <td class="text-end"><strong>${formatCurrency(totals.serverAmount)}</strong></td>
+                <td class="text-end"><strong>${totals.ps1Count}</strong></td>
+                <td class="text-end"><strong>${formatCurrency(totals.ps1Amount)}</strong></td>
+                <td class="text-end"><strong>${totals.ps2Count}</strong></td>
+                <td class="text-end"><strong>${formatCurrency(totals.ps2Amount)}</strong></td>
+                <td class="text-end"><strong>${totals.ps3Count}</strong></td>
+                <td class="text-end"><strong>${formatCurrency(totals.ps3Amount)}</strong></td>
+                <td class="text-end"><strong>${totals.ps4Count}</strong></td>
+                <td class="text-end"><strong>${formatCurrency(totals.ps4Amount)}</strong></td>
+                <td class="text-end"><strong>${totals.hhd1Count}</strong></td>
+                <td class="text-end"><strong>${formatCurrency(totals.hhd1Amount)}</strong></td>
+                <td class="text-end"><strong>${totals.hhd2Count}</strong></td>
+                <td class="text-end"><strong>${formatCurrency(totals.hhd2Amount)}</strong></td>
+                <td class="text-end"><strong>${totals.hhd3Count}</strong></td>
+                <td class="text-end"><strong>${formatCurrency(totals.hhd3Amount)}</strong></td>
+                <td class="text-end"><strong>${totals.hhd4Count}</strong></td>
+                <td class="text-end"><strong>${formatCurrency(totals.hhd4Amount)}</strong></td>
+                <td class="text-end"><strong>${totals.webCount}</strong></td>
+                <td class="text-end"><strong>${formatCurrency(totals.webAmount)}</strong></td>
+                <td class="text-end"><strong>${totals.grandTotalCount}</strong></td>
+                <td class="text-end"><strong>${formatCurrency(totals.grandTotalAmount)}</strong></td>
+            `;
+            tbody.appendChild(totalRow);
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // POPULATE TRANSACTION TABLES
+        // ═══════════════════════════════════════════════════════════════════
+        function populateTransactionTableExited(transactions) {
+            const tbody = document.getElementById('exitedTransactionTableBody');
+            tbody.innerHTML = '';
+
+            if (!transactions || transactions.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="12" class="text-center">No transactions found</td></tr>';
+                return;
+            }
+
+            transactions.forEach((trans, index) => {
+                const entryDateTime = formatDateTimeToDisplay(trans.entry_time);
+                const exitDateTime = formatDateTimeToDisplay(trans.exit_time);
+
+                let parkTime = 'N/A';
+                if (trans.park_time_total && trans.park_time_total > 0) {
+                    const hours = Math.floor(trans.park_time_total / 60);
+                    const minutes = trans.park_time_total % 60;
+                    parkTime = `${hours}h ${minutes}m`;
+                }
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${trans.transaction_id || 'N/A'}</td>
+                    <td>${trans.cardno || 'N/A'}</td>
+                    <td>${trans.card_name || 'N/A'}</td>
+                    <td>${entryDateTime}</td>
+                    <td>${exitDateTime}</td>
+                    <td>${parkTime}</td>
+                    <td class="text-end">${formatCurrency(trans.charges || 0)}</td>
+                    <td class="text-end">${formatCurrency(trans.paid_amount || 0)}</td>
+                    <td class="text-end">${formatCurrency(trans.discount_amount || 0)}</td>
+                    <td>${trans.pay_mode || 'N/A'}</td>
+                    <td>${trans.pay_source || 'N/A'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function populateTransactionTableTransactions(transactions) {
+            const tbody = document.getElementById('transTransactionTableBody');
+            tbody.innerHTML = '';
+
+            if (!transactions || transactions.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="10" class="text-center">No transactions found</td></tr>';
+                return;
+            }
+
+            transactions.forEach((trans, index) => {
+                const entryDateTime = formatDateTimeToDisplay(trans.entry_time);
+                const validationDateTime = formatDateTimeToDisplay(trans.validation_time);
+                const payMode = trans.validation_paymode || trans.revalidation_paymode || 'N/A';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${trans.transaction_id || 'N/A'}</td>
+                    <td>${trans.cardno || 'N/A'}</td>
+                    <td>${trans.cardname || 'N/A'}</td>
+                    <td>${entryDateTime}</td>
+                    <td>${validationDateTime}</td>
+                    <td class="text-end">${formatCurrency(trans.paidamount || 0)}</td>
+                    <td>${payMode}</td>
+                    <td>${trans.payment_source || 'N/A'}</td>
+                    <td>${trans.status?.toString() || 'N/A'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // EXPORT FUNCTIONS (With Date Range)
+        // ═══════════════════════════════════════════════════════════════════
+        function exportDailyExited() {
+            const dateFrom = document.getElementById('dateFromExited').value;
+            const dateTo = document.getElementById('dateToExited').value;
+
+            if (!dateFrom || !dateTo) {
+                alert('Please select both From and To dates');
+                return;
+            }
+
+            window.location.href = `${API_BASE}/ExportDailyExcel?StartDate=${dateFrom}&EndDate=${dateTo}`;
+        }
+
+        function exportDailyTransactions() {
+            const dateFrom = document.getElementById('dateFromTransactions').value;
+            const dateTo = document.getElementById('dateToTransactions').value;
+
+            if (!dateFrom || !dateTo) {
+                alert('Please select both From and To dates');
+                return;
+            }
+
+            window.location.href = `${API_BASE}/ExportTransactionExcel?StartDate=${dateFrom}&EndDate=${dateTo}`;
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // CLEAR FUNCTIONS
+        // ═══════════════════════════════════════════════════════════════════
+        function clearDailyExited() {
+            document.getElementById('exitedPaymentSummaryBody').innerHTML = '<tr><td colspan="24" class="text-center text-muted">Select date range and click "Show"</td></tr>';
+            document.getElementById('exitedTransactionTableBody').innerHTML = '<tr><td colspan="12" class="text-center text-muted">Select date range and click "Show"</td></tr>';
+        }
+
+        function clearDailyTransactions() {
+            document.getElementById('transPaymentSummaryBody').innerHTML = '<tr><td colspan="24" class="text-center text-muted">Select date range and click "Show"</td></tr>';
+            document.getElementById('transTransactionTableBody').innerHTML = '<tr><td colspan="10" class="text-center text-muted">Select date range and click "Show"</td></tr>';
+        }
+
+    </script>
+}

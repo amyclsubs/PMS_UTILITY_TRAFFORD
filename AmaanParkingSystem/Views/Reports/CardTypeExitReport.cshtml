@@ -1,0 +1,220 @@
+﻿@{
+    ViewData["Title"] = "Card Type Exit Report";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0"><i class="fas fa-id-card me-2"></i>Card Type Exit Report</h4>
+    </div>
+
+    <!-- Filter Card -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Filter Type</label>
+                    <select id="filterType" class="form-select">
+                        <option value="today">Today</option>
+                        <option value="yesterday">Yesterday</option>
+                        <option value="daterange">Date Range</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-none" id="dateRangeFields">
+                    <label class="form-label fw-semibold">From Date</label>
+                    <input type="date" id="startDate" class="form-control"
+                           value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                </div>
+                <div class="col-md-3 d-none" id="dateRangeFields2">
+                    <label class="form-label fw-semibold">To Date</label>
+                    <input type="date" id="endDate" class="form-control"
+                           value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-primary w-100" onclick="loadReport()">
+                        <i class="fas fa-search me-1"></i> Search
+                    </button>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-success w-100" onclick="exportReport()">
+                        <i class="fas fa-file-excel me-1"></i> Export
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4" id="summaryCards" style="display:none!important;">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white text-center shadow-sm">
+                <div class="card-body py-3">
+                    <h6 class="mb-1">Total Exits</h6>
+                    <h3 class="mb-0" id="sumTotalExits">0</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white text-center shadow-sm">
+                <div class="card-body py-3">
+                    <h6 class="mb-1">Total Charged</h6>
+                    <h3 class="mb-0" id="sumTotalCharged">0.00</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white text-center shadow-sm">
+                <div class="card-body py-3">
+                    <h6 class="mb-1">Total Paid</h6>
+                    <h3 class="mb-0" id="sumTotalPaid">0.00</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white text-center shadow-sm">
+                <div class="card-body py-3">
+                    <h6 class="mb-1">Total Pending</h6>
+                    <h3 class="mb-0" id="sumTotalPending">0.00</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Table -->
+    <div class="card shadow-sm" id="reportCard" style="display:none;">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-table me-1"></i> Report Results</span>
+            <small id="dateRangeLabel"></small>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover table-striped mb-0" id="reportTable">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>#</th>
+                            <th>Card Type</th>
+                            <th>Total Exits</th>
+                            <th>Paid Exits</th>
+                            <th>Unpaid Exits</th>
+                            <th>Total Charged</th>
+                            <th>Total Paid</th>
+                            <th>Pending Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportTableBody">
+                    </tbody>
+                    <tfoot id="reportTableFoot">
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- No Data -->
+    <div class="alert alert-warning mt-3 d-none" id="noDataAlert">
+        <i class="fas fa-info-circle me-2"></i> No data found for the selected date range.
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Show/hide date range fields
+        document.getElementById('filterType').addEventListener('change', function () {
+            const isRange = this.value === 'daterange';
+            document.getElementById('dateRangeFields').classList.toggle('d-none', !isRange);
+            document.getElementById('dateRangeFields2').classList.toggle('d-none', !isRange);
+        });
+
+        function loadReport() {
+            const filterType = document.getElementById('filterType').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+
+            const body = new FormData();
+            body.append('filterType', filterType);
+            if (filterType === 'daterange') {
+                body.append('startDate', startDate);
+                body.append('endDate', endDate);
+            }
+
+            fetch('@Url.Action("GetCardTypeExitReportData", "Reports")', {
+                method: 'POST',
+                body: body,
+                headers: { 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '' }
+            })
+            .then(r => r.json())
+            .then(res => {
+                document.getElementById('noDataAlert').classList.add('d-none');
+                document.getElementById('reportCard').style.display = 'none';
+                document.getElementById('summaryCards').style.display = 'none';
+
+                if (!res.success) {
+                    alert('Error: ' + res.message);
+                    return;
+                }
+
+                if (!res.data || res.data.length === 0) {
+                    document.getElementById('noDataAlert').classList.remove('d-none');
+                    return;
+                }
+
+                // Summary Cards
+                document.getElementById('sumTotalExits').textContent = res.totalExits;
+                document.getElementById('sumTotalCharged').textContent = parseFloat(res.totalCharged).toFixed(2);
+                document.getElementById('sumTotalPaid').textContent = parseFloat(res.totalPaid).toFixed(2);
+                document.getElementById('sumTotalPending').textContent = parseFloat(res.totalPending).toFixed(2);
+                document.getElementById('summaryCards').style.removeProperty('display');
+                document.getElementById('summaryCards').style.display = 'flex';
+
+                // Date range label
+                document.getElementById('dateRangeLabel').textContent = res.dateRange;
+
+                // Table Body
+                let tbody = '';
+                let sr = 1;
+                        res.data.forEach(row => {
+            tbody += `<tr>
+                <td>${sr++}</td>
+                <td><span class="badge bg-secondary fs-6">${row.cardTypeRemark ?? row.cardType ?? '-'}</span></td>
+                <td>${row.totalExits}</td>
+                <td class="text-success fw-bold">${row.paidCount}</td>
+                <td class="text-danger fw-bold">${row.unpaidCount}</td>
+                <td>${parseFloat(row.totalCharges).toFixed(2)}</td>
+                <td class="text-success">${parseFloat(row.totalPaid).toFixed(2)}</td>
+                <td class="text-danger">${parseFloat(row.totalPending).toFixed(2)}</td>
+            </tr>`;
+        });
+                document.getElementById('reportTableBody').innerHTML = tbody;
+
+                // Grand Total Footer
+                document.getElementById('reportTableFoot').innerHTML = `
+                    <tr class="table-secondary fw-bold">
+                        <td colspan="2">Grand Total</td>
+                        <td>${res.totalExits}</td>
+                        <td class="text-success">${res.data.reduce((a, b) => a + b.paidCount, 0)}</td>
+                        <td class="text-danger">${res.data.reduce((a, b) => a + b.unpaidCount, 0)}</td>
+                        <td>${parseFloat(res.totalCharged).toFixed(2)}</td>
+                        <td class="text-success">${parseFloat(res.totalPaid).toFixed(2)}</td>
+                        <td class="text-danger">${parseFloat(res.totalPending).toFixed(2)}</td>
+                    </tr>`;
+
+                document.getElementById('reportCard').style.display = 'block';
+            })
+            .catch(err => alert('Unexpected error: ' + err));
+        }
+
+        function exportReport() {
+            const filterType = document.getElementById('filterType').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+
+            let url = `@Url.Action("ExportCardTypeExitReport", "Reports")?filterType=${filterType}`;
+            if (filterType === 'daterange') {
+                url += `&startDate=${startDate}&endDate=${endDate}`;
+            }
+            window.location.href = url;
+        }
+
+        // Auto-load today on page load
+        window.addEventListener('DOMContentLoaded', () => loadReport());
+    </script>
+}

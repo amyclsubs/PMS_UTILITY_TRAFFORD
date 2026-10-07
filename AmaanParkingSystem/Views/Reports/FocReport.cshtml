@@ -1,0 +1,626 @@
+﻿@{
+	ViewData["Title"] = "FOC Report";
+}
+
+<style>
+	.multiselect-dropdown {
+		position: relative;
+		display: inline-block;
+		width: 100%;
+	}
+
+	.multiselect-dropdown-btn {
+		width: 100%;
+		padding: 0.375rem 0.75rem;
+		background-color: white;
+		border: 1px solid #ced4da;
+		border-radius: 0.25rem;
+		text-align: left;
+		cursor: pointer;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		font-size: 0.9rem;
+	}
+
+	.multiselect-dropdown-list {
+		position: absolute;
+		top: 100%;
+		left: 0;
+		right: 0;
+		background-color: white;
+		border: 1px solid #ced4da;
+		border-radius: 0.25rem;
+		max-height: 250px;
+		overflow-y: auto;
+		display: none;
+		z-index: 1000;
+		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+		margin-top: 2px;
+	}
+
+		.multiselect-dropdown-list.show {
+			display: block;
+		}
+
+	.multiselect-option {
+		padding: 6px 10px;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		font-size: 0.85rem;
+	}
+
+		.multiselect-option:hover {
+			background-color: #f8f9fa;
+		}
+
+		.multiselect-option input[type="checkbox"] {
+			margin-right: 6px;
+		}
+
+	.select-all-option {
+		border-bottom: 1px solid #dee2e6;
+		font-weight: 600;
+		background-color: #f8f9fa;
+	}
+
+	.selected-count {
+		font-size: 0.8rem;
+		color: #6c757d;
+	}
+
+	.multiselect-option label {
+		color: #000 !important;
+		font-weight: 600;
+		opacity: 1;
+	}
+
+	.select-all-option label {
+		color: #000 !important;
+		opacity: 1;
+	}
+
+	.multiselect-dropdown-list {
+		background-color: #ffffff;
+		color: #000000;
+	}
+
+	.small.font-weight-bold {
+		color: #000 !important;
+	}
+
+	.selected-count {
+		color: #000 !important;
+		font-weight: 500;
+	}
+
+	.multiselect-dropdown-btn {
+		color: #000 !important;
+	}
+
+
+	/* Reason column header filter */
+	.th-filter-wrap {
+		position: relative;
+		display: inline-block;
+	}
+
+	.th-filter-btn {
+		background: none;
+		border: 1px solid rgba(0,0,0,0.3);
+		border-radius: 4px;
+		color: inherit;
+		cursor: pointer;
+		font-size: 11px;
+		padding: 1px 5px;
+		margin-left: 4px;
+		vertical-align: middle;
+	}
+
+		.th-filter-btn:hover {
+			background: rgba(0,0,0,0.08);
+		}
+
+		.th-filter-btn.active {
+			background: #ffc107;
+			color: #000;
+			border-color: #ffc107;
+		}
+
+	.th-filter-list {
+		position: absolute;
+		top: 100%;
+		right: 0;
+		min-width: 200px;
+		background: #fff;
+		border: 1px solid #ced4da;
+		border-radius: 4px;
+		box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+		z-index: 9999;
+		display: none;
+		max-height: 260px;
+		overflow-y: auto;
+		margin-top: 2px;
+	}
+
+		.th-filter-list.show {
+			display: block;
+		}
+
+	.th-filter-item {
+		padding: 5px 10px;
+		font-size: 12px;
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		cursor: pointer;
+		color: #000;
+		font-weight: 500;
+	}
+
+		.th-filter-item:hover {
+			background: #f8f9fa;
+		}
+
+		.th-filter-item.th-select-all {
+			border-bottom: 1px solid #dee2e6;
+			font-weight: 700;
+			background: #f8f9fa;
+		}
+
+		.th-filter-item label {
+			margin: 0;
+			cursor: pointer;
+		}
+
+	/* Totals row */
+	.totals-row td {
+		font-weight: 700;
+		background-color: #2c3e50 !important;
+		color: #ffffff !important;
+		font-size: 12px;
+	}
+
+	/* Pagination */
+	.page-link {
+		font-size: 13px;
+	}
+</style>
+
+<div class="card shadow-sm">
+	<div class="card-header bg-dark text-white">
+		<div class="d-flex justify-content-between align-items-center mb-3">
+			<h5 class="mb-0"><i class="fas fa-file-invoice-dollar mr-2"></i>FOC Transaction Report</h5>
+			<div class="btn-group">
+				<button class="btn btn-light btn-sm mx-1 font-weight-bold" onclick="setQuickDate('today')">Today</button>
+				<button class="btn btn-light btn-sm mx-1 font-weight-bold" onclick="setQuickDate('yesterday')">Yesterday</button>
+				<button class="btn btn-light btn-sm mx-1 font-weight-bold" onclick="setQuickDate('thisMonth')">This Month</button>
+				<button class="btn btn-light btn-sm mx-1 font-weight-bold" onclick="setQuickDate('prevMonth')">Previous Month</button>
+			</div>
+		</div>
+		<div class="row align-items-end">
+			<div class="col-md-3">
+				<label class="small font-weight-bold">Start Date</label>
+				<input type="date" id="startDate" class="form-control" value="@DateTime.Now.ToString("yyyy-MM-dd")">
+			</div>
+			<div class="col-md-3">
+				<label class="small font-weight-bold">End Date</label>
+				<input type="date" id="endDate" class="form-control" value="@DateTime.Now.ToString("yyyy-MM-dd")">
+			</div>
+			<div class="col-md-3">
+				<label class="small font-weight-bold">Payment Source</label>
+				<div class="multiselect-dropdown" id="paymentSourceDropdown">
+					<div class="multiselect-dropdown-btn" onclick="toggleDropdown()">
+						<span id="selectedText">All Sources</span>
+						<i class="fas fa-chevron-down"></i>
+					</div>
+					<div class="multiselect-dropdown-list" id="dropdownList">
+						<div class="multiselect-option select-all-option">
+							<input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+							<label for="selectAll" class="mb-0">Select All</label>
+						</div>
+						<div id="sourceOptions">
+							<!-- Device options will be injected -->
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="col-md-3 text-right">
+				<button class="btn btn-primary px-4" onclick="loadData()"><i class="fas fa-search mr-1"></i> Search</button>
+				<button class="btn btn-success px-4" onclick="exportExcel()"><i class="fas fa-file-excel mr-1"></i> Export</button>
+				<button class="btn btn-light border px-4" onclick="clearData()">Clear</button>
+			</div>
+		</div>
+	</div>
+	<div class="card-body p-0">
+		<div class="table-responsive" style="max-height:calc(100vh - 320px);min-height:200px;overflow-y:auto;">
+			<table id="focTable" class="table table-sm table-hover table-bordered mb-0">
+				<thead class="bg-light text-center small" style="position:sticky;top:0;z-index:1;">
+					<tr>
+						<th>Trans ID</th>
+						<th>Card Name</th>
+						<th>Type</th>
+						<th>Source</th>
+						<th>Val. Time</th>
+						<th>Val. Chgs</th>
+						<th>Reval. Time</th>
+						<th>Reval. Chgs</th>
+						<th style="min-width:160px;white-space:nowrap;">
+							<div class="th-filter-wrap">
+								Reason
+								<button class="th-filter-btn" id="reasonFilterBtn" onclick="toggleReasonFilter(event)" title="Filter by Reason">
+									<i class="fas fa-filter"></i>
+								</button>
+								<div class="th-filter-list" id="reasonFilterList">
+									<div class="th-filter-item th-select-all">
+										<input type="checkbox" id="reasonSelectAll" onchange="toggleAllReasons(this)">
+										<label for="reasonSelectAll">Select All</label>
+									</div>
+									<div id="reasonOptions"></div>
+								</div>
+							</div>
+						</th>
+						<th>Remark</th>
+					</tr>
+				</thead>
+				<tbody id="focTableBody" class="small">
+					<tr>
+						<td colspan="10" class="text-center py-5 text-muted">Select date range and click Search</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+
+		<!-- Pagination Controls -->
+		<div class="d-flex justify-content-between align-items-center px-3 py-2 border-top flex-wrap gap-2" id="paginationWrapper" style="display:none!important;">
+			<div class="d-flex align-items-center gap-2">
+				<label class="mb-0 text-muted" style="font-size:13px;">Rows per page:</label>
+				<select id="pageSizeSelect" class="form-control form-control-sm" style="width:80px;" onchange="onPageSizeChange()">
+					<option value="25">25</option>
+					<option value="50" selected>50</option>
+					<option value="100">100</option>
+					<option value="200">200</option>
+				</select>
+			</div>
+			<nav>
+				<ul class="pagination pagination-sm mb-0" id="paginationControls"></ul>
+			</nav>
+			<span id="pageInfo" class="text-muted" style="font-size:13px;"></span>
+		</div>
+	</div>
+</div>
+
+<script>
+	let paymentSources = [];
+	let allRows = [];       // full dataset from server
+	let filteredRows = []; // after reason filter
+	let selectedReasons = new Set();
+	let currentPage = 1;
+	let pageSize = 50;
+
+	document.addEventListener('DOMContentLoaded', function () {
+		loadPaymentSources();
+	});
+
+	async function loadPaymentSources() {
+		try {
+			const response = await fetch('/FocReport/GetPaymentSources');
+			const result = await response.json();
+			if (result.success && result.data) {
+				paymentSources = result.data;
+				renderSourceOptions();
+			}
+		} catch (e) {
+			console.error('Error loading payment sources:', e);
+		}
+	}
+
+	function renderSourceOptions() {
+		const container = document.getElementById('sourceOptions');
+		container.innerHTML = paymentSources.map(source => `
+		<div class="multiselect-option">
+		<input type="checkbox" id="source_${encodeURIComponent(source)}" value="${source}" onchange="updateSelection()">
+		<label for="source_${encodeURIComponent(source)}" class="mb-0">${source}</label>
+		</div>
+		`).join('');
+		document.getElementById('selectAll').checked = true;
+		toggleSelectAll();
+	}
+
+	function toggleDropdown() {
+		document.getElementById('dropdownList').classList.toggle('show');
+	}
+
+	document.addEventListener('click', function (event) {
+		const dropdown = document.getElementById('paymentSourceDropdown');
+		if (!dropdown.contains(event.target)) {
+			document.getElementById('dropdownList').classList.remove('show');
+		}
+	});
+
+	function toggleSelectAll() {
+		const selectAll = document.getElementById('selectAll');
+		document.querySelectorAll('#sourceOptions input[type="checkbox"]').forEach(cb => {
+			cb.checked = selectAll.checked;
+		});
+		updateSelection();
+	}
+
+	function updateSelection() {
+		const checkboxes = document.querySelectorAll('#sourceOptions input[type="checkbox"]');
+		const selectedCheckboxes = Array.from(checkboxes).filter(cb => cb.checked);
+		const totalCheckboxes = checkboxes.length;
+		const selectAll = document.getElementById('selectAll');
+		selectAll.checked = selectedCheckboxes.length === totalCheckboxes;
+		selectAll.indeterminate = selectedCheckboxes.length > 0 && selectedCheckboxes.length < totalCheckboxes;
+		const selectedText = document.getElementById('selectedText');
+		if (selectedCheckboxes.length === 0) {
+			selectedText.textContent = 'No sources selected';
+		} else if (selectedCheckboxes.length === totalCheckboxes) {
+			selectedText.textContent = 'All Sources';
+		} else {
+			selectedText.innerHTML = `${selectedCheckboxes.length} Selected <span class="selected-count">(of ${totalCheckboxes})</span>`;
+		}
+	}
+
+	function getSelectedSources() {
+		const checkboxes = document.querySelectorAll('#sourceOptions input[type="checkbox"]:checked');
+		return Array.from(checkboxes).map(cb => cb.value);
+	}
+
+	function setQuickDate(type) {
+		const today = new Date();
+		let start = new Date();
+		let end = new Date();
+		if (type === 'today') {
+			start = today; end = today;
+		} else if (type === 'yesterday') {
+			const yesterday = new Date();
+			yesterday.setDate(today.getDate() - 1);
+			start = yesterday; end = yesterday;
+		} else if (type === 'thisMonth') {
+			start = new Date(today.getFullYear(), today.getMonth(), 1);
+			end = today;
+		} else if (type === 'prevMonth') {
+			start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+			end = new Date(today.getFullYear(), today.getMonth(), 0);
+		}
+		const fmt = (d) => [d.getFullYear(), (d.getMonth()+1).toString().padStart(2,'0'), d.getDate().toString().padStart(2,'0')].join('-');
+		document.getElementById('startDate').value = fmt(start);
+		document.getElementById('endDate').value = fmt(end);
+		loadData();
+	}
+
+	async function loadData() {
+		const tbody = document.getElementById('focTableBody');
+		tbody.innerHTML = '<tr><td colspan="10" class="text-center py-5"><i class="fas fa-spinner fa-spin fa-2x text-primary"></i><br>Loading Report...</td></tr>';
+		hidePagination();
+
+		const selectedSources = getSelectedSources();
+		const request = {
+			startDate: document.getElementById('startDate').value,
+			endDate: document.getElementById('endDate').value,
+			paymentSources: selectedSources.length > 0 ? selectedSources : null
+		};
+
+		try {
+			const response = await fetch('/FocReport/GetData', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(request)
+			});
+			const result = await response.json();
+
+			if (result.data && result.data.length > 0) {
+				allRows = result.data;
+				filteredRows = allRows.slice();
+				currentPage = 1;
+				buildReasonFilter();
+				renderPage();
+			} else {
+				allRows = [];
+				filteredRows = [];
+				tbody.innerHTML = '<tr><td colspan="10" class="text-center py-5 text-danger font-weight-bold">No FOC records found for this period.</td></tr>';
+				hidePagination();
+			}
+		} catch (e) {
+			tbody.innerHTML = '<tr><td colspan="10" class="text-center py-5 text-danger">Error loading data.</td></tr>';
+			hidePagination();
+		}
+	}
+
+	function renderPage() {
+		const tbody = document.getElementById('focTableBody');
+
+		// If nothing matches the filter, show a placeholder (keeps table height stable)
+		if (filteredRows.length === 0 && allRows.length > 0) {
+			tbody.innerHTML = '<tr><td colspan="10" class="text-center py-4 text-muted"><i class="fas fa-filter me-2"></i>No records match the selected reason filter.</td></tr>';
+			updatePagination();
+			return;
+		}
+
+		const start = (currentPage - 1) * pageSize;
+		const end   = start + pageSize;
+		const pageData = filteredRows.slice(start, end);
+
+		// Data rows
+		let html = pageData.map(item => `
+			<tr>
+				<td class="font-weight-bold text-primary text-center">${item.transaction_id || '--'}</td>
+				<td>${item.cardname || '--'}</td>
+				<td style="color:black;font-weight:bold;text-align:center;">${item.transaction_type || '--'}</td>
+				<td class="text-center small">${item.payment_source || '--'}</td>
+				<td class="text-nowrap">${item.validation_time ? formatDate(item.validation_time) : '--'}</td>
+				<td class="text-right font-weight-bold">${item.validation_charges || '0'}</td>
+				<td class="text-nowrap">${item.revalidation_time ? formatDate(item.revalidation_time) : '--'}</td>
+				<td class="text-right text-danger font-weight-bold">${item.revalidation_charges || '0'}</td>
+				<td class="text-info font-weight-bold">${item.reason || '--'}</td>
+				<td><small class="text-muted">${item.remark || '--'}</small></td>
+			</tr>
+		`).join('');
+
+		// Totals row — sums over the FULL dataset (not just this page)
+		const totalValChgs   = filteredRows.reduce((s, r) => s + parseFloat(r.validation_charges   || 0), 0);
+		const totalRevalChgs = filteredRows.reduce((s, r) => s + parseFloat(r.revalidation_charges || 0), 0);
+		html += `
+			<tr class="totals-row">
+				<td colspan="5" class="text-right">
+					Total (${filteredRows.length} records)
+				</td>
+				<td class="text-right">${totalValChgs.toFixed(2)}</td>
+				<td></td>
+				<td class="text-right">${totalRevalChgs.toFixed(2)}</td>
+				<td colspan="2"></td>
+			</tr>`;
+
+		tbody.innerHTML = html;
+		showPagination();
+		updatePagination();
+	}
+
+	function onPageSizeChange() {
+		pageSize = parseInt(document.getElementById('pageSizeSelect').value);
+		currentPage = 1;
+		renderPage();
+	}
+
+	function updatePagination() {
+		const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
+		const ul = document.getElementById('paginationControls');
+		ul.innerHTML = '';
+
+		// Build page numbers with ellipsis
+		let pages = [];
+		if (totalPages <= 7) {
+			for (let i = 1; i <= totalPages; i++) pages.push(i);
+		} else {
+			pages.push(1);
+			if (currentPage > 3) pages.push('...');
+			for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) pages.push(i);
+			if (currentPage < totalPages - 2) pages.push('...');
+			pages.push(totalPages);
+		}
+
+		// Prev
+		const prevLi = document.createElement('li');
+		prevLi.className = 'page-item' + (currentPage === 1 ? ' disabled' : '');
+		prevLi.innerHTML = '<a class="page-link" href="#">&laquo;</a>';
+		prevLi.addEventListener('click', e => { e.preventDefault(); if (currentPage > 1) { currentPage--; renderPage(); } });
+		ul.appendChild(prevLi);
+
+		pages.forEach(p => {
+			const li = document.createElement('li');
+			if (p === '...') {
+				li.className = 'page-item disabled';
+				li.innerHTML = '<span class="page-link">…</span>';
+			} else {
+				li.className = 'page-item' + (p === currentPage ? ' active' : '');
+				li.innerHTML = `<a class="page-link" href="#">${p}</a>`;
+				li.addEventListener('click', (function(pg){ return function(e){ e.preventDefault(); currentPage = pg; renderPage(); }; })(p));
+			}
+			ul.appendChild(li);
+		});
+
+		// Next
+		const nextLi = document.createElement('li');
+		nextLi.className = 'page-item' + (currentPage === totalPages ? ' disabled' : '');
+		nextLi.innerHTML = '<a class="page-link" href="#">&raquo;</a>';
+		nextLi.addEventListener('click', e => { e.preventDefault(); if (currentPage < totalPages) { currentPage++; renderPage(); } });
+		ul.appendChild(nextLi);
+
+		const s = (currentPage - 1) * pageSize + 1;
+		const e = Math.min(currentPage * pageSize, filteredRows.length);
+		document.getElementById('pageInfo').textContent = filteredRows.length === 0 ? 'No records' : `Showing ${s}–${e} of ${filteredRows.length}`;
+	}
+
+	function showPagination() {
+		const w = document.getElementById('paginationWrapper');
+		w.style.removeProperty('display');
+		w.style.display = 'flex';
+	}
+
+	function hidePagination() {
+		document.getElementById('paginationWrapper').style.display = 'none';
+	}
+
+
+	function buildReasonFilter() {
+		const distinct = [...new Set(allRows.map(r => r.reason || '--'))].sort();
+		selectedReasons = new Set(distinct);
+		const container = document.getElementById('reasonOptions');
+		container.innerHTML = distinct.map(r => `
+			<div class="th-filter-item">
+				<input type="checkbox" id="rf_${encodeURIComponent(r)}" value="${r}" checked onchange="onReasonChange()">
+				<label for="rf_${encodeURIComponent(r)}">${r}</label>
+			</div>
+		`).join('');
+		document.getElementById('reasonSelectAll').checked = true;
+		document.getElementById('reasonSelectAll').indeterminate = false;
+		document.getElementById('reasonFilterBtn').classList.remove('active');
+	}
+
+	function toggleReasonFilter(e) {
+		e.stopPropagation();
+		document.getElementById('reasonFilterList').classList.toggle('show');
+	}
+
+	function toggleAllReasons(cb) {
+		document.querySelectorAll('#reasonOptions input[type="checkbox"]').forEach(c => c.checked = cb.checked);
+		onReasonChange();
+	}
+
+	function onReasonChange() {
+		const checkboxes = document.querySelectorAll('#reasonOptions input[type="checkbox"]');
+		const checked = Array.from(checkboxes).filter(c => c.checked);
+		selectedReasons = new Set(checked.map(c => c.value));
+
+		const saEl = document.getElementById('reasonSelectAll');
+		saEl.checked = checked.length === checkboxes.length;
+		saEl.indeterminate = checked.length > 0 && checked.length < checkboxes.length;
+		document.getElementById('reasonFilterBtn').classList.toggle('active', checked.length < checkboxes.length);
+
+		filteredRows = allRows.filter(r => selectedReasons.has(r.reason || '--'));
+		currentPage = 1;
+		renderPage();
+	}
+
+	// Close reason dropdown on outside click
+	document.addEventListener('click', function(ev) {
+		const list = document.getElementById('reasonFilterList');
+		const btn  = document.getElementById('reasonFilterBtn');
+		if (list && btn && !list.contains(ev.target) && !btn.contains(ev.target)) {
+			list.classList.remove('show');
+		}
+	});
+
+	function formatDate(dateString) {
+		if (!dateString) return "--";
+		const date = new Date(dateString);
+		const day = date.getDate().toString().padStart(2, '0');
+		const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+		const month = months[date.getMonth()];
+		const year = date.getFullYear();
+		const time = date.toLocaleTimeString('en-GB', { hour12: false });
+		return `${day}-${month}-${year} ${time}`;
+	}
+
+	function exportExcel() {
+		const start = document.getElementById('startDate').value;
+		const end = document.getElementById('endDate').value;
+		const selectedSources = getSelectedSources();
+		const sourcesParam = selectedSources.length > 0 ? encodeURIComponent(selectedSources.join(',')) : '';
+		window.location.href = `/FocReport/ExportExcel?startDate=${start}&endDate=${end}&paymentSources=${sourcesParam}`;
+	}
+
+	function clearData() {
+		allRows = [];
+		filteredRows = [];
+		selectedReasons = new Set();
+		const ro = document.getElementById('reasonOptions'); if(ro) ro.innerHTML = '';
+		const rfb = document.getElementById('reasonFilterBtn'); if(rfb) rfb.classList.remove('active');
+		document.getElementById('focTableBody').innerHTML =
+			'<tr><td colspan="10" class="text-center py-5 text-muted">Select date range and click Search</td></tr>';
+		hidePagination();
+	}
+</script>
