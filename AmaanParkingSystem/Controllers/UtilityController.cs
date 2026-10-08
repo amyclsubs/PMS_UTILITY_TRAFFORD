@@ -366,6 +366,99 @@ public class UtilityController : BaseController
         }
     }
 
+    [HttpPost]
+    public IActionResult GetFloatCount()
+    {
+        try
+        {
+            var data = new List<object>();
+
+            using (SqlConnection con = new SqlConnection(GetDynamicConnectionString()))
+            {
+                const string sql = @"
+                SELECT
+                    [id],
+                    [Denomination],
+                    [Paystation 1],
+                    [Paystation 2],
+                    [Paystation 3],
+                    [Paystation 4]
+                FROM [AMAAN_PMS].[dbo].[db_tbl_09_currencies]
+                ORDER BY [id];";
+
+                using (SqlCommand cmd = new SqlCommand(sql, con))
+                {
+                    cmd.CommandTimeout = 60;
+                    con.Open();
+
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            string denomination =
+                                reader["Denomination"]?.ToString() ?? "";
+
+                            decimal denominationValue = 0m;
+
+                            // Convert "KES 50", "KES 100", etc. to numeric value.
+                            string numericDenomination = denomination
+                                .Replace("KES", "", StringComparison.OrdinalIgnoreCase)
+                                .Replace(",", "")
+                                .Trim();
+
+                            decimal.TryParse(
+                                numericDenomination,
+                                out denominationValue);
+
+                            data.Add(new
+                            {
+                                id = reader["id"],
+                                denomination = denomination,
+                                denominationValue = denominationValue,
+
+                                paystation1 =
+                                    reader["Paystation 1"] == DBNull.Value
+                                        ? 0
+                                        : Convert.ToInt32(reader["Paystation 1"]),
+
+                                paystation2 =
+                                    reader["Paystation 2"] == DBNull.Value
+                                        ? 0
+                                        : Convert.ToInt32(reader["Paystation 2"]),
+
+                                paystation3 =
+                                    reader["Paystation 3"] == DBNull.Value
+                                        ? 0
+                                        : Convert.ToInt32(reader["Paystation 3"]),
+
+                                paystation4 =
+                                    reader["Paystation 4"] == DBNull.Value
+                                        ? 0
+                                        : Convert.ToInt32(reader["Paystation 4"])
+                            });
+                        }
+                    }
+                }
+            }
+
+            return Json(new
+            {
+                success = true,
+                data
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in GetFloatCount");
+
+            return Json(new
+            {
+                success = false,
+                message = "Failed to load float count. " + ex.Message
+            });
+        }
+    }
+
     // ─── Logout ───────────────────────────────────────────────────────────────
     public IActionResult Logout()
     {

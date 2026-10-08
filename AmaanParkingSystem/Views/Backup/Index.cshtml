@@ -1,0 +1,173 @@
+﻿@{
+    ViewData["Title"] = "Database Backup Utility";
+}
+
+<div class="container-fluid">
+    <div class="page-header mb-4">
+        <h2><i class="fas fa-database"></i> Database Backup Utility</h2>
+        <p>Automatic and manual backup management for AMAAN_PMS database</p>
+    </div>
+
+    <!-- Backup Actions -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0"><i class="fas fa-tools"></i> Backup Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="backup-info">
+                                <h6><i class="fas fa-clock"></i> Automatic Backup</h6>
+                                <p>Scheduled daily at <strong>1:00 AM</strong></p>
+                                <p>Backup Location: <code>C:\Users\NEXTGEN MALL\OneDrive\Parking Office - Nextgen Mall\NEXTGEN_DATABASE_BACKUP</code></p>
+                                <p>Retention: <strong>30 days</strong></p>
+                            </div>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <button onclick="createManualBackup()" class="btn btn-success btn-lg">
+                                <i class="fas fa-save"></i> Create Manual Backup Now
+                            </button>
+                            <button onclick="refreshBackupList()" class="btn btn-secondary btn-lg">
+                                <i class="fas fa-sync"></i> Refresh List
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Backup Status -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div id="backupStatus" class="alert" style="display:none;"></div>
+        </div>
+    </div>
+
+    <!-- Backup History -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0"><i class="fas fa-history"></i> Backup History (Last 20 Backups)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Backup File Name</th>
+                                    <th>File Size</th>
+                                    <th>Backup Date & Time</th>
+                                </tr>
+                            </thead>
+                            <tbody id="backupHistoryTable">
+                                <tr><td colspan="4" class="text-center">Loading backup history...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .backup-info {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 5px;
+        border-left: 4px solid #007bff;
+    }
+    .backup-info h6 {
+        color: #007bff;
+        margin-bottom: 10px;
+    }
+    .backup-info p {
+        margin-bottom: 5px;
+    }
+</style>
+
+@section Scripts {
+    <script>
+        const API_BASE = '/Backup';
+
+        // Load backup history on page load
+        document.addEventListener('DOMContentLoaded', function () {
+            refreshBackupList();
+        });
+
+        // Create Manual Backup
+        async function createManualBackup() {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Backup...';
+
+            showStatus('Creating database backup...', 'info');
+
+            try {
+                const response = await fetch(`${API_BASE}/CreateManualBackup`, {
+                    method: 'POST'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showStatus(result.message, 'success');
+                    refreshBackupList();
+                } else {
+                    showStatus(result.message, 'danger');
+                }
+            } catch (error) {
+                showStatus('Failed to create backup: ' + error.message, 'danger');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-save"></i> Create Manual Backup Now';
+            }
+        }
+
+        // Refresh Backup List
+        async function refreshBackupList() {
+            try {
+                const response = await fetch(`${API_BASE}/GetBackupHistory`);
+                const result = await response.json();
+
+                const tbody = document.getElementById('backupHistoryTable');
+                tbody.innerHTML = '';
+
+                if (result.success && result.backups.length > 0) {
+                    result.backups.forEach((backup, index) => {
+                        const parts = backup.split(' | ');
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${index + 1}</td>
+                            <td><code>${parts[0]}</code></td>
+                            <td>${parts[1]}</td>
+                            <td>${parts[2]}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center">No backup files found</td></tr>';
+                }
+            } catch (error) {
+                console.error('Error loading backup history:', error);
+            }
+        }
+
+        // Show Status Message
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('backupStatus');
+            statusDiv.className = `alert alert-${type}`;
+            statusDiv.innerHTML = `<i class="fas fa-info-circle"></i> ${message}`;
+            statusDiv.style.display = 'block';
+
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 5000);
+        }
+    </script>
+}

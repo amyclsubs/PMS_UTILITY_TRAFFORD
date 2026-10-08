@@ -724,6 +724,79 @@
         margin-top: 8px;
     }
 
+    /* ================= FLOAT COUNT ================= */
+
+    .float-count-card {
+        background: #fff;
+        border-radius: 12px;
+        padding: 18px 20px;
+        margin-top: 16px;
+        margin-bottom: 16px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, .06);
+        overflow: hidden;
+    }
+
+    .float-count-wrapper {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .float-count-table {
+        width: 100%;
+        min-width: 900px;
+        border-collapse: collapse;
+        text-align: center;
+    }
+
+        .float-count-table th {
+            padding: 8px 10px;
+            background: #343a40;
+            color: #fff;
+            border: 1px solid #555;
+            font-size: 11px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .float-count-table thead tr:nth-child(2) th {
+            background: #495057;
+            font-size: 10px;
+        }
+
+        .float-count-table td {
+            padding: 8px 10px;
+            border: 1px solid #d9d9d9;
+            font-size: 12px;
+            color: #303030;
+            white-space: nowrap;
+        }
+
+        .float-count-table tbody tr:hover {
+            background: #f7f9fc;
+        }
+
+        .float-count-table tbody td:first-child,
+        .float-count-table tfoot td:first-child {
+            font-weight: 700;
+            text-align: left;
+        }
+
+        .float-count-table tfoot td {
+            padding: 9px 10px;
+            background: #495057;
+            color: #fff;
+            border: 1px solid #555;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+    .float-loading,
+    .float-empty {
+        text-align: center !important;
+        padding: 18px !important;
+        color: #777 !important;
+    }
+
     /* ================= RESPONSIVE ================= */
     @@media (max-width: 1500px) {
         :root {
@@ -858,6 +931,56 @@
                     </tr>
                 </tbody>
             </table>
+        </div>
+
+        <!-- Float Count -->
+        <div class="float-count-card">
+            <h3 class="chart-title">
+                <i class="fas fa-coins"></i> Float Count
+            </h3>
+
+            <div class="float-count-wrapper">
+                <table class="float-count-table">
+                    <thead>
+                        <tr>
+                            <th rowspan="2">Float Count<br>Denominations</th>
+
+                            <th colspan="2">Paystation 1</th>
+                            <th colspan="2">Paystation 2</th>
+                            <th colspan="2">Paystation 3</th>
+                            <th colspan="2">Paystation 4</th>
+
+                            <th colspan="2">ALL Total</th>
+                        </tr>
+                        <tr>
+                            <th>Count</th>
+                            <th>Amount</th>
+
+                            <th>Count</th>
+                            <th>Amount</th>
+
+                            <th>Count</th>
+                            <th>Amount</th>
+
+                            <th>Count</th>
+                            <th>Amount</th>
+
+                            <th>Count</th>
+                            <th>Amount</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="floatCountBody">
+                        <tr>
+                            <td colspan="11" class="float-loading">
+                                Loading float count...
+                            </td>
+                        </tr>
+                    </tbody>
+
+                    <tfoot id="floatCountFooter"></tfoot>
+                </table>
+            </div>
         </div>
     </div>
 
@@ -1016,10 +1139,11 @@
             }
 
             try {
-                await Promise.all([
+                               await Promise.all([
                     loadMetrics(dateFrom, dateTo),
                     loadDailyExits(dateFrom, dateTo),
-                    loadPaymentDistribution(dateFrom, dateTo)
+                    loadPaymentDistribution(dateFrom, dateTo),
+                    loadFloatCount()
                 ]);
             } catch (error) {
                 showError('Error: ' + error.message);
@@ -1385,6 +1509,189 @@
                 return;
             }
             await cvRunMpesaPrompt(mobile);
+        }
+                        async function loadFloatCount() {
+            try {
+                const response = await fetch('/Utility/GetFloatCount', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                if (result.success) {
+                    renderFloatCount(result.data || []);
+                } else {
+                    showError(result.message || 'Failed to load float count.');
+                }
+            } catch (error) {
+                showError('Float Count error: ' + error.message);
+
+                const body = document.getElementById('floatCountBody');
+
+                if (body) {
+                    body.innerHTML =
+                        '<tr><td colspan="11" class="float-empty">Unable to load float count.</td></tr>';
+                }
+            }
+        }
+
+        function renderFloatCount(rows) {
+            const body = document.getElementById('floatCountBody');
+            const footer = document.getElementById('floatCountFooter');
+
+            if (!body || !footer) return;
+
+            if (!rows || rows.length === 0) {
+                body.innerHTML =
+                    '<tr><td colspan="11" class="float-empty">No float count data found.</td></tr>';
+
+                footer.innerHTML = '';
+                return;
+            }
+
+            const totals = {
+                ps1: 0,
+                ps2: 0,
+                ps3: 0,
+                ps4: 0
+            };
+
+            const money = value =>
+                Number(value || 0).toLocaleString('en-US', {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 2
+                });
+
+            const count = value =>
+                Number(value || 0).toLocaleString('en-US');
+
+            body.innerHTML = rows.map(row => {
+
+                const denomination =
+                    Number(row.denominationValue || 0);
+
+                const ps1 =
+                    Number(row.paystation1 || 0);
+
+                const ps2 =
+                    Number(row.paystation2 || 0);
+
+                const ps3 =
+                    Number(row.paystation3 || 0);
+
+                const ps4 =
+                    Number(row.paystation4 || 0);
+
+                totals.ps1 += ps1;
+                totals.ps2 += ps2;
+                totals.ps3 += ps3;
+                totals.ps4 += ps4;
+
+                const ps1Amount = denomination * ps1;
+                const ps2Amount = denomination * ps2;
+                const ps3Amount = denomination * ps3;
+                const ps4Amount = denomination * ps4;
+
+                const totalCount =
+                    ps1 + ps2 + ps3 + ps4;
+
+                const totalAmount =
+                    ps1Amount +
+                    ps2Amount +
+                    ps3Amount +
+                    ps4Amount;
+
+                return `
+                    <tr>
+                        <td>KES ${money(denomination)}</td>
+
+                        <td>${count(ps1)}</td>
+                        <td>${money(ps1Amount)}</td>
+
+                        <td>${count(ps2)}</td>
+                        <td>${money(ps2Amount)}</td>
+
+                        <td>${count(ps3)}</td>
+                        <td>${money(ps3Amount)}</td>
+
+                        <td>${count(ps4)}</td>
+                        <td>${money(ps4Amount)}</td>
+
+                        <td>${count(totalCount)}</td>
+                        <td>${money(totalAmount)}</td>
+                    </tr>`;
+            }).join('');
+
+            const totalCount =
+                totals.ps1 +
+                totals.ps2 +
+                totals.ps3 +
+                totals.ps4;
+
+            const ps1Amount = rows.reduce(
+                (sum, row) =>
+                    sum +
+                    Number(row.denominationValue || 0) *
+                    Number(row.paystation1 || 0),
+                0
+            );
+
+            const ps2Amount = rows.reduce(
+                (sum, row) =>
+                    sum +
+                    Number(row.denominationValue || 0) *
+                    Number(row.paystation2 || 0),
+                0
+            );
+
+            const ps3Amount = rows.reduce(
+                (sum, row) =>
+                    sum +
+                    Number(row.denominationValue || 0) *
+                    Number(row.paystation3 || 0),
+                0
+            );
+
+            const ps4Amount = rows.reduce(
+                (sum, row) =>
+                    sum +
+                    Number(row.denominationValue || 0) *
+                    Number(row.paystation4 || 0),
+                0
+            );
+
+            const totalAmount =
+                ps1Amount +
+                ps2Amount +
+                ps3Amount +
+                ps4Amount;
+
+            footer.innerHTML = `
+                <tr>
+                    <td>TOTAL</td>
+
+                    <td>${count(totals.ps1)}</td>
+                    <td>${money(ps1Amount)}</td>
+
+                    <td>${count(totals.ps2)}</td>
+                    <td>${money(ps2Amount)}</td>
+
+                    <td>${count(totals.ps3)}</td>
+                    <td>${money(ps3Amount)}</td>
+
+                    <td>${count(totals.ps4)}</td>
+                    <td>${money(ps4Amount)}</td>
+
+                    <td>${count(totalCount)}</td>
+                    <td>${money(totalAmount)}</td>
+                </tr>`;
         }
 
         // ===== PROMPT M-PESA (STK PUSH) FLOW =====
