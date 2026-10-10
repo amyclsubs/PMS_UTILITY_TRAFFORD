@@ -1,0 +1,247 @@
+@{
+    ViewData["Title"] = "Vehicle Search";
+}
+
+<style>
+    .vs-result-wrap { max-height: 60vh; overflow: auto; border: 1px solid #e0e0e0; border-radius: 6px; }
+    .vs-result-wrap table { margin: 0; white-space: nowrap; }
+    .vs-result-wrap thead th { position: sticky; top: 0; z-index: 2; }
+    mark.vs-hit { background: #ffe66d; padding: 0 1px; border-radius: 2px; }
+    .vs-count { font-size: 11px; margin-left: 6px; }
+    .vs-null { color: #bbb; }
+</style>
+
+<div class="container-fluid">
+    <div class="page-header">
+        <h2><i class="fas fa-car-side"></i> Vehicle Search</h2>
+         <p>Find a vehicle across Exit, Transactions, Tag Log and ANPR Dump by plate number, card number, card name or transaction ID.</p>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-lg-4 col-md-12">
+                    <label class="form-label fw-semibold">Plate / Card / Name / Txn ID</label>
+                    <input type="text" id="vsQuery" class="form-control" placeholder="e.g. KAB 123C" autocomplete="off" autofocus />
+                </div>
+                <div class="col-lg-2 col-md-4">
+                    <label class="form-label fw-semibold">Match</label>
+                    <select id="vsMode" class="form-select">
+                        <option value="contains">Contains</option>
+                        <option value="starts">Starts with</option>
+                        <option value="exact">Exact</option>
+                    </select>
+                </div>
+                <div class="col-lg-2 col-md-4">
+                    <label class="form-label fw-semibold">From date</label>
+                    <input type="date" id="vsFrom" class="form-control" />
+                </div>
+                <div class="col-lg-2 col-md-4">
+                    <label class="form-label fw-semibold">To date</label>
+                    <input type="date" id="vsTo" class="form-control" />
+                </div>
+                <div class="col-lg-2 col-md-12">
+                    <label class="form-label fw-semibold">Max rows / table</label>
+                    <select id="vsLimit" class="form-select">
+                        <option value="200">200</option>
+                        <option value="500" selected>500</option>
+                        <option value="1000">1000</option>
+                        <option value="5000">5000</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="d-flex flex-wrap align-items-center gap-3 mt-3">
+                <span class="fw-semibold">Search in:</span>
+                @foreach (var t in (List<KeyValuePair<string, string>>)ViewBag.Tables)
+                {
+                    var cbId = "vsT_" + t.Key;
+                    <div class="form-check">
+                        <input class="form-check-input vs-table" type="checkbox" value="@t.Key" id="@cbId"
+                               checked="@(t.Key != "entered")" />
+                        <label class="form-check-label" for="@cbId">@t.Value</label>
+                    </div>
+                }
+                <div class="ms-auto d-flex gap-2">
+                    <button id="vsSearch" class="btn btn-primary"><i class="fas fa-search"></i> Search</button>
+                    <button id="vsExport" class="btn btn-success" disabled><i class="fas fa-file-excel"></i> Export Excel</button>
+                    <button id="vsClear" class="btn btn-outline-secondary"><i class="fas fa-eraser"></i> Clear</button>
+                </div>
+            </div>
+            <div class="text-muted mt-2" style="font-size:12px;">
+                Plate matching ignores spaces, hyphens and dots (KAB 123C = KAB-123C = kab123c). Dates filter on exit time (Exit), created on (Transactions / Tag Log), capture time (ANPR), entry time (Entered) or removed at (Removed / Not Exited).
+            </div>
+        </div>
+    </div>
+
+    <div id="vsStatus" class="alert alert-info d-none"></div>
+
+    <div id="vsResults" class="d-none">
+        <ul class="nav nav-tabs" id="vsTabs" role="tablist"></ul>
+        <div class="card" style="border-top-left-radius:0;border-top-right-radius:0;">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div id="vsInfo" class="text-muted" style="font-size:13px;"></div>
+                    <input type="text" id="vsFilter" class="form-control form-control-sm" style="max-width:260px;" placeholder="Filter shown rows..." />
+                </div>
+                <div id="vsError" class="alert alert-danger d-none"></div>
+                <div class="vs-result-wrap">
+                    <table class="table table-hover table-sm">
+                        <thead id="vsHead"></thead>
+                        <tbody id="vsBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            let data = null;       // last response
+            let activeKey = null;
+            let lastParams = null;
+
+            const $ = id => document.getElementById(id);
+            const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+            const reEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+            function selectedTables() {
+                return Array.from(document.querySelectorAll('.vs-table:checked')).map(x => x.value);
+            }
+
+            async function runSearch() {
+                const q = $('vsQuery').value.trim();
+                if (q.length < 2) { showStatus('warning', 'Enter at least 2 characters.'); return; }
+                const tables = selectedTables();
+                if (!tables.length) { showStatus('warning', 'Select at least one table.'); return; }
+
+                lastParams = {
+                    q, mode: $('vsMode').value, tables: tables.join(','),
+                    from: $('vsFrom').value, to: $('vsTo').value
+                };
+                showStatus('info', '<i class="fas fa-spinner fa-spin"></i> Searching...');
+                $('vsSearch').disabled = true;
+                try {
+                    const resp = await fetch('/VehicleSearch/Search', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                        body: JSON.stringify({
+                            query: q, mode: $('vsMode').value, tables: tables,
+                            fromDate: $('vsFrom').value || null, toDate: $('vsTo').value || null,
+                            limit: parseInt($('vsLimit').value, 10)
+                        })
+                    });
+                    const json = await resp.json();
+                    if (!json.success) { showStatus('danger', esc(json.message || 'Search failed.')); return; }
+                    data = json;
+                    const total = json.results.reduce((a, r) => a + (r.total || 0), 0);
+                    activeKey = (json.results.find(r => r.total > 0) || json.results[0]).key;
+                    $('vsStatus').classList.add('d-none');
+                    $('vsExport').disabled = total === 0;
+                    renderTabs();
+                    renderTable();
+                    $('vsResults').classList.remove('d-none');
+                    if (total === 0) showStatus('warning', 'No matches for "' + esc(q) + '" in the selected tables.');
+                } catch (e) {
+                    showStatus('danger', 'Request failed: ' + esc(e.message));
+                } finally {
+                    $('vsSearch').disabled = false;
+                }
+            }
+
+            function showStatus(type, html) {
+                const el = $('vsStatus');
+                el.className = 'alert alert-' + type;
+                el.innerHTML = html;
+            }
+
+            function renderTabs() {
+                const ul = $('vsTabs');
+                ul.innerHTML = '';
+                data.results.forEach(r => {
+                    const li = document.createElement('li');
+                    li.className = 'nav-item';
+                    const badge = r.error ? 'bg-danger' : (r.total > 0 ? 'bg-success' : 'bg-secondary');
+                    li.innerHTML = '<a href="#" class="nav-link ' + (r.key === activeKey ? 'active' : '') + '" data-k="' + r.key + '">' +
+                        esc(r.label) + ' <span class="badge ' + badge + ' vs-count">' + (r.error ? 'error' : r.total) + '</span></a>';
+                    ul.appendChild(li);
+                });
+                ul.querySelectorAll('a').forEach(a => a.addEventListener('click', e => {
+                    e.preventDefault();
+                    activeKey = a.dataset.k;
+                    $('vsFilter').value = '';
+                    renderTabs();
+                    renderTable();
+                }));
+            }
+
+            function renderTable() {
+                const r = data.results.find(x => x.key === activeKey);
+                const head = $('vsHead'), body = $('vsBody'), err = $('vsError');
+                head.innerHTML = ''; body.innerHTML = '';
+                err.classList.add('d-none');
+                if (!r) return;
+
+                if (r.error) {
+                    err.textContent = 'This table could not be searched: ' + r.error;
+                    err.classList.remove('d-none');
+                    $('vsInfo').textContent = '';
+                    return;
+                }
+
+                $('vsInfo').textContent = r.total === 0
+                    ? 'No matches.'
+                    : (r.truncated
+                        ? 'Showing latest ' + r.rows.length + ' of ' + r.total + ' matches (increase "Max rows" or narrow the dates, or export for the full set).'
+                        : r.total + ' match' + (r.total === 1 ? '' : 'es') + '.');
+
+                if (!r.columns.length) return;
+
+                head.innerHTML = '<tr>' + r.columns.map(c => '<th>' + esc(c) + '</th>').join('') + '</tr>';
+
+                const hl = new RegExp('(' + data.query.split(/[\s\-.]+/).filter(Boolean).map(reEsc).join('[\\s\\-.]*') + ')', 'ig');
+                const frag = [];
+                r.rows.forEach(row => {
+                    frag.push('<tr>' + r.columns.map(c => {
+                        const v = row[c];
+                        if (v === null || v === undefined || v === '') return '<td class="vs-null">–</td>';
+                        let s = esc(v);
+                        try { s = s.replace(hl, '<mark class="vs-hit">$1</mark>'); } catch (e) { }
+                        return '<td>' + s + '</td>';
+                    }).join('') + '</tr>');
+                });
+                body.innerHTML = frag.join('');
+                applyFilter();
+            }
+
+            function applyFilter() {
+                const f = $('vsFilter').value.trim().toLowerCase();
+                document.querySelectorAll('#vsBody tr').forEach(tr => {
+                    tr.style.display = !f || tr.textContent.toLowerCase().includes(f) ? '' : 'none';
+                });
+            }
+
+            $('vsSearch').addEventListener('click', runSearch);
+            $('vsQuery').addEventListener('keydown', e => { if (e.key === 'Enter') runSearch(); });
+            $('vsFilter').addEventListener('input', applyFilter);
+            $('vsClear').addEventListener('click', () => {
+                $('vsQuery').value = ''; $('vsFrom').value = ''; $('vsTo').value = '';
+                $('vsFilter').value = ''; data = null;
+                $('vsResults').classList.add('d-none');
+                $('vsStatus').classList.add('d-none');
+                $('vsExport').disabled = true;
+                $('vsQuery').focus();
+            });
+            $('vsExport').addEventListener('click', () => {
+                if (!lastParams) return;
+                const p = new URLSearchParams();
+                p.set('q', lastParams.q); p.set('mode', lastParams.mode); p.set('tables', lastParams.tables);
+                if (lastParams.from) p.set('from', lastParams.from);
+                if (lastParams.to) p.set('to', lastParams.to);
+                window.location.href = '/VehicleSearch/Export?' + p.toString();
+            });
+        })();
+    </script>
+}
