@@ -1399,11 +1399,32 @@
             }
         }
 
-        function clearCardValidation() {
+          function clearCardValidation() {
             cvCurrent = null;
+
+            // Main panel fields
             ['cvCardNumber','cvCardName','cvEntryTime','cvValidationTime','cvParkTime','cvRevalidationTime','cvAdditionalParkTime','cvChargeable'].forEach(id => cvValue(id, ''));
             setCvStatus('Card Status');
+
+            // Modal input fields
+            ['cashCollected','manualMobile','manualTransaction','manualCollected','manualOperator','manualRemark','focRemark','promptMobile'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+            const focReason = document.getElementById('focReason');
+            if (focReason) focReason.selectedIndex = 0;
+
+            // Modal labels and messages
+            ['cashCharge','manualCharge','cashChange'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = '0.00';
+            });
+            ['cashMessage','manualMessage','promptMessage','focMessage'].forEach(id => showCvMessage(id, ''));
+
             closeValidationModals();
+
+            // Ready for the next scan
+            document.getElementById('cvCardNumber')?.focus();
         }
 
         function openValidationModal(type) {
@@ -1494,9 +1515,9 @@
                 });
                 const result = await response.json();
                 if (!result.success) throw new Error(result.message || 'Validation failed.');
-                closeValidationModals();
-                await lookupCardValidation(cvCurrent.cardNumber);
-                alert(result.message || 'Card validated successfully.');
+                               const successMessage = result.message || 'Card validated successfully.';
+                clearCardValidation();
+                alert(successMessage);
             } catch (e) {
                 showCvMessage(messageId, e.message || 'Validation failed.');
             }
@@ -1763,9 +1784,9 @@
                 });
                 if (!val.success) throw new Error('Payment received (' + stk.checkoutRequestId + ') but validation failed: ' + (val.message || ''));
 
-                closeValidationModals();
-                if (cvCurrent?.cardNumber === card) await lookupCardValidation(card);
-                alert(val.message || 'Card validated successfully.');
+                               const successMessage = val.message || 'Card validated successfully.';
+                clearCardValidation();
+                alert(successMessage);
             } catch (e) {
                 showCvMessage('promptMessage', e.message || 'M-Pesa request failed.');
                 if (!document.getElementById('cvModalPrompt').classList.contains('open'))
