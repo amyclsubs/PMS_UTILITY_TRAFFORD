@@ -892,6 +892,12 @@
             <div class="chart-card">
                 <h3 class="chart-title">
                     <i class="fas fa-chart-line"></i> Daily Vehicle Exits Trend
+<div id="exitCardTypeBox" style="margin-left:auto;position:relative;">
+                        <button type="button" id="exitCardTypeBtn" onclick="toggleExitCardTypeMenu(event)"
+                                style="height:34px;padding:0 12px;border:2px solid #e3e7ef;border-radius:8px;font-size:12px;font-weight:600;color:#2c3e50;background:#fff;cursor:pointer;">All Card Types &#9662;</button>
+                        <div id="exitCardTypeMenu"
+                             style="display:none;position:absolute;right:0;top:40px;min-width:210px;max-height:260px;overflow-y:auto;background:#fff;border:1px solid #d7e1ef;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.15);padding:6px 8px;z-index:50;font-size:12px;font-weight:600;color:#2c3e50;"></div>
+                    </div>
                 </h3>
                 <div class="chart-container">
                     <canvas id="dailyExitsChart"></canvas>
@@ -1215,12 +1221,107 @@
             document.getElementById('metricsContainer').innerHTML = html;
         }
 
+        let exitCardTypesLoaded = false;
+
+        function getExitSelectedTypes() {
+            return Array.from(document.querySelectorAll('.exit-ct:checked')).map(x => x.value);
+        }
+
+        function updateExitCardTypeLabel() {
+            const btn = document.getElementById('exitCardTypeBtn');
+            if (!btn) return;
+            const sel = getExitSelectedTypes();
+            let text = 'All Card Types';
+            if (sel.length === 1) text = sel[0];
+            else if (sel.length > 1) text = sel.length + ' Card Types';
+            btn.innerHTML = '';
+            btn.appendChild(document.createTextNode(text + ' \u25BE'));
+        }
+
+        function toggleExitCardTypeMenu(e) {
+            if (e) e.stopPropagation();
+            const menu = document.getElementById('exitCardTypeMenu');
+            if (menu) menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function makeExitCheckbox(labelText, value, isAll) {
+            const label = document.createElement('label');
+            label.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 4px;cursor:pointer;';
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            if (isAll) {
+                cb.id = 'exitCardTypeAll';
+                cb.checked = true;
+                cb.onchange = function () { onExitAllChange(cb); };
+            } else {
+                cb.className = 'exit-ct';
+                cb.value = value;
+                cb.onchange = onExitCardTypeChange;
+            }
+            label.appendChild(cb);
+            label.appendChild(document.createTextNode(labelText));
+            return label;
+        }
+
+        async function loadExitCardTypes() {
+            if (exitCardTypesLoaded) return;
+            const menu = document.getElementById('exitCardTypeMenu');
+            if (!menu) return;
+            try {
+                const response = await fetch('/Utility/GetCardTypes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                if (!response.ok) return;
+                const result = await response.json();
+                if (result.success) {
+                    menu.innerHTML = '';
+                    menu.appendChild(makeExitCheckbox('All Card Types', '', true));
+                    (result.data || []).forEach(t => menu.appendChild(makeExitCheckbox(t, t, false)));
+                    exitCardTypesLoaded = true;
+                }
+            } catch (e) { /* non-fatal: chart still works with all card types */ }
+        }
+
+        function onExitAllChange(cb) {
+            if (cb.checked) {
+                document.querySelectorAll('.exit-ct').forEach(x => x.checked = false);
+            } else {
+                cb.checked = true; // "All" stays on when nothing else is selected
+            }
+            updateExitCardTypeLabel();
+            reloadExitTrend();
+        }
+
+        function onExitCardTypeChange() {
+            const allCb = document.getElementById('exitCardTypeAll');
+            if (allCb) allCb.checked = getExitSelectedTypes().length === 0;
+            updateExitCardTypeLabel();
+            reloadExitTrend();
+        }
+
+        function reloadExitTrend() {
+            const dateFrom = document.getElementById('dateFrom').value;
+            const dateTo = document.getElementById('dateTo').value;
+            if (!dateFrom || !dateTo) return;
+            loadDailyExits(dateFrom, dateTo);
+        }
+
+        document.addEventListener('click', function (e) {
+            const box = document.getElementById('exitCardTypeBox');
+            const menu = document.getElementById('exitCardTypeMenu');
+            if (box && menu && !box.contains(e.target)) menu.style.display = 'none';
+        });
+
         async function loadDailyExits(dateFrom, dateTo) {
             try {
+                await loadExitCardTypes();
+                const cardTypes = getExitSelectedTypes();
+
                 const response = await fetch('/Utility/GetDayWiseExitData', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ StartDate: dateFrom, EndDate: dateTo })
+                    body: JSON.stringify({ StartDate: dateFrom, EndDate: dateTo, CardTypes: cardTypes })
                 });
 
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);

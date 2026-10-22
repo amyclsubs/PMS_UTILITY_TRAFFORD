@@ -219,7 +219,7 @@ public class UtilityController : BaseController
     {
         try
         {
-            _logger.LogInformation($"GetDayWiseExitData called: {request.StartDate:yyyy-MM-dd} to {request.EndDate:yyyy-MM-dd}");
+            _logger.LogInformation($"GetDayWiseExitData called: {request.StartDate:yyyy-MM-dd} to {request.EndDate:yyyy-MM-dd}, CardType='{request.CardType}'");
 
             if (request.StartDate == default || request.EndDate == default)
             {
@@ -228,6 +228,17 @@ public class UtilityController : BaseController
             }
 
             var data = new List<DayWiseExitData>();
+            var cardTypes = (request.CardTypes ?? new List<string>())
+                .Where(t => !string.IsNullOrWhiteSpace(t))
+                .Select(t => t.Trim())
+                .Distinct()
+                .ToList();
+            if (cardTypes.Count == 0 && !string.IsNullOrWhiteSpace(request.CardType))
+                cardTypes.Add(request.CardType.Trim());
+
+            string cardTypeFilter = cardTypes.Count == 0
+                ? ""
+                : " AND card_type IN (" + string.Join(",", cardTypes.Select((_, i) => "@ct" + i)) + ")";
 
             using (SqlConnection con = new SqlConnection(GetDynamicConnectionString()))
             {
@@ -239,6 +250,7 @@ public class UtilityController : BaseController
                 WHERE CAST(exit_time AS DATE) >= @StartDate 
                   AND CAST(exit_time AS DATE) <= @EndDate
                   AND exit_time IS NOT NULL
+                  /*CARD_FILTER*/
                 GROUP BY CAST(exit_time AS DATE)
                 ORDER BY ExitDate ASC";
 
@@ -247,6 +259,9 @@ public class UtilityController : BaseController
                     cmd.CommandTimeout = 120;
                     cmd.Parameters.AddWithValue("@StartDate", request.StartDate.Date);
                     cmd.Parameters.AddWithValue("@EndDate", request.EndDate.Date);
+                    cmd.CommandText = sql.Replace("/*CARD_FILTER*/", cardTypeFilter);
+                    for (int i = 0; i < cardTypes.Count; i++)
+                        cmd.Parameters.Add("@ct" + i, SqlDbType.NVarChar, 100).Value = cardTypes[i];
 
                     con.Open();
                     using (SqlDataReader reader = cmd.ExecuteReader())
@@ -270,6 +285,43 @@ public class UtilityController : BaseController
         {
             _logger.LogError(ex, "Error in GetDayWiseExitData");
             return Json(new { success = false, message = $"Error: {ex.Message}" });
+        }
+    }
+
+    [HttpPost]
+    public IActionResult GetCardTypes()
+    {
+        try
+        {
+            var types = new List<string>();
+
+            using (SqlConnection con = new SqlConnection(GetDynamicConnectionString()))
+            {
+                const string sql = @"
+                SELECT DISTINCT LTRIM(RTRIM(card_type)) AS card_type
+                FROM [AMAAN_PMS].[dbo].[db_tbl_15_car_exited] WITH (NOLOCK)
+                WHERE card_type IS NOT NULL
+                  AND LTRIM(RTRIM(card_type)) <> ''
+                ORDER BY card_type;";
+
+                using (SqlCommand cmd = new SqlCommand(sql, con))
+                {
+                    cmd.CommandTimeout = 60;
+                    con.Open();
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                            types.Add(reader.GetString(0));
+                    }
+                }
+            }
+
+            return Json(new { success = true, data = types });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in GetCardTypes");
+            return Json(new { success = false, message = "Failed to load card types. " + ex.Message });
         }
     }
 
@@ -479,6 +531,8 @@ public class DateRangeRequest
 {
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
+    public string? CardType { get; set; }
+    public List<string>? CardTypes { get; set; }
 }
 
 /// <summary>Day-wise exit data model</summary>
