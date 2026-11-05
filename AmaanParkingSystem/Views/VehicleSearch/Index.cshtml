@@ -3,18 +3,101 @@
 }
 
 <style>
-    .vs-result-wrap { max-height: 60vh; overflow: auto; border: 1px solid #e0e0e0; border-radius: 6px; }
-    .vs-result-wrap table { margin: 0; white-space: nowrap; }
-    .vs-result-wrap thead th { position: sticky; top: 0; z-index: 2; }
-    mark.vs-hit { background: #ffe66d; padding: 0 1px; border-radius: 2px; }
-    .vs-count { font-size: 11px; margin-left: 6px; }
-    .vs-null { color: #bbb; }
+    .vs-page {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+    }
+
+        .vs-page > .page-header, .vs-page > .card, .vs-page > #vsStatus {
+            flex: 0 0 auto;
+            min-width: 0;
+            max-width: 100%;
+        }
+
+    #vsResults {
+        flex: 1 1 auto;
+        min-height: 0;
+        min-width: 0;
+        max-width: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
+        #vsResults > .nav-tabs {
+            flex: 0 0 auto;
+        }
+
+        #vsResults > .card {
+            flex: 1 1 auto;
+            min-height: 0;
+            min-width: 0;
+            max-width: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+            #vsResults > .card > .card-body {
+                flex: 1 1 auto;
+                min-height: 0;
+                min-width: 0;
+                display: flex;
+                flex-direction: column;
+            }
+
+        #vsResults .card-body > :not(.vs-result-wrap) {
+            flex: 0 0 auto;
+        }
+
+    .vs-result-wrap {
+        flex: 1 1 auto;
+        min-height: 150px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow: auto;
+        contain: inline-size;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+    }
+
+        .vs-result-wrap table {
+            margin: 0;
+            white-space: nowrap;
+            width: max-content;
+            min-width: 100%;
+        }
+
+        .vs-result-wrap thead th {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            background: var(--bs-tertiary-bg, #eef2f8);
+            box-shadow: inset 0 -1px 0 #d5dbe5;
+        }
+
+    mark.vs-hit {
+        background: #ffe66d;
+        padding: 0 1px;
+        border-radius: 2px;
+    }
+
+    .vs-count {
+        font-size: 11px;
+        margin-left: 6px;
+    }
+
+    .vs-null {
+        color: #bbb;
+    }
 </style>
 
-<div class="container-fluid">
+<div class="container-fluid vs-page" id="vsPage">
     <div class="page-header">
         <h2><i class="fas fa-car-side"></i> Vehicle Search</h2>
-         <p>Find a vehicle across Exit, Transactions, Tag Log and ANPR Dump by plate number, card number, card name or transaction ID.</p>
+        <p>Find a vehicle across Exit, Transactions, Tag Log, ANPR Dump and Manual Gate Opening by plate number, card number, card name or transaction ID.</p>
     </div>
 
     <div class="card">
@@ -43,12 +126,22 @@
                 <div class="col-lg-2 col-md-12">
                     <label class="form-label fw-semibold">Max rows / table</label>
                     <select id="vsLimit" class="form-select">
+                        <option value="50" selected>50</option>
+                        <option value="100">100</option>
                         <option value="200">200</option>
-                        <option value="500" selected>500</option>
+                        <option value="500">500</option>
                         <option value="1000">1000</option>
                         <option value="5000">5000</option>
                     </select>
                 </div>
+            </div>
+
+            <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
+                <span class="fw-semibold">Quick dates:</span>
+                <button type="button" class="btn btn-sm btn-outline-primary vs-quick" data-r="today">Today</button>
+                <button type="button" class="btn btn-sm btn-outline-primary vs-quick" data-r="yesterday">Yesterday</button>
+                <button type="button" class="btn btn-sm btn-outline-primary vs-quick" data-r="thismonth">This Month</button>
+                <button type="button" class="btn btn-sm btn-outline-primary vs-quick" data-r="lastmonth">Last Month</button>
             </div>
 
             <div class="d-flex flex-wrap align-items-center gap-3 mt-3">
@@ -69,7 +162,7 @@
                 </div>
             </div>
             <div class="text-muted mt-2" style="font-size:12px;">
-                Plate matching ignores spaces, hyphens and dots (KAB 123C = KAB-123C = kab123c). Dates filter on exit time (Exit), created on (Transactions / Tag Log), capture time (ANPR), entry time (Entered) or removed at (Removed / Not Exited).
+                Plate matching ignores spaces, hyphens and dots (KAB 123C = KAB-123C = kab123c). Dates filter on exit time (Exit), created on (Transactions / Tag Log / Manual Gate Opening), capture time (ANPR), entry time (Entered) or removed at (Removed / Not Exited).
             </div>
         </div>
     </div>
@@ -102,6 +195,57 @@
             let data = null;       // last response
             let activeKey = null;
             let lastParams = null;
+            const ALL_KEY = '__all';
+            const ALL_COLS = ['Source', 'Date / Time', 'Plate No', 'Card No', 'Card Name', 'Txn / Receipt', 'Details'];
+            const ALL_MAP = {
+                exit:       { time: ['exit_time'],       plate: ['car_plate_no'],                 cardno: ['cardno'], cardname: ['card_name'], txn: ['transaction_id'],       info: [] },
+                trans:      { time: ['created_on'],      plate: ['car_plate_no'],                 cardno: ['cardno'], cardname: ['cardname'],  txn: ['transaction_id'],       info: [] },
+                taglog:     { time: ['created_on'],      plate: ['car_plate_no'],                 cardno: ['cardno'], cardname: ['card_name'], txn: [],                       info: [] },
+                anpr:       { time: ['CaptureDateTime'], plate: ['PlateNumber', 'ModifiedPlate'], cardno: [],         cardname: [],            txn: [],                       info: ['DeviceType', 'Confidence'] },
+                entered:    { time: ['entry_time'],      plate: ['car_plate_no'],                 cardno: ['cardno'], cardname: ['card_name'], txn: [],                       info: [] },
+                notexited:  { time: ['removed_at'],      plate: ['car_plate_no'],                 cardno: ['cardno'], cardname: ['card_name'], txn: ['mpesa_receipt_number'], info: [] },
+                manualdoor: { time: ['created_on'],      plate: [],                              cardno: [],         cardname: [],            txn: [],                       info: ['operation', 'remark_manual_door', 'operator_name', 'ip'] }
+            };
+
+            function pick(row, names) {
+                for (const n of names) {
+                    for (const k in row) {
+                        if (k.toLowerCase() === n.toLowerCase()) {
+                            const v = row[k];
+                            if (v !== null && v !== undefined && v !== '') return String(v);
+                        }
+                    }
+                }
+                return '';
+            }
+
+            function buildAllRows() {
+                const out = [];
+                if (!data) return out;
+                data.results.forEach(r => {
+                    if (r.error) return;
+                    const m = ALL_MAP[r.key];
+                    if (!m) return;
+                    r.rows.forEach(row => {
+                        out.push({
+                            'Source': r.label,
+                            'Date / Time': pick(row, m.time),
+                            'Plate No': pick(row, m.plate),
+                            'Card No': pick(row, m.cardno),
+                            'Card Name': pick(row, m.cardname),
+                            'Txn / Receipt': pick(row, m.txn),
+                            'Details': m.info.map(n => pick(row, [n])).filter(Boolean).join(' | ')
+                        });
+                    });
+                });
+                out.sort((a, b) => (b['Date / Time'] || '').localeCompare(a['Date / Time'] || ''));
+                return out;
+            }
+
+            function buildAllResult() {
+                const rows = buildAllRows();
+                return { key: ALL_KEY, label: 'All Tables', total: rows.length, truncated: false, error: null, columns: ALL_COLS, rows: rows };
+            }
 
             const $ = id => document.getElementById(id);
             const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -160,6 +304,10 @@
             function renderTabs() {
                 const ul = $('vsTabs');
                 ul.innerHTML = '';
+                const allLi = document.createElement('li');
+                allLi.className = 'nav-item';
+                allLi.innerHTML = '<a href="#" class="nav-link ' + (activeKey === ALL_KEY ? 'active' : '') + '" data-k="' + ALL_KEY + '">All Tables <span class="badge bg-primary vs-count">' + buildAllRows().length + '</span></a>';
+                ul.appendChild(allLi);
                 data.results.forEach(r => {
                     const li = document.createElement('li');
                     li.className = 'nav-item';
@@ -178,7 +326,7 @@
             }
 
             function renderTable() {
-                const r = data.results.find(x => x.key === activeKey);
+                const r = activeKey === ALL_KEY ? buildAllResult() : data.results.find(x => x.key === activeKey);
                 const head = $('vsHead'), body = $('vsBody'), err = $('vsError');
                 head.innerHTML = ''; body.innerHTML = '';
                 err.classList.add('d-none');
@@ -223,9 +371,35 @@
                 });
             }
 
+            function ymd(d) {
+                return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+            }
+
+            const vsPage = $('vsPage');
+            function fitPage() {
+                if (!vsPage) return;
+                vsPage.style.height = 'auto';
+                const top = vsPage.getBoundingClientRect().top + window.pageYOffset;
+                vsPage.style.height = Math.max(window.innerHeight - top - 16, 560) + 'px';
+            }
+
             $('vsSearch').addEventListener('click', runSearch);
             $('vsQuery').addEventListener('keydown', e => { if (e.key === 'Enter') runSearch(); });
             $('vsFilter').addEventListener('input', applyFilter);
+
+            document.querySelectorAll('.vs-quick').forEach(b => b.addEventListener('click', () => {
+                const now = new Date(), y = now.getFullYear(), m = now.getMonth();
+                let from = now, to = now;
+                switch (b.dataset.r) {
+                    case 'yesterday': from = to = new Date(y, m, now.getDate() - 1); break;
+                    case 'thismonth': from = new Date(y, m, 1); to = new Date(y, m + 1, 0); break;
+                    case 'lastmonth': from = new Date(y, m - 1, 1); to = new Date(y, m, 0); break;
+                }
+                $('vsFrom').value = ymd(from);
+                $('vsTo').value = ymd(to);
+                if ($('vsQuery').value.trim().length >= 2) runSearch();
+            }));
+
             $('vsClear').addEventListener('click', () => {
                 $('vsQuery').value = ''; $('vsFrom').value = ''; $('vsTo').value = '';
                 $('vsFilter').value = ''; data = null;
@@ -242,6 +416,10 @@
                 if (lastParams.to) p.set('to', lastParams.to);
                 window.location.href = '/VehicleSearch/Export?' + p.toString();
             });
+
+            window.addEventListener('resize', fitPage);
+            window.addEventListener('load', fitPage);
+            fitPage();
         })();
     </script>
 }

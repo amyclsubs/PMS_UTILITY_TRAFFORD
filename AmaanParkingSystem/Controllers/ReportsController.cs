@@ -35,8 +35,28 @@ public class ReportsController : BaseController
         }
     }
 
+    [HttpGet]
+    public IActionResult GetManualGateDevices()
+    {
+        try
+        {
+            using var conn = new SqlConnection(GetDynamicConnectionString());
+            var devices = conn.Query<string>(@"
+                SELECT DISTINCT [ip]
+                FROM [AMAAN_PMS].[dbo].[db_tbl_18_manual_door]
+                WHERE [ip] IS NOT NULL AND [ip] <> ''
+                ORDER BY [ip]").ToList();
+            return Json(new { success = true, data = devices });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading manual gate devices");
+            return Json(new { success = false, message = ex.Message });
+        }
+    }
+
     [HttpPost]
-    public IActionResult GetManualGateReportData(DateTime? startDate, DateTime? endDate, string filterType = "today")
+    public IActionResult GetManualGateReportData(DateTime? startDate, DateTime? endDate, string filterType = "today", string? devices = null)
     {
         try
         {
@@ -93,9 +113,14 @@ public class ReportsController : BaseController
                 [created_on]
             FROM [AMAAN_PMS].[dbo].[db_tbl_18_manual_door]
             WHERE [created_on] >= @StartDate AND [created_on] <= @EndDate
+              AND (@DeviceCount = 0 OR [ip] IN @Devices)
             ORDER BY [created_on] DESC";
 
-            var data = conn.Query<ManualGateReportModel>(query, new { StartDate = start, EndDate = end }).ToList();
+            var deviceList = string.IsNullOrWhiteSpace(devices)
+                ? new string[0]
+                : devices.Split(',', StringSplitOptions.RemoveEmptyEntries);
+
+            var data = conn.Query<ManualGateReportModel>(query, new { StartDate = start, EndDate = end, Devices = deviceList, DeviceCount = deviceList.Length }).ToList();
 
             return Json(new
             {
@@ -113,7 +138,7 @@ public class ReportsController : BaseController
     }
 
     [HttpGet]
-    public IActionResult ExportManualGateReport(DateTime? startDate, DateTime? endDate, string filterType = "today")
+    public IActionResult ExportManualGateReport(DateTime? startDate, DateTime? endDate, string filterType = "today", string? devices = null)
     {
         try
         {
@@ -170,11 +195,17 @@ public class ReportsController : BaseController
                 [created_on]
             FROM [AMAAN_PMS].[dbo].[db_tbl_18_manual_door]
             WHERE [created_on] >= @StartDate AND [created_on] <= @EndDate
+              AND (@DeviceCount = 0 OR [ip] IN @Devices)
             ORDER BY [created_on] DESC";
 
-            var data = conn.Query<ManualGateReportModel>(query, new { StartDate = start, EndDate = end }).ToList();
+            var deviceList = string.IsNullOrWhiteSpace(devices)
+                ? new string[0]
+                : devices.Split(',', StringSplitOptions.RemoveEmptyEntries);
+
+            var data = conn.Query<ManualGateReportModel>(query, new { StartDate = start, EndDate = end, Devices = deviceList, DeviceCount = deviceList.Length }).ToList();
 
             var excel = BuildManualGateExcel(data, start, end);
+
             string filename = $"Manual_Gate_Report_{start:yyyyMMdd}_to_{end:yyyyMMdd}.xlsx";
 
             return File(excel, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", filename);
@@ -303,7 +334,7 @@ public class ReportsController : BaseController
     }
 
     [HttpGet]
-public IActionResult TagUsageReport()
+    public IActionResult TagUsageReport()
     {
         try
         {

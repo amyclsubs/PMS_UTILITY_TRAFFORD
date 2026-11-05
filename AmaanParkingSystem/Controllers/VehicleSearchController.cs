@@ -50,6 +50,8 @@ namespace AmaanParkingSystem.Controllers
                 new[] { "cardno", "card_name" }),
             new("notexited", "Removed / Not Exited", "dbo.db_tbl_27_Cards_notexited", "removed_at", new[] { "car_plate_no" },
                 new[] { "cardno", "card_name", "mpesa_receipt_number" }),
+            new("manualdoor", "Manual Gate Opening", "dbo.db_tbl_18_manual_door", "created_on", new string[0],
+                new[] { "ip", "operation", "remark_manual_door", "created_by", "operator_name" }),
         };
 
         public class VehicleSearchRequest

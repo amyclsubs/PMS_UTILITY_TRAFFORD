@@ -109,6 +109,13 @@
                             <button type="button" class="btn btn-outline-primary" id="btnDateRange" onclick="toggleDateRange()">
                                 <i class="fas fa-calendar-alt me-1"></i>Date Range
                             </button>
+                            
+                            <div class="dropdown">
+                                <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                                    <i class="fas fa-microchip me-1"></i><span id="deviceBtnText">All Devices</span>
+                                </button>
+                                <ul class="dropdown-menu p-2" id="deviceList" style="max-height:300px;overflow-y:auto;"></ul>
+                            </div>
                         </div>
                     </div>
 
@@ -202,6 +209,7 @@
             let currentStartDate = null;
             let currentEndDate = null;
 
+            let currentDevices = [];
             // Button ID map for all filter buttons
             const filterBtnMap = {
                 'today':     'btnToday',
@@ -270,6 +278,31 @@
                 filterReport('today');
             };
 
+            function loadDevices() {
+                fetch('@Url.Action("GetManualGateDevices", "Reports")')
+                    .then(r => r.json())
+                    .then(res => {
+                        if (!res.success) return;
+                        let html = '<li><label class="dropdown-item"><input type="checkbox" class="form-check-input me-2" id="deviceAll" checked>All Devices</label></li><li><hr class="dropdown-divider"></li>';
+                        res.data.forEach(function (d) {
+                            html += `<li><label class="dropdown-item"><input type="checkbox" class="form-check-input me-2 device-chk" value="${d}">${d}</label></li>`;
+                        });
+                        const list = document.getElementById('deviceList');
+                        list.innerHTML = html;
+                        list.addEventListener('change', function (e) {
+                            if (e.target.id === 'deviceAll') {
+                                document.querySelectorAll('.device-chk').forEach(c => c.checked = false);
+                            }
+                            currentDevices = Array.from(document.querySelectorAll('.device-chk:checked')).map(c => c.value);
+                            document.getElementById('deviceAll').checked = currentDevices.length === 0;
+                            document.getElementById('deviceBtnText').textContent =
+                                currentDevices.length ? currentDevices.length + ' Selected' : 'All Devices';
+                            loadReportData();
+                        });
+                    });
+            }
+            loadDevices();
+
             function loadReportData() {
                 document.getElementById('tableBody').innerHTML = `
                     <tr><td colspan="6" class="text-center">
@@ -284,7 +317,8 @@
                     body: new URLSearchParams({
                         filterType:  currentFilter,
                         startDate:   currentStartDate || '',
-                        endDate:     currentEndDate || ''
+                        endDate:     currentEndDate || '',
+                        devices:     currentDevices.join(',')
                     })
                 })
                 .then(r => r.json())
@@ -357,6 +391,7 @@
                     url += '&startDate=' + encodeURIComponent(currentStartDate) +
                            '&endDate='   + encodeURIComponent(currentEndDate);
                 }
+                if (currentDevices.length) url += '&devices=' + encodeURIComponent(currentDevices.join(','));
                 window.location.href = url;
             };
 
