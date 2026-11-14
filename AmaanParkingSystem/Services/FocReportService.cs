@@ -64,15 +64,31 @@ namespace AmaanParkingSystem.Services
             T.[transaction_id], T.[cardname], T.[entry_time], T.[transaction_type], 
             T.[payment_source], T.[validation_time], T.[validation_charges], 
             T.[validation_paymode], T.[revalidation_time], T.[revalidation_charges], 
-            T.[revalidation_paymode], E.[reason], E.[remark], COALESCE(E.[car_plate_no], N.[car_plate_no]) AS car_plate_no
+            T.[revalidation_paymode], E.[reason], E.[remark], COALESCE(NULLIF(LTRIM(RTRIM(E.[car_plate_no])), ''), N.[car_plate_no], N2.[car_plate_no]) AS car_plate_no
        FROM [AMAAN_PMS].[dbo].[db_tbl_19_transactions] T
         OUTER APPLY (
             SELECT TOP 1 C.[car_plate_no]
             FROM [AMAAN_PMS].[dbo].[db_tbl_14_car_enterd] C
-            WHERE C.[transaction_id] = T.[transaction_id]
-            ORDER BY C.[id] DESC
+            WHERE C.[car_plate_no] IS NOT NULL
+              AND LTRIM(RTRIM(C.[car_plate_no])) <> ''
+              AND (
+                    C.[transaction_id] = T.[transaction_id]
+                    OR (C.[entry_time] = T.[entry_time]
+                        AND C.[validation_time] BETWEEN DATEADD(second, -2, T.[validation_time]) AND DATEADD(second, 2, T.[validation_time]))
+                  )            ORDER BY CASE WHEN C.[transaction_id] = T.[transaction_id] THEN 0 ELSE 1 END, C.[id] DESC
         ) N
-        LEFT JOIN [AMAAN_PMS].[dbo].[db_tbl_15_car_exited] E
+        OUTER APPLY (
+            SELECT TOP 1 X.[car_plate_no]
+            FROM [AMAAN_PMS].[dbo].[db_tbl_15_car_exited] X
+            WHERE X.[car_plate_no] IS NOT NULL
+              AND LTRIM(RTRIM(X.[car_plate_no])) <> ''
+              AND X.[entry_time] = T.[entry_time]
+              AND (
+                    X.[validation_time] BETWEEN DATEADD(second, -2, T.[validation_time]) AND DATEADD(second, 2, T.[validation_time])
+                    OR X.[revalidation_time] BETWEEN DATEADD(second, -2, T.[revalidation_time]) AND DATEADD(second, 2, T.[revalidation_time])
+                  )
+            ORDER BY X.[entry_time] DESC
+        ) N2        LEFT JOIN [AMAAN_PMS].[dbo].[db_tbl_15_car_exited] E
             ON T.[cardname] = E.[card_name] 
             AND (
                 (E.[validation_time] BETWEEN DATEADD(second, -2, T.[validation_time]) AND DATEADD(second, 2, T.[validation_time]))
