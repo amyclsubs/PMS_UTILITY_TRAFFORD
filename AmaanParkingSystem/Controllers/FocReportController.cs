@@ -106,6 +106,17 @@ namespace AmaanParkingSystem.Controllers
                 row++;
             }
 
+            // Insert "Plate No" column after "Card Name" (existing columns just shift right)
+            worksheet.Column(3).InsertColumnsBefore(1);
+            worksheet.Cell(1, 3).Value = "Plate No";
+            worksheet.Cell(1, 3).Style.Font.Bold = true;
+            int plateRow = 2;
+            foreach (var item in data)
+            {
+                worksheet.Cell(plateRow, 3).SetValue(item.car_plate_no?.ToString() ?? "");
+                plateRow++;
+            }
+
             worksheet.Columns().AdjustToContents();
 
             using var stream = new MemoryStream();

@@ -240,6 +240,7 @@
 					<tr>
 						<th>Trans ID</th>
 						<th>Card Name</th>
+						<th>Plate No</th>
 						<th>Type</th>
 						<th>Source</th>
 						<th>Val. Time</th>
@@ -449,6 +450,7 @@
 			<tr>
 				<td class="font-weight-bold text-primary text-center">${item.transaction_id || '--'}</td>
 				<td>${item.cardname || '--'}</td>
+				<td class="text-center font-weight-bold">${item.car_plate_no || '--'}</td>
 				<td style="color:black;font-weight:bold;text-align:center;">${item.transaction_type || '--'}</td>
 				<td class="text-center small">${item.payment_source || '--'}</td>
 				<td class="text-nowrap">${item.validation_time ? formatDate(item.validation_time) : '--'}</td>
@@ -465,7 +467,7 @@
 		const totalRevalChgs = filteredRows.reduce((s, r) => s + parseFloat(r.revalidation_charges || 0), 0);
 		html += `
 			<tr class="totals-row">
-				<td colspan="5" class="text-right">
+				<td colspan="6" class="text-right">
 					Total (${filteredRows.length} records)
 				</td>
 				<td class="text-right">${totalValChgs.toFixed(2)}</td>
