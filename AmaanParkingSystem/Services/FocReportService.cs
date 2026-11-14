@@ -64,7 +64,7 @@ namespace AmaanParkingSystem.Services
             T.[transaction_id], T.[cardname], T.[entry_time], T.[transaction_type], 
             T.[payment_source], T.[validation_time], T.[validation_charges], 
             T.[validation_paymode], T.[revalidation_time], T.[revalidation_charges], 
-            T.[revalidation_paymode], E.[reason], E.[remark]
+            T.[revalidation_paymode], E.[reason], E.[remark], E.[car_plate_no]
         FROM [AMAAN_PMS].[dbo].[db_tbl_19_transactions] T
         LEFT JOIN [AMAAN_PMS].[dbo].[db_tbl_15_car_exited] E 
             ON T.[cardname] = E.[card_name] 
@@ -94,7 +94,8 @@ namespace AmaanParkingSystem.Services
             var result = await connection.QueryAsync<dynamic>(
     new CommandDefinition(
         query,
-        new {
+        new
+        {
             StartDate = startDate.Date,
             EndDate = endDate.Date,
             PaymentSources = paymentSources
